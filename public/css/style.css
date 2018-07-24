@@ -1,0 +1,54 @@
+* {
+  box-sizing: border-box;
+}
+
+#page-lobby{
+  display: none;
+}
+
+#page-game {
+  display: none;
+}
+
+.board {
+  display: inline-block;
+  border: 2px solid black;
+}
+
+.rank {
+  display: flex;
+}
+
+.rank:nth-child(odd) .rank__check:nth-child(even),
+.rank:nth-child(even) .rank__check:nth-child(odd) {
+  background-color: black;
+}
+
+.rank__check {
+  height: 80px;
+  width: 80px;
+  padding: 8px;
+}
+
+.over {
+  border: 2px solid orange;
+}
+
+.piece {
+  cursor: pointer;
+  color: brown;
+  font-size: 3.8rem;
+  text-align: center;
+}
+
+.content {
+  text-align: center;
+}
+
+.active {
+  color: yellow;
+}
+
+.potencial_dead {
+  color: orangered;
+}

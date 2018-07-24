@@ -1,0 +1,21 @@
+extends layout
+
+block content
+  div(class='page login' id='page-login')
+    div(class='logo')
+    input(id='username')
+    button(id='login') Войти2
+
+  div(class="page lobby" id='page-lobby')
+    h1 Шашки
+    h2(id='userLabel')
+    h3 Активные игры
+    div(id='gamesList') Активные игры отсутствуют
+    h3 Игроки онлайн
+    div(id='userList') Игроки онлайн отсуствуют
+
+  div(class="page game" id='page-game')
+    button(id='game-back') Назад
+    div(id='game-board' style="width: 400px")
+
+
