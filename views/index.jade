@@ -1,21 +1,39 @@
 extends layout
 
 block content
-  div(class='page login' id='page-login')
-    div(class='logo')
-    input(id='username')
-    button(id='login') Войти2
 
-  div(class="page lobby" id='page-lobby')
-    h1 Шашки
-    h2(id='userLabel')
-    h3 Активные игры
-    div(id='gamesList') Активные игры отсутствуют
-    h3 Игроки онлайн
-    div(id='userList') Игроки онлайн отсуствуют
+    h1= title
 
-  div(class="page game" id='page-game')
-    button(id='game-back') Назад
-    div(id='game-board' style="width: 400px")
+    div(class='page start' id='page-start')
+        button(id='PP') Против человека
+        button(id='CP') Против компьютера
+
+    //PP
+    div(class='page login' id='page-login')
+        div(class='logo')
+        input(id='username')
+        button(id='login') Войти
+
+    div(class="page lobby" id='page-lobby')
+        h1 Шашки
+        h2(id='userLabel')
+        h3 Активные игры
+        div(id='gamesList') Активные игры отсутствуют
+        h3 Игроки онлайн
+        div(id='userList') Игроки онлайн отсуствуют
+
+    //CP
+    div(class='page computer' id='page-computer')
+        h2 Сложность
+        form(action='/' method='post')
+            button(id='low' type='submit' name='level' value="low") Легкий
+            button(id='medium' type='submit' name='level' value="medium") Средний
+            button(id='high' type='submit' name='level' value="high") Высокий
+
+    //GAME BOARD
+    div(class="page game" id='page-game')
+        button(id='game-back') Назад
+        button(id='rotate-board') Перевернуть доску
+        div(id='game-board' style="width: 400px")
 
 

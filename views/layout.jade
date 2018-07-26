@@ -10,4 +10,12 @@ html
     script(src="/lib/jquery-1.11.1.js")
 
     script(src="/js/dynamicListener.js")
-    script(src="/js/script.js")
+
+    if level === 'low'
+        script(src="/js/comp.js" level='low')
+    else if level === 'medium'
+        script(src="/js/comp.js" level='medium')
+    else if level === 'high'
+        script(src="/js/comp.js" level='high')
+    else
+        script(src="/js/script.js")

@@ -2,8 +2,16 @@
   box-sizing: border-box;
 }
 
+#page-login {
+    display: none;
+}
+
 #page-lobby{
   display: none;
+}
+
+#page-computer {
+    display: none;
 }
 
 #page-game {
@@ -51,4 +59,10 @@
 
 .potencial_dead {
   color: orangered;
+}
+
+.rotate_board {
+    -webkit-transform: rotate(180deg);
+    -ms-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
