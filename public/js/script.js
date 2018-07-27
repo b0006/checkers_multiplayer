@@ -11,8 +11,6 @@ $( document ).ready(function() {
 
     let settings_game = [];
 
-    let current_script = document.querySelector('script[src*="script.js"]');
-
     // подсвечивать шаги
     let OVER_STEPS = null;
 
@@ -121,6 +119,14 @@ $( document ).ready(function() {
 
             let target = $(".rank__check[x="+ msg.target_x +"][y="+ msg.target_y +"]"); // кого нужно "фукнуть"
             target[0].firstElementChild.remove();
+
+            // меняем игрока
+            if (msg.currentPlayer === "black") {
+                player = "white";
+            }
+            else if (msg.currentPlayer === "white") {
+                player = "black";
+            }
         }
     });
 
@@ -1545,6 +1551,8 @@ $( document ).ready(function() {
                         //nu i takoe byvaet
                         if(!needEat) { // tochnee nado :)
 
+                            console.log(potencialStepsWhiteQueenGlobal);
+
                             if(current_piece.parentElement.getAttribute("x") === potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x")
                             && current_piece.parentElement.getAttribute("y") === potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y")
                             ) {
@@ -1554,6 +1562,7 @@ $( document ).ready(function() {
                                         if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
                                             socket.emit('fuch', {
                                                 gameId: serverGame.id,
+                                                currentPlayer: player,
                                                 target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
                                                 target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
                                             });
@@ -1576,6 +1585,7 @@ $( document ).ready(function() {
                                         if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
                                             socket.emit('fuch', {
                                                 gameId: serverGame.id,
+                                                currentPlayer: player,
                                                 target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
                                                 target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
                                             });
@@ -1598,6 +1608,7 @@ $( document ).ready(function() {
                                         if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
                                             socket.emit('fuch', {
                                                 gameId: serverGame.id,
+                                                currentPlayer: player,
                                                 target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
                                                 target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
                                             });
@@ -1620,6 +1631,7 @@ $( document ).ready(function() {
                                         if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
                                             socket.emit('fuch', {
                                                 gameId: serverGame.id,
+                                                currentPlayer: player,
                                                 target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
                                                 target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
                                             });
@@ -1861,8 +1873,8 @@ $( document ).ready(function() {
                                                 y: current_y,
                                             },
                                             target: {
-                                                x: value.upright.enemy[0][0].getAttribute("x"),
-                                                y: value.upright.enemy[0][0].getAttribute("y"),
+                                                x: value.upleft.enemy[0][0].getAttribute("x"),
+                                                y: value.upleft.enemy[0][0].getAttribute("y"),
                                             },
                                             currentPlayer: player,
                                             isQueen: true
@@ -1871,7 +1883,7 @@ $( document ).ready(function() {
                                         $(current_piece).remove();
                                         current_piece = null;
 
-                                        let kill_target = $(".rank__check[x=" + value.upright.enemy[0][0].getAttribute("x") + "][y=" + value.upright.enemy[0][0].getAttribute("y") + "]");
+                                        let kill_target = $(".rank__check[x=" + value.upleft.enemy[0][0].getAttribute("x") + "][y=" + value.upleft.enemy[0][0].getAttribute("y") + "]");
                                         $(kill_target)[0].firstElementChild.remove();
 
                                         // change player
@@ -1905,8 +1917,8 @@ $( document ).ready(function() {
                                                 y: current_y,
                                             },
                                             target: {
-                                                x: value.upright.enemy[0][0].getAttribute("x"),
-                                                y: value.upright.enemy[0][0].getAttribute("y"),
+                                                x: value.bottomright.enemy[0][0].getAttribute("x"),
+                                                y: value.bottomright.enemy[0][0].getAttribute("y"),
                                             },
                                             currentPlayer: player,
                                             isQueen: true
@@ -1915,7 +1927,7 @@ $( document ).ready(function() {
                                         $(current_piece).remove();
                                         current_piece = null;
 
-                                        let kill_target = $(".rank__check[x=" + value.upright.enemy[0][0].getAttribute("x") + "][y=" + value.upright.enemy[0][0].getAttribute("y") + "]");
+                                        let kill_target = $(".rank__check[x=" + value.bottomright.enemy[0][0].getAttribute("x") + "][y=" + value.bottomright.enemy[0][0].getAttribute("y") + "]");
                                         $(kill_target)[0].firstElementChild.remove();
 
                                         // change player
@@ -1948,8 +1960,8 @@ $( document ).ready(function() {
                                                 y: current_y,
                                             },
                                             target: {
-                                                x: value.upright.enemy[0][0].getAttribute("x"),
-                                                y: value.upright.enemy[0][0].getAttribute("y"),
+                                                x: value.bottomleft.enemy[0][0].getAttribute("x"),
+                                                y: value.bottomleft.enemy[0][0].getAttribute("y"),
                                             },
                                             currentPlayer: player,
                                             isQueen: true
@@ -1958,7 +1970,7 @@ $( document ).ready(function() {
                                         $(current_piece).remove();
                                         current_piece = null;
 
-                                        let kill_target = $(".rank__check[x=" + value.upright.enemy[0][0].getAttribute("x") + "][y=" + value.upright.enemy[0][0].getAttribute("y") + "]");
+                                        let kill_target = $(".rank__check[x=" + value.bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value.bottomleft.enemy[0][0].getAttribute("y") + "]");
                                         $(kill_target)[0].firstElementChild.remove();
 
                                         // change player

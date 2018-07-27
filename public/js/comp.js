@@ -128,8 +128,6 @@ $(document).ready(function(){
     //можно обычным шашка аттаковать назад
     const SIMPLE_BACK_ATTACK = current_script.getAttribute("simple_back_attack");
 
-    console.log(SIMPLE_BACK_ATTACK);
-
 
     let player = "white"; //the first player
     let isHasEnemy = false;
