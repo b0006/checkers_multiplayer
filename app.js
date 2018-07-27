@@ -1,6 +1,6 @@
 let express = require('express');
 let app = express();
-var path = require ('path');
+let path = require ('path');
 app.use(express.static('public'));
 
 let http = require('http').Server(app);
@@ -50,17 +50,17 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('joinlobby', socket.userId);
     }
 
-    socket.on('invite', function(opponentId) {
-        console.log('got an invite from: ' + socket.userId + ' --> ' + opponentId);
+    socket.on('invite', function(msg) {
+        console.log('got an invite from: ' + socket.userId + ' --> ' + msg.user);
 
         socket.broadcast.emit('leavelobby', socket.userId);
-        socket.broadcast.emit('leavelobby', opponentId);
+        socket.broadcast.emit('leavelobby', msg.user);
 
 
         let game = {
             id: Math.floor((Math.random() * 100) + 1),
             board: null,
-            users: {white: socket.userId, black: opponentId}
+            users: {white: socket.userId, black: msg.user}
         };
 
         socket.gameId = game.id;
@@ -70,13 +70,13 @@ io.on('connection', function(socket) {
         users[game.users.black].games[game.id] = game.id;
 
         console.log('starting game: ' + game.id);
-        lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white'});
-        lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black'});
+        lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white', settings: msg.settings_game});
+        lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black', settings: msg.settings_game});
 
         delete lobbyUsers[game.users.white];
         delete lobbyUsers[game.users.black];
 
-        socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game});
+        socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game, settings: msg.settings_game});
     });
 
     socket.on('resumegame', function(gameId) {
@@ -99,6 +99,10 @@ io.on('connection', function(socket) {
             lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black'});
             delete lobbyUsers[game.users.black];
         }
+    });
+
+    socket.on('fuch', function (msg) {
+        socket.broadcast.emit('fuch', msg);
     });
 
     socket.on('step', function (msg) {

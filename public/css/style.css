@@ -18,6 +18,14 @@
   display: none;
 }
 
+#page-setting {
+    display: none;
+}
+
+#time_check_text {
+    display: none;
+}
+
 .board {
   display: inline-block;
   border: 2px solid black;

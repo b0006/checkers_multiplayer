@@ -15,25 +15,57 @@ block content
         button(id='login') Войти
 
     div(class="page lobby" id='page-lobby')
-        h1 Шашки
+        h2 Лобби
         h2(id='userLabel')
         h3 Активные игры
         div(id='gamesList') Активные игры отсутствуют
         h3 Игроки онлайн
         div(id='userList') Игроки онлайн отсуствуют
+        h3 Настройка игры
+        button(class="button-setting") Опции
 
     //CP
     div(class='page computer' id='page-computer')
-        h2 Сложность
-        form(action='/' method='post')
-            button(id='low' type='submit' name='level' value="low") Легкий
-            button(id='medium' type='submit' name='level' value="medium") Средний
-            button(id='high' type='submit' name='level' value="high") Высокий
+        h2 Против компьютера
+        h3 Сложность
+        form(action='/game' id='cpu_level' method='post')
+            input(type='hidden' name="game_mode" value="CP")
+            input(type='radio' name='level' value="low")
+            | Легкий
+            input(type='radio' name='level' value="medium")
+            | Средний
+            input(type='radio' name='level' value="high")
+            | Высокий
+            button(id='high' type='submit') Играть
+        h3 Настройка игры
+        button(class="button-setting") Опции
 
     //GAME BOARD
     div(class="page game" id='page-game')
         button(id='game-back') Назад
         button(id='rotate-board') Перевернуть доску
-        div(id='game-board' style="width: 400px")
+        div(id='game-board')
+
+
+    // SETTING
+    div(class'page setting' id='page-setting' style="display: none")
+        form(id="settings")
+            h3 Общие
+            input(type='checkbox' name='color_potencial_step')
+            | Подсвечивать возможные ходы
+            br
+            input(type='checkbox' id="time_check_checkbox" name='time_check')
+            | Учитывать время
+            input(type="text" id='time_check_text' name='time_value' placeholder="__:__")
+            br
+            input(type='checkbox' name='multiattack')
+            | Возможность "рубить" несколько шашек за один ход
+            br
+            input(type='checkbox' name='fuchs')
+            | Играть с фуками
+
+            h3 Обычные шашки
+            input(type='checkbox' name='simple_back_attack')
+            | Рубить назад
 
 
