@@ -55,9 +55,6 @@ $( document ).ready(function() {
 
     let potencialStepsWhiteQueenGlobal = [];
     let potencialAttackWhiteQueenGlobal = [];
-    let hasQueenEnemyForAttack = false;
-
-    let potencialStepsWhiteQueenGlobal_2 = [];
 
     //////////////////////////////
     // Socket.io handlers
@@ -80,6 +77,7 @@ $( document ).ready(function() {
     });
 
     socket.on('gameadd', function(msg) {
+        // console.log("Игры: "+ msg.gameId + ")\tBlack: " + msg.gameState.users.black + " - White: " + msg.gameState.users.white);
     });
 
     // socket.on('resign', function(msg) {
@@ -134,6 +132,8 @@ $( document ).ready(function() {
     socket.on('step', function (msg) {
         if (serverGame && msg.gameId === serverGame.id) {
 
+            console.log(msg)
+
             let next = $(".rank__check[x="+ msg.next.x +"][y="+ msg.next.y +"]"); // куда был сделан ход
             let prev = $(".rank__check[x="+ msg.prev.x +"][y="+ msg.prev.y +"]"); // предыдущее место, которое нужно "очистить"
 
@@ -171,7 +171,6 @@ $( document ).ready(function() {
     //рубить
     socket.on('attack', function (msg) {
         if (serverGame && msg.gameId === serverGame.id) {
-            console.log(msg);
 
             let next = $(".rank__check[x="+ msg.next.x +"][y="+ msg.next.y +"]"); // куда был сделан ход
             let prev = $(".rank__check[x="+ msg.prev.x +"][y="+ msg.prev.y +"]"); // предыдущее место, которое нужно "очистить"
@@ -203,12 +202,14 @@ $( document ).ready(function() {
                 }
             }
 
-            // меняем игрока
-            if(msg.currentPlayer === "black") {
-                player = "white";
-            }
-            else if(msg.currentPlayer === "white") {
-                player = "black";
+            if(!msg.hasEnemy) {
+                // меняем игрока
+                if (msg.currentPlayer === "black") {
+                    player = "white";
+                }
+                else if (msg.currentPlayer === "white") {
+                    player = "black";
+                }
             }
         }
     });
@@ -449,98 +450,61 @@ $( document ).ready(function() {
         $('.rank__check').toggleClass("rotate_board");
     });
 
-    // click on checkers
-    addDynamicEventListener(document.body, 'click', '.piece', function (e) {
+    let pieceForFuch = [];
 
-        if(player !== playerColor) {
-            alert("Подождите, соперник еще не сделал ход");
-            return false;
-        }
+    function randomInteger(min, max) {
+        var rand = min - 0.5 + Math.random() * (max - min + 1)
+        rand = Math.round(rand);
+        return rand;
+    }
 
-        let currentPlayer = checkPlayer(e.target);
-        if(currentPlayer !== playerColor) {
-            return false;
-        }
+    function getAllQueenCells(color) {
 
+        let result = [];
 
-        // current piece
-        current_piece = e.target;
+        let all_pieces = document.querySelectorAll('.queen.' + color);
 
-        //remove active from all pieces
-        $(".piece").removeClass("active");
-        $(".piece").removeClass("potencial_dead");
+        let needEat = [];
 
-        // get current coordinates
-        let piece_x = current_piece.parentElement.getAttribute("x");
-        let piece_y = current_piece.parentElement.getAttribute("y");
+        for(let i = 0; i < all_pieces.length; i++) {
+            let piece_x = all_pieces[i].parentElement.getAttribute("x");
+            let piece_y = all_pieces[i].parentElement.getAttribute("y");
 
-        // надо исправить это недразумение будет
-        let potencial_up_right_x = null;
-        let potencial_up_right_y = null;
-        let potencial_right_x = null;
-        let potencial_right_y = null;
-        let potencial_bottom_right_x = null;
-        let potencial_bottom_right_y = null;
-
-        let potencial_up_left_x = null;
-        let potencial_up_left_y = null;
-        let potencial_left_x = null;
-        let potencial_left_y = null;
-        let potencial_bottom_left_x = null;
-        let potencial_bottom_left_y = null;
-
-        let nextPotencial_up_right_x = null;
-        let nextPotencial_up_right_y = null;
-        let nextPotencial_up_left_x = null;
-        let nextPotencial_up_left_y = null;
-
-        let nextPotencial_bottom_right_x = null;
-        let nextPotencial_bottom_right_y = null;
-        let nextPotencial_bottom_left_x = null;
-        let nextPotencial_bottom_left_y = null;
+            let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
+            let potencialStepsWhiteQueenUpRigth = [];
+            let potencialStepsWhiteQueenUpLeft = [];
+            let potencialStepsWhiteQueenBottomRigth = [];
+            let potencialStepsWhiteQueenBottomLeft = [];
 
 
-        // get all pieces
-        let allPiece = document.querySelectorAll('.rank__check');
+            let potencialAttackWhiteQueenUpRigth = [];
+            let potencialAttackWhiteQueenUpLeft = [];
+            let potencialAttackWhiteQueenBottomRigth = [];
+            let potencialAttackWhiteQueenBottomLeft = [];
 
+            let potencial_up_right_x = null;
+            let potencial_up_right_y = null;
+            let potencial_up_left_x = null;
+            let potencial_up_left_y = null;
 
-        let arPotencialWhite = [];
-        let isWhiteNeedAttack = [];
+            let potencial_bottom_right_x = null;
+            let potencial_bottom_right_y = null;
+            let potencial_bottom_left_x = null;
+            let potencial_bottom_left_y = null;
 
-        let arPotencialBlack = [];
-        let isBlackNeedAttack = [];
+            let nextPotencial_up_right_x = null;
+            let nextPotencial_up_right_y = null;
+            let nextPotencial_up_left_x = null;
+            let nextPotencial_up_left_y = null;
 
-        /**
-         * QUEEN
-         */
-
-        let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
-        let potencialStepsWhiteQueenUpRigth = [];
-        let potencialStepsWhiteQueenUpLeft = [];
-        let potencialStepsWhiteQueenBottomRigth = [];
-        let potencialStepsWhiteQueenBottomLeft = [];
-
-
-        let potencialAttackWhiteQueenUpRigth = [];
-        let potencialAttackWhiteQueenUpLeft = [];
-        let potencialAttackWhiteQueenBottomRigth = [];
-        let potencialAttackWhiteQueenBottomLeft = [];
-
-        let count = 0;
-
-        if(currentPiece.firstElementChild.classList.contains("queen")) {
+            let nextPotencial_bottom_right_x = null;
+            let nextPotencial_bottom_right_y = null;
+            let nextPotencial_bottom_left_x = null;
+            let nextPotencial_bottom_left_y = null;
 
             let potencialWhiteQueenCell = null;
             let nextPotencialWhiteQueenCell = null;
 
-            //для того, чтобы "заставить" дамку рубить (если режим игры заставляет только рубит и ни как иначе)
-            /**
-             * if(!hasQueenEnemy) {
-             *    count = 0;
-             *    for (let q = 1; q < 8; q++)
-             * }
-             *
-             */
             let needStepUpRight = [];
             let needStepUpLeft = [];
             let needStepBottomRight = [];
@@ -548,10 +512,8 @@ $( document ).ready(function() {
 
             let hasQueenEnemy = false;
             let needStep = [];
-            let forNeedStep = false; // для привязки enemy и needStep
-            let arForNeedStep = [];
 
-            count = 0;
+            let count = 0;
             for (let q = 1; q < 8; q++) {
 
                 potencial_up_right_x = parseInt(piece_x) + q;
@@ -590,7 +552,7 @@ $( document ).ready(function() {
                                                 //get next target fot attack
                                                 potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
                                                 hasQueenEnemy = true;
-                                                hasQueenEnemyForAttack = true; //global
+                                                needEat.push(currentPiece);
                                             }
                                         }
                                         catch (exp) {
@@ -622,7 +584,9 @@ $( document ).ready(function() {
                         else {
                             if (hasQueenEnemy) {
                                 needStep.push(potencialWhiteQueenCell);
-                                needStepUpRight.push(potencialWhiteQueenCell); //test
+                                needStepUpRight.push(potencialWhiteQueenCell);
+
+                                pieceForFuch.push(current_piece);
                             }
                             else {
                                 potencialStepsWhiteQueenUpRigth.push(potencialWhiteQueenCell);
@@ -637,9 +601,6 @@ $( document ).ready(function() {
                         }
                     }
                     catch (exp){}
-
-
-
                 }
             }
 
@@ -647,94 +608,96 @@ $( document ).ready(function() {
             count = 0;
             for (let q = 1; q < 8; q++) {
 
-                    potencial_up_left_x = parseInt(piece_x) - q;
-                    potencial_up_left_y = parseInt(piece_y) - q;
+                potencial_up_left_x = parseInt(piece_x) - q;
+                potencial_up_left_y = parseInt(piece_y) - q;
 
-                    nextPotencial_up_left_x = (parseInt(piece_x) - q) - 1;
-                    nextPotencial_up_left_y = (parseInt(piece_y) - q) - 1;
+                nextPotencial_up_left_x = (parseInt(piece_x) - q) - 1;
+                nextPotencial_up_left_y = (parseInt(piece_y) - q) - 1;
 
-                    if ((potencial_up_left_x < 8) && (potencial_up_left_y < 8) && (potencial_up_left_x >= 0) && (potencial_up_left_y >= 0)) {
+                if ((potencial_up_left_x < 8) && (potencial_up_left_y < 8) && (potencial_up_left_x >= 0) && (potencial_up_left_y >= 0)) {
 
-                        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']');
-                        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_left_x + '][y=' + nextPotencial_up_left_y + ']');
+                    potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']');
+                    nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_left_x + '][y=' + nextPotencial_up_left_y + ']');
 
-                        try {
+                    try {
 
-                            if (potencialWhiteQueenCell[0].firstElementChild) {
+                        if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                            if (currentPiece.firstElementChild.classList.contains("white")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                    break;
+                                }
+                            }
+                            else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+                                    break;
+                                }
+                            }
+
+                            if (count === 0) {
 
                                 if (currentPiece.firstElementChild.classList.contains("white")) {
-                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-                                        break;
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
                                     }
                                 }
                                 else if (currentPiece.firstElementChild.classList.contains("black")) {
-                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-                                        break;
-                                    }
-                                }
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
 
-                                if (count === 0) {
-
-                                    if (currentPiece.firstElementChild.classList.contains("white")) {
-                                        // if this is enemy
-                                        if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-
-                                            try {
-                                                if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                                    //get next target fot attack
-                                                    potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
-                                                    hasQueenEnemy = true;
-                                                    hasQueenEnemyForAttack = true; //global
-                                                }
-                                            }
-                                            catch (exp) {
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
                                             }
                                         }
-                                    }
-                                    else if (currentPiece.firstElementChild.classList.contains("black")) {
-                                        // if this is enemy
-                                        if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-
-                                            try {
-                                                if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                                    //get next target fot attack
-                                                    potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
-                                                    hasQueenEnemy = true;
-                                                }
-                                            }
-                                            catch (exp) {
-                                            }
+                                        catch (exp) {
                                         }
                                     }
                                 }
-                                else {
-                                    break;
-                                }
-                                count++;
-
                             }
                             else {
-                                if (hasQueenEnemy) {
-                                    needStep.push(potencialWhiteQueenCell);
-                                    needStepUpLeft.push(potencialWhiteQueenCell); //test
-                                }
-                                else {
-                                    potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
-                                }
-                            }
-                        }
-                        catch(exu) {}
-
-                        try {
-                            if (potencialWhiteQueenCell[0].firstElementChild && nextPotencialWhiteQueenCell[0].firstElementChild) {
                                 break;
                             }
-                        }
-                        catch (exp) {
-                        }
+                            count++;
 
+                        }
+                        else {
+                            if (hasQueenEnemy) {
+                                needStep.push(potencialWhiteQueenCell);
+                                needStepUpLeft.push(potencialWhiteQueenCell);
+
+                                pieceForFuch.push(current_piece);
+                            }
+                            else {
+                                potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                            }
+                        }
                     }
+                    catch(exu) {}
+
+                    try {
+                        if (potencialWhiteQueenCell[0].firstElementChild && nextPotencialWhiteQueenCell[0].firstElementChild) {
+                            break;
+                        }
+                    }
+                    catch (exp) {
+                    }
+
                 }
+            }
 
             hasQueenEnemy = false;
             count = 0;
@@ -777,7 +740,7 @@ $( document ).ready(function() {
                                                 //get next target fot attack
                                                 potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
                                                 hasQueenEnemy = true;
-                                                hasQueenEnemyForAttack = true; //global
+                                                needEat.push(currentPiece);
                                             }
                                         }
                                         catch (exp) {
@@ -811,7 +774,9 @@ $( document ).ready(function() {
                         else {
                             if (hasQueenEnemy) {
                                 needStep.push(potencialWhiteQueenCell);
-                                needStepBottomRight.push(potencialWhiteQueenCell); //test
+                                needStepBottomRight.push(potencialWhiteQueenCell);
+
+                                pieceForFuch.push(current_piece);
                             }
                             else {
                                 potencialStepsWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
@@ -872,7 +837,7 @@ $( document ).ready(function() {
                                                 //get next target fot attack
                                                 potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
                                                 hasQueenEnemy = true;
-                                                hasQueenEnemyForAttack = true; //global
+                                                needEat.push(currentPiece);
                                             }
                                         }
                                         catch (exp) {
@@ -906,7 +871,9 @@ $( document ).ready(function() {
                         else {
                             if (hasQueenEnemy) {
                                 needStep.push(potencialWhiteQueenCell);
-                                needStepBottomLeft.push(potencialWhiteQueenCell); //test
+                                needStepBottomLeft.push(potencialWhiteQueenCell);
+
+                                pieceForFuch.push(current_piece);
                             }
                             else {
                                 potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
@@ -926,102 +893,9 @@ $( document ).ready(function() {
                 }
             }
 
-            // hasQueenEnemy = false;
-            // count = 0;
-            // for (let q = 1; q < 8; q++) {
-            //
-            //     potencial_bottom_left_x = parseInt(piece_x) - q;
-            //     potencial_bottom_left_y = parseInt(piece_y) + q;
-            //
-            //     nextPotencial_bottom_left_x = (parseInt(piece_x) - q) - 1;
-            //     nextPotencial_bottom_left_y = (parseInt(piece_y) + q) + 1;
-            //
-            //     if ((potencial_bottom_left_x < 8) && (potencial_bottom_left_y < 8) && (potencial_bottom_left_x >= 0) && (potencial_bottom_left_y >= 0)) {
-            //
-            //         potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_left_x + '][y=' + potencial_bottom_left_y + ']');
-            //         nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_left_x + '][y=' + nextPotencial_bottom_left_y + ']');
-            //
-            //         try {
-            //             if (potencialWhiteQueenCell[0].firstElementChild) {
-            //
-            //                 if (currentPiece.firstElementChild.classList.contains("white")) {
-            //                     if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-            //                         break;
-            //                     }
-            //                 }
-            //                 else if (currentPiece.firstElementChild.classList.contains("black")) {
-            //                     if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-            //                         break;
-            //                     }
-            //                 }
-            //
-            //                 if (count === 0) {
-            //
-            //                     if (currentPiece.firstElementChild.classList.contains("white")) {
-            //                         // if this is enemy
-            //                         if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-            //
-            //                             try {
-            //                                 if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-            //                                     //get next target fot attack
-            //                                     potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
-            //                                     hasQueenEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (exp) {
-            //                             }
-            //                         }
-            //                     }
-            //                     else if (currentPiece.firstElementChild.classList.contains("black")) {
-            //                         // if this is enemy
-            //                         if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-            //
-            //                             try {
-            //                                 if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-            //                                     //get next target fot attack
-            //                                     potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
-            //                                     hasQueenEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (exp) {
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //                 else {
-            //                     break;
-            //                 }
-            //                 count++;
-            //
-            //             }
-            //             else {
-            //                 if (hasQueenEnemy) {
-            //                     needStep.push(potencialWhiteQueenCell);
-            //                 }
-            //                 else {
-            //                     potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
-            //                 }
-            //             }
-            //         }
-            //         catch(exb){}
-            //
-            //         try {
-            //             if (potencialWhiteQueenCell[0].firstElementChild && nextPotencialWhiteQueenCell[0].firstElementChild) {
-            //                 break;
-            //             }
-            //         }
-            //         catch (exp) {
-            //         }
-            //     }
-            // }
-
-            potencialStepsWhiteQueenGlobal = [];
-            potencialAttackWhiteQueenGlobal = [];
-
-            // potencialStepsWhiteQueenGlobal_2 = []; //test
-
-            potencialStepsWhiteQueenGlobal = [{
-                needeat : current_piece,
+            let queen = [{
+                currentpiece : currentPiece,
+                needeat : needEat,
                 upright: {
                     needStep : needStepUpRight,
                     empty : potencialStepsWhiteQueenUpRigth,
@@ -1044,62 +918,130 @@ $( document ).ready(function() {
                 }
             }];
 
-            // potencialStepsWhiteQueenGlobal = {
-            //     needStep : needStep,
-            //     empty : potencialStepsWhiteQueenGlobal.concat(potencialStepsWhiteQueenUpRigth, potencialStepsWhiteQueenUpLeft, potencialStepsWhiteQueenBottomRigth, potencialStepsWhiteQueenBottomLeft, needStep),
-            //     enemy : potencialAttackWhiteQueenGlobal.concat(potencialAttackWhiteQueenUpRigth, potencialAttackWhiteQueenUpLeft, potencialAttackWhiteQueenBottomRigth, potencialAttackWhiteQueenBottomLeft)
-            // };
+            result.push(queen);
+        }
 
+        return result;
+    }
+
+    // click on checkers
+    addDynamicEventListener(document.body, 'click', '.piece', function (e) {
+        if(current_piece !== null) {
+            if (current_piece.classList.contains("next")) {
+                return false;
+            }
+        }
+
+        if(player !== playerColor) {
+            alert("Подождите, соперник еще не сделал ход");
+            return false;
+        }
+
+        let currentPlayer = checkPlayer(e.target);
+        if(currentPlayer !== playerColor) {
+            return false;
+        }
+
+        // current piece
+        current_piece = e.target;
+
+        //remove active from all pieces
+        $(".piece").removeClass("active");
+        $(".piece").removeClass("potencial_dead");
+
+        // get current coordinates
+        let piece_x = current_piece.parentElement.getAttribute("x");
+        let piece_y = current_piece.parentElement.getAttribute("y");
+
+        // надо исправить это недразумение будет
+        let potencial_up_right_x = null;
+        let potencial_up_right_y = null;
+        let potencial_right_x = null;
+        let potencial_right_y = null;
+        let potencial_bottom_right_x = null;
+        let potencial_bottom_right_y = null;
+
+        let potencial_up_left_x = null;
+        let potencial_up_left_y = null;
+        let potencial_left_x = null;
+        let potencial_left_y = null;
+        let potencial_bottom_left_x = null;
+        let potencial_bottom_left_y = null;
+
+
+        // get all pieces
+        let allPiece = document.querySelectorAll('.rank__check');
+
+
+        let arPotencialWhite = [];
+        let isWhiteNeedAttack = [];
+
+        let arPotencialBlack = [];
+        let isBlackNeedAttack = [];
+
+        /**
+         * QUEEN
+         */
+
+        let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
+
+        if(currentPiece.firstElementChild.classList.contains("queen")) {
+            $(current_piece).addClass("active");
+
+            let queens = [];
+
+            if(currentPlayer === "white") {
+                queens = getAllQueenCells("white");
+            }
+            else if(currentPlayer === "black") {
+                queens = getAllQueenCells("black");
+            }
+
+            potencialStepsWhiteQueenGlobal = queens;
 
             $('.rank__check').toggleClass("over", false);
 
-            potencialStepsWhiteQueenGlobal.forEach(function (value, index) {
-                value.upright.empty.forEach(function (val_up) {
-                    val_up.toggleClass("over", true);
-                });
-                value.upright.needStep.forEach(function (val_up) {
-                    val_up.toggleClass("over", true);
+            // подсвечивание
+            queens.forEach(function (value) {
+
+                value[0].needeat.forEach(function (val_need) {
+                    $(val_need.firstElementChild).toggleClass("fuch", true);
                 });
 
+               if(current_piece.parentElement === value[0].currentpiece) {
+                   value[0].upright.empty.forEach(function (val_up) {
+                       val_up.toggleClass("over", true);
+                   });
+                   value[0].upright.needStep.forEach(function (val_up) {
+                       val_up.toggleClass("over", true);
+                   });
 
-                value.upleft.empty.forEach(function (val_up) {
-                    val_up.toggleClass("over", true);
-                });
-                value.upleft.needStep.forEach(function (val_up) {
-                    val_up.toggleClass("over", true);
-                });
 
-                value.bottomright.empty.forEach(function (val_bot) {
-                    val_bot.toggleClass("over", true);
-                });
-                value.bottomright.needStep.forEach(function (val_bot) {
-                    val_bot.toggleClass("over", true);
-                });
+                   value[0].upleft.empty.forEach(function (val_up) {
+                       val_up.toggleClass("over", true);
+                   });
+                   value[0].upleft.needStep.forEach(function (val_up) {
+                       val_up.toggleClass("over", true);
+                   });
 
-                value.bottomleft.empty.forEach(function (val_bot) {
-                    val_bot.toggleClass("over", true);
-                });
-                value.bottomleft.needStep.forEach(function (val_bot) {
-                    val_bot.toggleClass("over", true);
-                });
+                   value[0].bottomright.empty.forEach(function (val_bot) {
+                       val_bot.toggleClass("over", true);
+                   });
+                   value[0].bottomright.needStep.forEach(function (val_bot) {
+                       val_bot.toggleClass("over", true);
+                   });
+
+                   value[0].bottomleft.empty.forEach(function (val_bot) {
+                       val_bot.toggleClass("over", true);
+                   });
+                   value[0].bottomleft.needStep.forEach(function (val_bot) {
+                       val_bot.toggleClass("over", true);
+                   });
+               }
             });
 
-            // potencialStepsWhiteQueenGlobal["empty"].forEach(function (value, index, array) {
-            //     // value.toggleClass("over", true);
-            // });
+            $(current_piece).toggleClass("fuch", false);
 
-            // potencialStepsWhiteQueenUpRigth.forEach(function (value, index, array) {
-            //     value.toggleClass("over", true);
-            // });
-            // potencialStepsWhiteQueenUpLeft.forEach(function (value, index, array) {
-            //     value.toggleClass("over", true);
-            // });
-            // potencialStepsWhiteQueenBottomRigth.forEach(function (value, index, array) {
-            //     value.toggleClass("over", true);
-            // });
-            // potencialStepsWhiteQueenBottomLeft.forEach(function (value, index, array) {
-            //     value.toggleClass("over", true);
-            // });
         }
         /**
          * SIMPLE CHECKERS
@@ -1469,6 +1411,173 @@ $( document ).ready(function() {
 
     });
 
+    function nextQueenAttack(new_piece) {
+        let queens = [];
+
+        let currentColor = null;
+        if(new_piece.classList.contains("black")) {
+            currentColor = "black";
+        }
+        else if(new_piece.classList.contains("white")) {
+            currentColor = "white";
+        }
+
+        if(currentColor === "white") {
+            queens = getAllQueenCells("white");
+        }
+        else if(currentColor === "black") {
+            queens = getAllQueenCells("black");
+        }
+
+        let needAttack = false;
+        queens.forEach(function (value) {
+
+            if(value[0].upright.needStep.length > 0) {
+                needAttack = true;
+            }
+
+            if(value[0].upleft.needStep.length > 0) {
+                needAttack = true;
+            }
+
+            if(value[0].bottomright.needStep.length > 0) {
+                needAttack = true;
+            }
+
+            if(value[0].bottomleft.needStep.length > 0) {
+                needAttack = true;
+            }
+
+        });
+
+        if(needAttack) {
+            $('.rank__check').toggleClass("over", false);
+            $(new_piece).addClass("active");
+
+            $('.rank__check').toggleClass("over", false);
+
+            // подсвечивание
+            queens.forEach(function (value) {
+
+                value[0].needeat.forEach(function (val_need) {
+                    $(val_need.firstElementChild).toggleClass("fuch", true);
+                });
+
+                if(new_piece.parentElement === value[0].currentpiece) {
+
+                    value[0].upright.empty.forEach(function (val_up) {
+                        val_up.toggleClass("over", true);
+                    });
+                    value[0].upright.needStep.forEach(function (val_up) {
+                        val_up.toggleClass("over", true);
+                    });
+
+
+                    value[0].upleft.empty.forEach(function (val_up) {
+                        val_up.toggleClass("over", true);
+                    });
+                    value[0].upleft.needStep.forEach(function (val_up) {
+                        val_up.toggleClass("over", true);
+                    });
+
+                    value[0].bottomright.empty.forEach(function (val_bot) {
+                        val_bot.toggleClass("over", true);
+                    });
+                    value[0].bottomright.needStep.forEach(function (val_bot) {
+                        val_bot.toggleClass("over", true);
+                    });
+
+                    value[0].bottomleft.empty.forEach(function (val_bot) {
+                        val_bot.toggleClass("over", true);
+                    });
+                    value[0].bottomleft.needStep.forEach(function (val_bot) {
+                        val_bot.toggleClass("over", true);
+                    });
+                }
+            });
+
+            $(new_piece).toggleClass("fuch", false);
+
+            return true;
+
+        }
+        else {
+            return false;
+        }
+    }
+
+    // click on next attack
+    addDynamicEventListener(document.body, 'click', ".next", function (event) {
+        try {
+            if (event.target.firstChild.classList.contains('active')) {
+
+            }
+        }catch (e) {
+            if (current_piece) {
+
+                $(current_piece).addClass("active");
+
+                let currentColor = null;
+                if (current_piece.classList.contains("black")) {
+                    currentColor = "black";
+                }
+                else if (current_piece.classList.contains("white")) {
+                    currentColor = "white";
+                }
+
+                if (current_piece.classList.contains("queen")) {
+
+                    if (currentColor === "white") {
+                        potencialStepsWhiteQueenGlobal = getAllQueenCells("white");
+                    }
+                    else if (currentColor === "black") {
+                        potencialStepsWhiteQueenGlobal = getAllQueenCells("black");
+                    }
+
+                    // подсвечивание
+                    potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                        value[0].needeat.forEach(function (val_need) {
+                            $(val_need.firstElementChild).toggleClass("fuch", true);
+                        });
+
+                        if (current_piece.parentElement === value[0].currentpiece) {
+                            value[0].upright.empty.forEach(function (val_up) {
+                                val_up.toggleClass("over", true);
+                            });
+                            value[0].upright.needStep.forEach(function (val_up) {
+                                val_up.toggleClass("over", true);
+                            });
+
+
+                            value[0].upleft.empty.forEach(function (val_up) {
+                                val_up.toggleClass("over", true);
+                            });
+                            value[0].upleft.needStep.forEach(function (val_up) {
+                                val_up.toggleClass("over", true);
+                            });
+
+                            value[0].bottomright.empty.forEach(function (val_bot) {
+                                val_bot.toggleClass("over", true);
+                            });
+                            value[0].bottomright.needStep.forEach(function (val_bot) {
+                                val_bot.toggleClass("over", true);
+                            });
+
+                            value[0].bottomleft.empty.forEach(function (val_bot) {
+                                val_bot.toggleClass("over", true);
+                            });
+                            value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                val_bot.toggleClass("over", true);
+                            });
+                        }
+                    });
+
+                    $(current_piece).toggleClass("fuch", false);
+                }
+            }
+        }
+    });
 
     // click on cell
     addDynamicEventListener(document.body, 'click', '.rank__check', function (event) {
@@ -1499,618 +1608,768 @@ $( document ).ready(function() {
                     // если не срублена, то шашка "съедается"
                     let needAttack = false;
 
-                    potencialStepsWhiteQueenGlobal.forEach(function (value, index) {
-                        if(value.upright.needStep.length > 0) {
+                    potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                        //и заодно убираем лишние классы
+                        value[0].needeat.forEach(function (val_need) {
+                            $(val_need.firstElementChild).toggleClass("fuch", false);
+                        });
+
+
+                        if(value[0].upright.needStep.length > 0) {
                             needAttack = true;
                         }
 
-                        if(value.upleft.needStep.length > 0) {
+                        if(value[0].upleft.needStep.length > 0) {
                             needAttack = true;
                         }
 
-                        if(value.bottomright.needStep.length > 0) {
+                        if(value[0].bottomright.needStep.length > 0) {
                             needAttack = true;
                         }
 
-                        if(value.bottomleft.needStep.length > 0) {
+                        if(value[0].bottomleft.needStep.length > 0) {
                             needAttack = true;
                         }
+
                     });
 
+                    // queen need attack
                     if(needAttack) {
+
                         // если режим "обязательно рубить", то проверяем, срубилена шашка
                         // если не срублена, то шашка "съедается"
                         let needEat = false;
 
-                        potencialStepsWhiteQueenGlobal.forEach(function (value, index) {
-                            value.upright.needStep.forEach(function (val_up) {
-                                if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                        potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                            value[0].upright.needStep.forEach(function (val_up) {
+                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
                                     needEat = true;
                                 }
                             });
 
-                            value.upleft.needStep.forEach(function (val_up) {
-                                if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                            value[0].upleft.needStep.forEach(function (val_up) {
+                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
                                     needEat = true;
                                 }
                             });
 
-                            value.bottomright.needStep.forEach(function (val_bot) {
-                                if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                            value[0].bottomright.needStep.forEach(function (val_bot) {
+                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
                                     needEat = true;
                                 }
                             });
 
-                            value.bottomleft.needStep.forEach(function (val_bot) {
-                                if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                            value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
                                     needEat = true;
                                 }
                             });
+
                         });
 
-                        //nu i takoe byvaet
-                        if(!needEat) { // tochnee nado :)
+                        // надо съесть (возможен фук)
+                        if(!needEat) {
 
-                            console.log(potencialStepsWhiteQueenGlobal);
+                            let isPlayerChange = false;
+                            let isFuch = false;
+                            let indexNeadEat = randomInteger(0, potencialStepsWhiteQueenGlobal[0][0].needeat.length - 1);
 
-                            if(current_piece.parentElement.getAttribute("x") === potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x")
-                            && current_piece.parentElement.getAttribute("y") === potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y")
-                            ) {
+                            potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
 
-                                potencialStepsWhiteQueenGlobal.forEach(function (value, index) {
-                                    value.upright.empty.forEach(function (val_up) {
-                                        if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                            socket.emit('fuch', {
-                                                gameId: serverGame.id,
-                                                currentPlayer: player,
-                                                target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
-                                                target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
+                                        if(!isFuch) {
+                                            value[0].upright.empty.forEach(function (val_up) {
+                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                    socket.emit('fuch', {
+                                                        gameId: serverGame.id,
+                                                        currentPlayer: player,
+                                                        target_x: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("x"),
+                                                        target_y: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("y"),
+                                                    });
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+
+                                                    isFuch = true;
+                                                    isPlayerChange = true;
+
+                                                }
                                             });
-
-                                            $(potencialStepsWhiteQueenGlobal[0].needeat).remove();
-
-                                            current_piece = null;
-
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
                                         }
-                                    });
 
-                                    value.upleft.empty.forEach(function (val_up) {
-                                        if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                            socket.emit('fuch', {
-                                                gameId: serverGame.id,
-                                                currentPlayer: player,
-                                                target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
-                                                target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
+                                        if(!isFuch) {
+                                            value[0].upleft.empty.forEach(function (val_up) {
+                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                    socket.emit('fuch', {
+                                                        gameId: serverGame.id,
+                                                        currentPlayer: player,
+                                                        target_x: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("x"),
+                                                        target_y: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("y"),
+                                                    });
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isPlayerChange = true;
+                                                }
                                             });
-
-                                            $(potencialStepsWhiteQueenGlobal[0].needeat).remove();
-
-                                            current_piece = null;
-
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
                                         }
-                                    });
 
-                                    value.bottomright.empty.forEach(function (val_bot) {
-                                        if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                            socket.emit('fuch', {
-                                                gameId: serverGame.id,
-                                                currentPlayer: player,
-                                                target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
-                                                target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
+                                        if(!isFuch) {
+                                            value[0].bottomright.empty.forEach(function (val_bot) {
+                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                    socket.emit('fuch', {
+                                                        gameId: serverGame.id,
+                                                        currentPlayer: player,
+                                                        target_x: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("x"),
+                                                        target_y: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("y"),
+                                                    });
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isPlayerChange = true;
+                                                }
                                             });
-
-                                            $(potencialStepsWhiteQueenGlobal[0].needeat).remove();
-
-                                            current_piece = null;
-
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
                                         }
-                                    });
 
-                                    value.bottomleft.empty.forEach(function (val_bot) {
-                                        if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                            socket.emit('fuch', {
-                                                gameId: serverGame.id,
-                                                currentPlayer: player,
-                                                target_x : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("x"),
-                                                target_y : potencialStepsWhiteQueenGlobal[0].needeat.parentElement.getAttribute("y"),
+                                        if(!isFuch) {
+                                            value[0].bottomleft.empty.forEach(function (val_bot) {
+                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                    socket.emit('fuch', {
+                                                        gameId: serverGame.id,
+                                                        currentPlayer: player,
+                                                        target_x: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("x"),
+                                                        target_y: potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].getAttribute("y"),
+                                                    });
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isPlayerChange = true;
+                                                }
                                             });
-
-                                            $(potencialStepsWhiteQueenGlobal[0].needeat).remove();
-
-                                            current_piece = null;
-
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
                                         }
-                                    });
-                                });
+                                    }
+                                }
 
-                                $('.rank__check').toggleClass("over", false);
+                                // прозевал шашку, но дальше ход сделать то надо
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
 
-                                return false;
+                                        value[0].upright.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_up[0].getAttribute("x"),
+                                                        y: val_up[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].upleft.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_up[0].getAttribute("x"),
+                                                        y: val_up[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].bottomright.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_bot[0].getAttribute("x"),
+                                                        y: val_bot[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+
+                                            }
+                                        });
+
+                                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_bot[0].getAttribute("x"),
+                                                        y: val_bot[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+                                    }
+                                }
+
+                            });
+
+                            if(isPlayerChange) {
+                                // change player
+                                if (currentColor === "white") {
+                                    player = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player = "white";
+                                }
                             }
 
-                            potencialStepsWhiteQueenGlobal.forEach(function (value, index) {
-                                value.upright.empty.forEach(function (val_up) {
-                                    if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
-
-                                        socket.emit('step', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: val_up[0].getAttribute("x"),
-                                                y: val_up[0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
-                                        });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
-                                    }
-                                });
-
-                                value.upleft.empty.forEach(function (val_up) {
-                                    if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
-
-                                        socket.emit('step', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: val_up[0].getAttribute("x"),
-                                                y: val_up[0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
-                                        });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
-                                    }
-                                });
-
-                                value.bottomright.empty.forEach(function (val_bot) {
-                                    if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
-
-                                        socket.emit('step', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: val_bot[0].getAttribute("x"),
-                                                y: val_bot[0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
-                                        });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
-                                    }
-                                });
-
-                                value.bottomleft.empty.forEach(function (val_bot) {
-                                    if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
-
-                                        socket.emit('step', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: val_bot[0].getAttribute("x"),
-                                                y: val_bot[0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
-                                        });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
-                                    }
-                                });
-                            });
-
                         }
+                        //не надо съесть. Обычная аттака
                         else {
-                            potencialStepsWhiteQueenGlobal.forEach(function (value, index) {
-                                value.upright.needStep.forEach(function (val_up) {
-                                    if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
 
-                                        socket.emit('attack', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: current_x,
-                                                y: current_y,
-                                            },
-                                            target: {
-                                                x: value.upright.enemy[0][0].getAttribute("x"),
-                                                y: value.upright.enemy[0][0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
+                            let isAttackSucces = false;
+                            let resultAttack = [];
+
+                            potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                                if (current_piece.parentElement === value[0].currentpiece) {
+                                    if(isAttackSucces === false) {
+                                        value[0].upright.needStep.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].upright.enemy[0][0].getAttribute("x") + "][y=" + value[0].upright.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
                                         });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        let kill_target = $(".rank__check[x=" + value.upright.enemy[0][0].getAttribute("x") + "][y=" + value.upright.enemy[0][0].getAttribute("y") + "]");
-                                        $(kill_target)[0].firstElementChild.remove();
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
                                     }
-                                });
 
-                                value.upleft.needStep.forEach(function (val_up) {
-                                    if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                    if(isAttackSucces === false) {
+                                        value[0].upleft.needStep.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
 
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
+                                                let kill_target = $(".rank__check[x=" + value[0].upleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].upleft.enemy[0][0].getAttribute("y") + "]");
 
-                                        socket.emit('attack', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: current_x,
-                                                y: current_y,
-                                            },
-                                            target: {
-                                                x: value.upleft.enemy[0][0].getAttribute("x"),
-                                                y: value.upleft.enemy[0][0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+
+                                            }
                                         });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        let kill_target = $(".rank__check[x=" + value.upleft.enemy[0][0].getAttribute("x") + "][y=" + value.upleft.enemy[0][0].getAttribute("y") + "]");
-                                        $(kill_target)[0].firstElementChild.remove();
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
-
                                     }
-                                });
 
-                                value.bottomright.needStep.forEach(function (val_bot) {
-                                    if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
+                                    if(isAttackSucces === false) {
+                                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
 
-                                        socket.emit('attack', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: current_x,
-                                                y: current_y,
-                                            },
-                                            target: {
-                                                x: value.bottomright.enemy[0][0].getAttribute("x"),
-                                                y: value.bottomright.enemy[0][0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
+                                                let kill_target = $(".rank__check[x=" + value[0].bottomright.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomright.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
                                         });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        let kill_target = $(".rank__check[x=" + value.bottomright.enemy[0][0].getAttribute("x") + "][y=" + value.bottomright.enemy[0][0].getAttribute("y") + "]");
-                                        $(kill_target)[0].firstElementChild.remove();
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
                                     }
-                                });
 
-                                value.bottomleft.needStep.forEach(function (val_bot) {
-                                    if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                        if(currentColor === "white") {
-                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                        }
-                                        else if(currentColor === "black") {
-                                            $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                        }
+                                    if(isAttackSucces === false) {
+                                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
 
-                                        socket.emit('attack', {
-                                            gameId: serverGame.id,
-                                            prev: {
-                                                x: but_x,
-                                                y: but_y,
-                                            },
-                                            next: {
-                                                x: current_x,
-                                                y: current_y,
-                                            },
-                                            target: {
-                                                x: value.bottomleft.enemy[0][0].getAttribute("x"),
-                                                y: value.bottomleft.enemy[0][0].getAttribute("y"),
-                                            },
-                                            currentPlayer: player,
-                                            isQueen: true
+                                                let kill_target = $(".rank__check[x=" + value[0].bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomleft.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
                                         });
-
-                                        $(current_piece).remove();
-                                        current_piece = null;
-
-                                        let kill_target = $(".rank__check[x=" + value.bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value.bottomleft.enemy[0][0].getAttribute("y") + "]");
-                                        $(kill_target)[0].firstElementChild.remove();
-
-                                        // change player
-                                        if (currentColor === "white") {
-                                            player = "black";
-                                        }
-                                        else if (currentColor === "black") {
-                                            player = "white";
-                                        }
                                     }
-                                });
+                                }
                             });
 
+
+                            // если атака прошла успешно
+                            if(!$.isEmptyObject(resultAttack)) {
+
+                                if(resultAttack.local_color === "white") {
+                                    $(resultAttack.target_place).append('<div class="piece white queen">&#9813;</div>');
+                                }
+                                else if(resultAttack.local_color === "black") {
+                                    $(resultAttack.target_place).append('<div class="piece black queen">&#9819;</div>');
+                                }
+
+                                // socket.emit('attack', {
+                                //     gameId: resultAttack.gameId,
+                                //     prev: {
+                                //         x: resultAttack.prev.x,
+                                //         y: resultAttack.prev.y,
+                                //     },
+                                //     next: {
+                                //         x: resultAttack.next.x,
+                                //         y: resultAttack.next.y,
+                                //     },
+                                //     target: {
+                                //         x: resultAttack.target.x,
+                                //         y: resultAttack.target.y,
+                                //     },
+                                //     currentPlayer: resultAttack.currentPlayer,
+                                //     isQueen: resultAttack.isQueen,
+                                // });
+
+                                $(current_piece).remove();
+                                current_piece = null;
+
+                                $(resultAttack.kill_target)[0].firstElementChild.remove();
+
+                                // // change player
+                                // if (currentColor === "white") {
+                                //     player = "black";
+                                // }
+                                // else if (currentColor === "black") {
+                                //     player = "white";
+                                // }
+
+
+                                /**
+                                 * NEXT ATTACK
+                                 * ===========================================
+                                 *
+                                 */
+
+                                current_piece = $(".rank__check[x=" + current_x + "][y=" + current_y + "]")[0].firstElementChild;
+
+
+                                let next = nextQueenAttack(current_piece);
+
+                                if(next) {
+                                    $(current_piece).addClass("next");
+
+                                    socket.emit('attack', {
+                                        gameId: resultAttack.gameId,
+                                        prev: {
+                                            x: resultAttack.prev.x,
+                                            y: resultAttack.prev.y,
+                                        },
+                                        next: {
+                                            x: resultAttack.next.x,
+                                            y: resultAttack.next.y,
+                                        },
+                                        target: {
+                                            x: resultAttack.target.x,
+                                            y: resultAttack.target.y,
+                                        },
+                                        currentPlayer: resultAttack.currentPlayer,
+                                        isQueen: resultAttack.isQueen,
+                                        hasEnemy: true
+                                    });
+
+                                    return false;
+                                }
+                                else {
+                                    socket.emit('attack', {
+                                        gameId: resultAttack.gameId,
+                                        prev: {
+                                            x: resultAttack.prev.x,
+                                            y: resultAttack.prev.y,
+                                        },
+                                        next: {
+                                            x: resultAttack.next.x,
+                                            y: resultAttack.next.y,
+                                        },
+                                        target: {
+                                            x: resultAttack.target.x,
+                                            y: resultAttack.target.y,
+                                        },
+                                        currentPlayer: resultAttack.currentPlayer,
+                                        isQueen: resultAttack.isQueen,
+                                        hasEnemy: false
+                                    });
+
+                                    // change player
+                                    if (currentColor === "white") {
+                                        player = "black";
+                                    }
+                                    else if (currentColor === "black") {
+                                        player = "white";
+                                    }
+
+                                    $(".piece").removeClass("active");
+                                    $(".piece").removeClass("potencial_dead");
+                                    $('.rank__check').removeClass("over");
+                                    return false;
+                                }
+
+                                /**
+                                 *
+                                 * ===========================================
+                                 *
+                                 */
+
+                            }
                         }
 
                     }
-                    //step queen
+                    // queen step
                     else {
-                        potencialStepsWhiteQueenGlobal.forEach(function (value, index) {
-                            value.upright.empty.forEach(function (val_up) {
-                                if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                    socket.emit('step', {
-                                        gameId: serverGame.id,
-                                        prev: {
-                                            x: but_x,
-                                            y: but_y,
-                                        },
-                                        next: {
-                                            x: val_up[0].getAttribute("x"),
-                                            y: val_up[0].getAttribute("y"),
-                                        },
-                                        currentPlayer: player,
-                                        isQueen: true
+
+                        potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                            if(current_piece !== null) {
+                                if (current_piece.parentElement === value[0].currentpiece) {
+
+                                    value[0].upright.empty.forEach(function (val_up) {
+                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            socket.emit('step', {
+                                                gameId: serverGame.id,
+                                                prev: {
+                                                    x: but_x,
+                                                    y: but_y,
+                                                },
+                                                next: {
+                                                    x: val_up[0].getAttribute("x"),
+                                                    y: val_up[0].getAttribute("y"),
+                                                },
+                                                currentPlayer: player,
+                                                isQueen: true
+                                            });
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
                                     });
 
-                                    $(current_piece).remove();
-                                    current_piece = null;
+                                    value[0].upleft.empty.forEach(function (val_up) {
+                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            socket.emit('step', {
+                                                gameId: serverGame.id,
+                                                prev: {
+                                                    x: but_x,
+                                                    y: but_y,
+                                                },
+                                                next: {
+                                                    x: val_up[0].getAttribute("x"),
+                                                    y: val_up[0].getAttribute("y"),
+                                                },
+                                                currentPlayer: player,
+                                                isQueen: true
+                                            });
 
-                                    // change player
-                                    if (currentColor === "white") {
-                                        player = "black";
-                                    }
-                                    else if (currentColor === "black") {
-                                        player = "white";
-                                    }
-                                }
-                            });
+                                            $(current_piece).remove();
+                                            current_piece = null;
 
-                            value.upleft.empty.forEach(function (val_up) {
-                                if(current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                    socket.emit('step', {
-                                        gameId: serverGame.id,
-                                        prev: {
-                                            x: but_x,
-                                            y: but_y,
-                                        },
-                                        next: {
-                                            x: val_up[0].getAttribute("x"),
-                                            y: val_up[0].getAttribute("y"),
-                                        },
-                                        currentPlayer: player,
-                                        isQueen: true
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
                                     });
 
-                                    $(current_piece).remove();
-                                    current_piece = null;
+                                    value[0].bottomright.empty.forEach(function (val_bot) {
+                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            socket.emit('step', {
+                                                gameId: serverGame.id,
+                                                prev: {
+                                                    x: but_x,
+                                                    y: but_y,
+                                                },
+                                                next: {
+                                                    x: val_bot[0].getAttribute("x"),
+                                                    y: val_bot[0].getAttribute("y"),
+                                                },
+                                                currentPlayer: player,
+                                                isQueen: true
+                                            });
 
-                                    // change player
-                                    if (currentColor === "white") {
-                                        player = "black";
-                                    }
-                                    else if (currentColor === "black") {
-                                        player = "white";
-                                    }
-                                }
-                            });
+                                            $(current_piece).remove();
+                                            current_piece = null;
 
-                            value.bottomright.empty.forEach(function (val_bot) {
-                                if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                    socket.emit('step', {
-                                        gameId: serverGame.id,
-                                        prev: {
-                                            x: but_x,
-                                            y: but_y,
-                                        },
-                                        next: {
-                                            x: val_bot[0].getAttribute("x"),
-                                            y: val_bot[0].getAttribute("y"),
-                                        },
-                                        currentPlayer: player,
-                                        isQueen: true
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
                                     });
 
-                                    $(current_piece).remove();
-                                    current_piece = null;
+                                    value[0].bottomleft.empty.forEach(function (val_bot) {
+                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                            $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            socket.emit('step', {
+                                                gameId: serverGame.id,
+                                                prev: {
+                                                    x: but_x,
+                                                    y: but_y,
+                                                },
+                                                next: {
+                                                    x: val_bot[0].getAttribute("x"),
+                                                    y: val_bot[0].getAttribute("y"),
+                                                },
+                                                currentPlayer: player,
+                                                isQueen: true
+                                            });
 
-                                    // change player
-                                    if (currentColor === "white") {
-                                        player = "black";
-                                    }
-                                    else if (currentColor === "black") {
-                                        player = "white";
-                                    }
-                                }
-                            });
+                                            $(current_piece).remove();
+                                            current_piece = null;
 
-                            value.bottomleft.empty.forEach(function (val_bot) {
-                                if(current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                    socket.emit('step', {
-                                        gameId: serverGame.id,
-                                        prev: {
-                                            x: but_x,
-                                            y: but_y,
-                                        },
-                                        next: {
-                                            x: val_bot[0].getAttribute("x"),
-                                            y: val_bot[0].getAttribute("y"),
-                                        },
-                                        currentPlayer: player,
-                                        isQueen: true
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
                                     });
-
-                                    $(current_piece).remove();
-                                    current_piece = null;
-
-                                    // change player
-                                    if (currentColor === "white") {
-                                        player = "black";
-                                    }
-                                    else if (currentColor === "black") {
-                                        player = "white";
-                                    }
                                 }
-                            });
+                            }
                         });
+
                     }
+
+
+                    $(".piece").removeClass("active");
+                    $(".piece").removeClass("potencial_dead");
+                    $('.rank__check').removeClass("over");
+
+                    return false;
+
                 }
                 /**
                  * SIMPLE CHECKERS

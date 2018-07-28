@@ -37,6 +37,7 @@ io.on('connection', function(socket) {
             console.log('creating new user');
             users[userId] = {userId: socket.userId, games:{}};
         } else {
+
             console.log('user found!');
             Object.keys(users[userId].games).forEach(function(gameId) {
                 console.log('gameid - ' + gameId);
