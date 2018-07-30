@@ -124,18 +124,16 @@ $(document).ready(function(){
 
     //фуки
     const FUCHS = current_script.getAttribute("fuchs");
+    const COLOR_FUCHS = current_script.getAttribute("color_potencial_fuchs");
 
     //можно обычным шашка аттаковать назад
     const SIMPLE_BACK_ATTACK = current_script.getAttribute("simple_back_attack");
 
-
     let player = "white"; //the first player
-    let isHasEnemy = false;
-
     let current_piece = null; // global last click piece
-    let nextAttack = null; // global next cell for player attack
-    let nextStep = null; // global next cell for player step
-    let nextTarget = null; // global next enemy of player
+
+    let potencialStepsWhiteQueenGlobal = [];
+    let potencialStepsSimpleGlobal = [];
 
     function checkPlayer(object) {
         if(object.classList.contains("black")) {
@@ -147,515 +145,13 @@ $(document).ready(function(){
         }
     }
 
-    // if cell has coordinates, then at this cell posible move
-    function isMoviableCell(cell) {
-        if(cell.getAttribute("x"))
-            return true;
-        else
-            return false;
-    }
-
-    function isPotencialCellBlack(current_x, current_y, potencial_x, potencial_y) {
-        if ((current_x - potencial_x === 1) && (current_y - potencial_y === -1) ||
-            (current_x - potencial_x === -1) && (current_y - potencial_y === -1)
-        ) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    function isPotencialCellWhite(current_x, current_y, potencial_x, potencial_y) {
-        if ((current_x - potencial_x === -1) && (current_y - potencial_y === 1) ||
-            (current_x - potencial_x === 1) && (current_y - potencial_y === 1)
-        ) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    // COMPUTER LOGIC
-    function getPosibleBlackPieces() {
-        const rank__check = $(".rank__check");
-
-        let arBlackPieces = [];
-
-        let arEmptyPieces = [];
-
-        let rank__check_x = null;
-        let rank__check_y = null;
-
-        rank__check.each(function(index, value) {
-            if(isMoviableCell(value)){
-                try {
-                    rank__check_x = value.getAttribute("x");
-                    rank__check_y = value.getAttribute("y");
-
-                    //get empty
-                    if(value.hasChildNodes() === false) {
-                        arEmptyPieces.push({
-                            value : value,
-                            rank__check_x : rank__check_x,
-                            rank__check_y : rank__check_y,
-                            type : "empty",
-                        });
-                    }
-
-                    //get black
-                    if(value.firstElementChild.classList.contains("black")){
-                        arBlackPieces.push({
-                            value : value,
-                            rank__check_x : rank__check_x,
-                            rank__check_y : rank__check_y,
-                            type : "black",
-                        });
-                    }
-                }
-                catch (e){}
-            }
-        });
-
-        let black_x = null;
-        let black_y = null;
-
-        let empty_x = null;
-        let empty_y = null;
-
-        // get good coord for next step without loose checkers
-        let arGoodEmptyForNextStep = [];
-
-        arBlackPieces.forEach(function (value_b, index_b) {
-            black_x = value_b.rank__check_x;
-            black_y = value_b.rank__check_y;
-
-            arEmptyPieces.forEach(function (value_e, index_e) {
-                empty_x = value_e.rank__check_x;
-                empty_y = value_e.rank__check_y;
-
-                if(isPotencialCellBlack(black_x, black_y, empty_x, empty_y)) {
-                    arGoodEmptyForNextStep.push({
-                        current_piece : value_b.value,
-                        next_piece : value_e.value,
-                    })
-                }
-            })
-        });
-
-        return arGoodEmptyForNextStep;
-
-    }
-
-    // COMPUTER LOGIC
-
-    function getNeighborCell() {
-        const rank__check = $(".rank__check");
-
-        let arBlackPieces = [];
-        let arWhitePieces = [];
-        let arEmptyPieces = [];
-
-        rank__check.each(function(index, value) {
-            if(isMoviableCell(value)){
-                if(value.hasChildNodes()) {
-                    if(value.firstElementChild.classList.contains("black")) {
-                        arBlackPieces.push(value);
-                    }
-                    else if(value.firstElementChild.classList.contains("white")) {
-                        arWhitePieces.push(value);
-                    }
-                }
-                else {
-                    arEmptyPieces.push(value);
-                }
-            }
-        });
-
-        let arPotencialEnemy = [];
-
-        let black_x = null;
-        let black_y = null;
-
-        let pot_enemy_bottom_left_x = null;
-        let pot_enemy_bottom_left_y = null;
-
-        let pot_enemy_bottom_right_x = null;
-        let pot_enemy_bottom_right_y = null;
-
-        let pot_enemy_up_left_x = null;
-        let pot_enemy_up_left_y = null;
-
-        let pot_enemy_up_right_x = null;
-        let pot_enemy_up_right_y = null;
-
-        // смотрим в глубину = 2 MEDIUM
-
-        if(COMPUTER_LEVEL === "medium") {
-            // medium
-        }
-
-        // medium
-        arBlackPieces.forEach(function (value_b, index_b) {
-            black_x = value_b.getAttribute("x");
-            black_y = value_b.getAttribute("y");
-
-            pot_enemy_bottom_left_x = parseInt(black_x) - 1;
-            pot_enemy_bottom_left_y = parseInt(black_y) + 1;
-
-            pot_enemy_bottom_right_x = parseInt(black_x) + 1;
-            pot_enemy_bottom_right_y = parseInt(black_y) + 1;
-
-            pot_enemy_up_left_x = parseInt(black_x) - 1;
-            pot_enemy_up_left_y = parseInt(black_y) - 1;
-
-            pot_enemy_up_right_x = parseInt(black_x) + 1;
-            pot_enemy_up_right_y = parseInt(black_y) - 1;
-
-            let potencial_enemy_bottom_left = $(".rank__check[x=" + pot_enemy_bottom_left_x + "][y=" + pot_enemy_bottom_left_y + "]");
-            let potencial_enemy_bottom_right = $(".rank__check[x=" + pot_enemy_bottom_right_x + "][y=" + pot_enemy_bottom_right_y + "]");
-            let potencial_enemy_up_left = $(".rank__check[x=" + pot_enemy_up_left_x + "][y=" + pot_enemy_up_left_y + "]");
-            let potencial_enemy_up_right = $(".rank__check[x=" + pot_enemy_up_right_x + "][y=" + pot_enemy_up_right_y + "]");
-
-            arPotencialEnemy[index_b] = {
-                current_piece : value_b,
-                potencial_enemy_bottom_left : potencial_enemy_bottom_left[0],
-                potencial_enemy_bottom_right : potencial_enemy_bottom_right[0],
-                potencial_enemy_up_left : potencial_enemy_up_left[0],
-                potencial_enemy_up_right : potencial_enemy_up_right[0]
-            }
-
-        });
-
-        return arPotencialEnemy;
-    }
-
-    // computer logic (есть ли поблизости враги)
-    function isEnemyForBlack(value) {
-
-        let pot_x = null;
-        let pot_y = null;
-
-        let needAttack = null;
-
-        let potencial_enemy_bottom_left = value.potencial_enemy_bottom_left;
-        if(typeof potencial_enemy_bottom_left !== 'undefined') {
-
-            if (potencial_enemy_bottom_left.hasChildNodes()) {
-                if (potencial_enemy_bottom_left.firstElementChild.classList.contains("white")) {
-
-                    pot_x = parseInt(potencial_enemy_bottom_left.getAttribute("x")) - 1;
-                    pot_y = parseInt(potencial_enemy_bottom_left.getAttribute("y")) + 1;
-
-                    needAttack = $(".rank__check[x=" + pot_x + "][y=" + pot_y + "]");
-
-                    try {
-                        if (needAttack[0].hasChildNodes()) {
-                            if (needAttack[0].firstElementChild.classList.contains("white")) {
-                                return {
-                                    enemy: potencial_enemy_bottom_left,
-                                    value: value.current_piece,
-                                    needAttack: false,
-                                };
-                            }
-                            else if (needAttack[0].firstElementChild.classList.contains("black")) {
-                                return {
-                                    enemy: potencial_enemy_bottom_left,
-                                    value: value.current_piece,
-                                    needAttack: false
-                                };
-                            }
-                        }
-                        else {
-                            return {
-                                enemy: potencial_enemy_bottom_left,
-                                value: value.current_piece,
-                                needAttack: true,
-                                targetAttack: needAttack
-                            };
-                        }
-                    }catch(e) {}
-
-                }
-                else {
-                    return false;
-                }
-            }
-        }
-
-        let potencial_enemy_bottom_right = value.potencial_enemy_bottom_right;
-
-        if(typeof potencial_enemy_bottom_right !== 'undefined') {
-
-            if (potencial_enemy_bottom_right.hasChildNodes()) {
-                if (potencial_enemy_bottom_right.firstElementChild.classList.contains("white")) {
-                    pot_x = parseInt(potencial_enemy_bottom_right.getAttribute("x")) + 1;
-                    pot_y = parseInt(potencial_enemy_bottom_right.getAttribute("y")) + 1;
-
-                    needAttack = $(".rank__check[x=" + pot_x + "][y=" + pot_y + "]");
-
-                    try {
-                        if (needAttack[0].hasChildNodes()) {
-                            if (needAttack[0].firstElementChild.classList.contains("white")) {
-                                return {
-                                    enemy: potencial_enemy_bottom_right,
-                                    value: value.current_piece,
-                                    needAttack: false,
-                                };
-                            }
-                            else if (needAttack[0].firstElementChild.classList.contains("black")) {
-                                return {
-                                    enemy: potencial_enemy_bottom_right,
-                                    value: value.current_piece,
-                                    needAttack: false
-                                };
-                            }
-                        }
-                        else {
-                            return {
-                                enemy: potencial_enemy_bottom_right,
-                                value: value.current_piece,
-                                needAttack: true,
-                                targetAttack: needAttack
-                            };
-                        }
-                    }catch (e) {}
-                }
-                else {
-                    return false;
-                }
-            }
-        }
-
-
-        let potencial_enemy_up_left = value.potencial_enemy_up_left;
-        if(typeof potencial_enemy_up_left !== 'undefined') {
-
-            if (potencial_enemy_up_left.hasChildNodes()) {
-                if (potencial_enemy_up_left.firstElementChild.classList.contains("white")) {
-                    pot_x = parseInt(potencial_enemy_up_left.getAttribute("x")) - 1;
-                    pot_y = parseInt(potencial_enemy_up_left.getAttribute("y")) - 1;
-
-                    needAttack = $(".rank__check[x=" + pot_x + "][y=" + pot_y + "]");
-
-                    try {
-                        if (needAttack[0].hasChildNodes()) {
-                            if (needAttack[0].firstElementChild.classList.contains("white")) {
-                                return {
-                                    enemy: potencial_enemy_up_left,
-                                    value: value.current_piece,
-                                    needAttack: false,
-                                };
-                            }
-                            else if (needAttack[0].firstElementChild.classList.contains("black")) {
-                                return {
-                                    enemy: potencial_enemy_up_left,
-                                    value: value.current_piece,
-                                    needAttack: false
-                                };
-                            }
-                        }
-                        else {
-                            return {
-                                enemy: potencial_enemy_up_left,
-                                value: value.current_piece,
-                                needAttack: true,
-                                targetAttack: needAttack
-                            };
-                        }
-                    }catch (e) {}
-                }
-                else {
-                    return false;
-                }
-            }
-
-        }
-
-        let potencial_enemy_up_right = value.potencial_enemy_up_right;
-
-        if(typeof potencial_enemy_up_right !== 'undefined') {
-
-            if (potencial_enemy_up_right.hasChildNodes()) {
-                if (potencial_enemy_up_right.firstElementChild.classList.contains("white")) {
-                    pot_x = parseInt(potencial_enemy_up_right.getAttribute("x")) + 1;
-                    pot_y = parseInt(potencial_enemy_up_right.getAttribute("y")) - 1;
-
-                    needAttack = $(".rank__check[x=" + pot_x + "][y=" + pot_y + "]");
-
-                    try {
-                        if (needAttack[0].hasChildNodes()) {
-                            if (needAttack[0].firstElementChild.classList.contains("white")) {
-                                return {
-                                    enemy: potencial_enemy_up_right,
-                                    value: value.current_piece,
-                                    needAttack: false,
-                                };
-                            }
-                            else if (needAttack[0].firstElementChild.classList.contains("black")) {
-                                return {
-                                    enemy: potencial_enemy_up_right,
-                                    value: value.current_piece,
-                                    needAttack: false
-                                };
-                            }
-                        }
-                        else {
-                            return {
-                                enemy: potencial_enemy_up_right,
-                                value: value.current_piece,
-                                needAttack: true,
-                                targetAttack: needAttack
-                            };
-                        }
-                    } catch (e) {}
-                }
-                else {
-                    return false;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    function isFriendForBlack(value) {
-
-        let potencial_friend_bottom_left = value.potencial_enemy_bottom_left;
-        if(typeof potencial_friend_bottom_left !== 'undefined') {
-
-            if (potencial_friend_bottom_left.hasChildNodes()) {
-                if (potencial_friend_bottom_left.firstElementChild.classList.contains("black")) {
-                    return potencial_friend_bottom_left;
-                }
-                else {
-                    return false;
-                }
-            }
-        }
-
-        let potencial_friend_bottom_right = value.potencial_enemy_bottom_right;
-
-        if(typeof potencial_friend_bottom_right !== 'undefined') {
-
-            if (potencial_friend_bottom_right.hasChildNodes()) {
-                if (potencial_friend_bottom_right.firstElementChild.classList.contains("black")) {
-                    return potencial_friend_bottom_right;
-                }
-                else {
-                    return false;
-                }
-            }
-        }
-
-
-        let potencial_friend_up_left = value.potencial_enemy_up_left;
-        if(typeof potencial_friend_up_left !== 'undefined') {
-
-            if (potencial_friend_up_left.hasChildNodes()) {
-                if (potencial_friend_up_left.firstElementChild.classList.contains("black")) {
-                    return potencial_friend_up_left;
-                }
-                else {
-                    return false;
-                }
-            }
-
-        }
-
-        let potencial_friend_up_right = value.potencial_enemy_up_right;
-
-        if(typeof potencial_friend_up_right !== 'undefined') {
-
-            if (potencial_friend_up_right.hasChildNodes()) {
-                if (potencial_friend_up_right.firstElementChild.classList.contains("black")) {
-                    return potencial_friend_up_right;
-                }
-                else {
-                    return false;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    function getPosibleWhitePieces() {
-        const rank__check = $(".rank__check");
-
-        let arWhitePieces = [];
-
-        let arEmptyPieces = [];
-
-        let rank__check_x = null;
-        let rank__check_y = null;
-
-        rank__check.each(function(index, value) {
-            if(isMoviableCell(value)){
-
-                try {
-
-                    rank__check_x = value.getAttribute("x");
-                    rank__check_y = value.getAttribute("y");
-
-                    //get empty
-                    if(value.hasChildNodes() === false) {
-                        arEmptyPieces.push({
-                            rank__check_x : rank__check_x,
-                            rank__check_y : rank__check_y,
-                            type : "empty",
-                        });
-                    }
-
-                    //get white
-                    else if(value.firstElementChild.classList.contains("white")) {
-                        arWhitePieces.push({
-                            rank__check_x : rank__check_x,
-                            rank__check_y : rank__check_y,
-                            type : "white",
-                        });
-                    }
-
-                }
-                catch (e){}
-
-            }
-        });
-
-        let white_x = null;
-        let white_y = null;
-
-        let empty_x = null;
-        let empty_y = null;
-
-        // get good coord for next step without loose checkers
-        let arGoodEmptyForNextStep = [];
-
-        arWhitePieces.forEach(function (value_b, index_b) {
-            white_x = value_b.rank__check_x;
-            white_y = value_b.rank__check_y;
-
-            arEmptyPieces.forEach(function (value_e, index_e) {
-                empty_x = value_e.rank__check_x;
-                empty_y = value_e.rank__check_y;
-
-                if(isPotencialCellWhite(white_x, white_y, empty_x, empty_y)) {
-                    arGoodEmptyForNextStep.push({
-                        empty_x : empty_x,
-                        empty_y : empty_y,
-                        x: white_x,
-                        y : white_y
-                    })
-                }
-            })
-        });
-
-        return arGoodEmptyForNextStep;
-
-
-    }
-
+    // rotate a board
+    addDynamicEventListener(document.body, 'click', '#rotate-board', function (e) {
+        $('.board').toggleClass("rotate_board");
+        $('.rank__check').toggleClass("rotate_board");
+    });
+
+    let pieceForFuch = [];
 
     function randomInteger(min, max) {
         var rand = min - 0.5 + Math.random() * (max - min + 1)
@@ -663,181 +159,1364 @@ $(document).ready(function(){
         return rand;
     }
 
-    function stepComputer() {
+    function getAllQueenCells(color) {
 
-        let arPotencialEnemy = getNeighborCell();
+        let result = [];
 
-        let arNeedAtack = [];
+        let all_pieces = document.querySelectorAll('.queen.' + color);
 
-        arPotencialEnemy.forEach(function (value, index) {
-            let isEnemy = isEnemyForBlack(value);
-            let isFriend = isFriendForBlack(value);
+        let needEat = [];
 
+        for(let i = 0; i < all_pieces.length; i++) {
+            let piece_x = all_pieces[i].parentElement.getAttribute("x");
+            let piece_y = all_pieces[i].parentElement.getAttribute("y");
 
-
-            if(isEnemy) {
-                // проверить, можно ли ее рубить
-                // или нет
-                if(isEnemy.needAttack) {
-                    // attack
-                    arNeedAtack.push(isEnemy);
-                }
-            }
-        });
+            let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
+            let potencialStepsWhiteQueenUpRigth = [];
+            let potencialStepsWhiteQueenUpLeft = [];
+            let potencialStepsWhiteQueenBottomRigth = [];
+            let potencialStepsWhiteQueenBottomLeft = [];
 
 
-        // компьютер атакует
-        if(arNeedAtack.length > 0) {
-            let nextAttack = randomInteger(0, arNeedAtack.length - 1);
-            // прыжок (рубит)
-            $(arNeedAtack[nextAttack].targetAttack).append('<div class="piece black">&#9820;</div>');
+            let potencialAttackWhiteQueenUpRigth = [];
+            let potencialAttackWhiteQueenUpLeft = [];
+            let potencialAttackWhiteQueenBottomRigth = [];
+            let potencialAttackWhiteQueenBottomLeft = [];
 
-            // удаляет срубленную шашку и саму себя на предыдущем месте
-            $(arNeedAtack[nextAttack].enemy.firstElementChild).remove();
-            $(arNeedAtack[nextAttack].value.firstElementChild).remove()
-        }
-        // иначе ходи
-        else {
-            // если легкий уровень, то потенциальная клетка для след хода
-            // если средний уровень, то проверить на наличие врага
-            // если высокий уровень, то проверить все варианты
+            let potencial_up_right_x = null;
+            let potencial_up_right_y = null;
+            let potencial_up_left_x = null;
+            let potencial_up_left_y = null;
 
-            let arGoodEmptyForNextStep = getPosibleBlackPieces();
+            let potencial_bottom_right_x = null;
+            let potencial_bottom_right_y = null;
+            let potencial_bottom_left_x = null;
+            let potencial_bottom_left_y = null;
 
-            if(COMPUTER_LEVEL === "low") {
-                let next_cell = randomInteger(0, arGoodEmptyForNextStep.length - 1);
+            let nextPotencial_up_right_x = null;
+            let nextPotencial_up_right_y = null;
+            let nextPotencial_up_left_x = null;
+            let nextPotencial_up_left_y = null;
 
-                //step
+            let nextPotencial_bottom_right_x = null;
+            let nextPotencial_bottom_right_y = null;
+            let nextPotencial_bottom_left_x = null;
+            let nextPotencial_bottom_left_y = null;
 
-                $(arGoodEmptyForNextStep[next_cell].next_piece).append('<div class="piece black">&#9820;</div>');
-                $(arGoodEmptyForNextStep[next_cell].current_piece.firstElementChild).remove();
+            let potencialWhiteQueenCell = null;
+            let nextPotencialWhiteQueenCell = null;
 
-            }
-            else if(COMPUTER_LEVEL === "medium") {
-                let current_x = null;
-                let current_y = null;
+            let needStepUpRight = [];
+            let needStepUpLeft = [];
+            let needStepBottomRight = [];
+            let needStepBottomLeft = [];
 
-                let next_piece_x = null;
-                let next_piece_y = null;
+            let hasQueenEnemy = false;
+            let needStep = [];
 
-                let pot_enemy_up_left_x = null;
-                let pot_enemy_up_left_y = null;
-                let pot_enemy_up_right_x = null;
-                let pot_enemy_up_right_y = null;
-                let pot_enemy_bottom_left_x = null;
-                let pot_enemy_bottom_left_y = null;
-                let pot_enemy_bottom_right_x = null;
-                let pot_enemy_bottom_right_y = null;
-                let pot_enemy = null;
+            let count = 0;
+            for (let q = 1; q < 8; q++) {
 
-                // console.log(arGoodEmptyForNextStep);
+                potencial_up_right_x = parseInt(piece_x) + q;
+                potencial_up_right_y = parseInt(piece_y) - q;
 
-                arGoodEmptyForNextStep.forEach(function (value, index) {
-                    current_x = parseInt(value.current_piece.getAttribute("x"));
-                    current_y = parseInt(value.current_piece.getAttribute("y"));
+                nextPotencial_up_right_x = (parseInt(piece_x) + q) + 1;
+                nextPotencial_up_right_y = (parseInt(piece_y) - q) - 1;
 
-                    next_piece_x = parseInt(value.next_piece.getAttribute("x"));
-                    next_piece_y = parseInt(value.next_piece.getAttribute("y"));
+                if ((potencial_up_right_x < 8) && (potencial_up_right_y < 8) && (potencial_up_right_x >= 0) && (potencial_up_right_y >= 0)) {
 
+                    potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_right_x + '][y=' + potencial_up_right_y + ']');
+                    nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_right_x + '][y=' + nextPotencial_up_right_y + ']');
 
-                    // bottom right
-                    if((current_x - next_piece_x === -1) && (current_y - next_piece_y === -1)) {
-                        next_piece_x = next_piece_x + 1;
-                        next_piece_y = next_piece_y + 1;
+                    try {
+                        if (potencialWhiteQueenCell[0].firstElementChild) {
 
-                        pot_enemy = $('.rank__check[x=' + next_piece_x + '][y='+ next_piece_y +']');
-
-                        if(pot_enemy[0].hasChildNodes()) {
-                            if(pot_enemy[0].firstElementChild.classList.contains("white")) {
-                                console.log("не ходи так лучше");
-                                console.log(value);
+                            if (currentPiece.firstElementChild.classList.contains("white")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                    break;
+                                }
                             }
-                            else if(pot_enemy[0].firstElementChild.classList.contains("black")) {
-                                console.log("так можешь ходить");
-                                console.log(value);
+                            else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+                                    break;
+                                }
                             }
+
+                            if (count === 0) {
+
+                                if (currentPiece.firstElementChild.classList.contains("white")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+                                    }
+                                }
+                                else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                            count++;
 
                         }
                         else {
-                            console.log("так можешь ходить");
-                            console.log(value);
-                        }
+                            if (hasQueenEnemy) {
+                                needStep.push(potencialWhiteQueenCell);
+                                needStepUpRight.push(potencialWhiteQueenCell);
 
-                    }
-                    // bottom left
-                    if((current_x - next_piece_x === 1) && (current_y - next_piece_y === -1)) {
-                        next_piece_x = next_piece_x - 1;
-                        next_piece_y = next_piece_y + 1;
-
-                        pot_enemy = $('.rank__check[x=' + next_piece_x + '][y='+ next_piece_y +']');
-
-                        if(pot_enemy.length > 0) {
-
-                            if (pot_enemy[0].hasChildNodes()) {
-                                if (pot_enemy[0].firstElementChild.classList.contains("white")) {
-                                    console.log("не ходи так лучше");
-                                    console.log(value);
-                                }
-                                else if (pot_enemy[0].firstElementChild.classList.contains("black")) {
-                                    console.log("так можешь ходить");
-                                    console.log(value);
-                                }
-
+                                pieceForFuch.push(current_piece);
                             }
                             else {
-                                console.log("так можешь ходить");
-                                console.log(value);
+                                potencialStepsWhiteQueenUpRigth.push(potencialWhiteQueenCell);
                             }
                         }
                     }
-                })
-            }
-            else if(COMPUTER_LEVEL === "high") {
+                    catch(exu) {}
 
+                    try {
+                        if (potencialWhiteQueenCell[0].firstElementChild && nextPotencialWhiteQueenCell[0].firstElementChild) {
+                            break;
+                        }
+                    }
+                    catch (exp){}
+                }
+            }
+
+            hasQueenEnemy = false;
+            count = 0;
+            for (let q = 1; q < 8; q++) {
+
+                potencial_up_left_x = parseInt(piece_x) - q;
+                potencial_up_left_y = parseInt(piece_y) - q;
+
+                nextPotencial_up_left_x = (parseInt(piece_x) - q) - 1;
+                nextPotencial_up_left_y = (parseInt(piece_y) - q) - 1;
+
+                if ((potencial_up_left_x < 8) && (potencial_up_left_y < 8) && (potencial_up_left_x >= 0) && (potencial_up_left_y >= 0)) {
+
+                    potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']');
+                    nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_left_x + '][y=' + nextPotencial_up_left_y + ']');
+
+                    try {
+
+                        if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                            if (currentPiece.firstElementChild.classList.contains("white")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                    break;
+                                }
+                            }
+                            else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+                                    break;
+                                }
+                            }
+
+                            if (count === 0) {
+
+                                if (currentPiece.firstElementChild.classList.contains("white")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+                                    }
+                                }
+                                else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                            count++;
+
+                        }
+                        else {
+                            if (hasQueenEnemy) {
+                                needStep.push(potencialWhiteQueenCell);
+                                needStepUpLeft.push(potencialWhiteQueenCell);
+
+                                pieceForFuch.push(current_piece);
+                            }
+                            else {
+                                potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                            }
+                        }
+                    }
+                    catch(exu) {}
+
+                    try {
+                        if (potencialWhiteQueenCell[0].firstElementChild && nextPotencialWhiteQueenCell[0].firstElementChild) {
+                            break;
+                        }
+                    }
+                    catch (exp) {
+                    }
+
+                }
+            }
+
+            hasQueenEnemy = false;
+            count = 0;
+            for (let q = 1; q < 8; q++) {
+
+                potencial_bottom_right_x = parseInt(piece_x) + q;
+                potencial_bottom_right_y = parseInt(piece_y) + q;
+
+                nextPotencial_bottom_right_x = (parseInt(piece_x) + q) + 1;
+                nextPotencial_bottom_right_y = (parseInt(piece_y) + q) + 1;
+
+                if ((potencial_bottom_right_x < 8) && (potencial_bottom_right_y < 8) && (potencial_bottom_right_x >= 0) && (potencial_bottom_right_y >= 0)) {
+
+                    potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_right_x + '][y=' + potencial_bottom_right_y + ']');
+                    nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_right_x + '][y=' + nextPotencial_bottom_right_y + ']');
+
+                    try {
+
+                        if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                            if (currentPiece.firstElementChild.classList.contains("white")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                    break;
+                                }
+                            }
+                            else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+                                    break;
+                                }
+                            }
+
+                            if (count === 0) {
+
+                                if (currentPiece.firstElementChild.classList.contains("white")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+
+                                    }
+                                }
+                                else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+
+                                    }
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                            count++;
+
+                        }
+                        else {
+                            if (hasQueenEnemy) {
+                                needStep.push(potencialWhiteQueenCell);
+                                needStepBottomRight.push(potencialWhiteQueenCell);
+
+                                pieceForFuch.push(current_piece);
+                            }
+                            else {
+                                potencialStepsWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                            }
+                        }
+                    }
+                    catch(exb) {}
+
+                    try {
+                        if (potencialWhiteQueenCell[0].firstElementChild && nextPotencialWhiteQueenCell[0].firstElementChild) {
+                            break;
+                        }
+                    }
+                    catch (exp) {
+                    }
+
+                }
+            }
+
+            hasQueenEnemy = false;
+            count = 0;
+            for (let q = 1; q < 8; q++) {
+
+                potencial_bottom_left_x = parseInt(piece_x) - q;
+                potencial_bottom_left_y = parseInt(piece_y) + q;
+
+                nextPotencial_bottom_left_x = (parseInt(piece_x) - q) - 1;
+                nextPotencial_bottom_left_y = (parseInt(piece_y) + q) + 1;
+
+                if ((potencial_bottom_left_x < 8) && (potencial_bottom_left_y < 8) && (potencial_bottom_left_x >= 0) && (potencial_bottom_left_y >= 0)) {
+
+                    potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_left_x + '][y=' + potencial_bottom_left_y + ']');
+                    nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_left_x + '][y=' + nextPotencial_bottom_left_y + ']');
+
+                    try {
+
+                        if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                            if (currentPiece.firstElementChild.classList.contains("white")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                    break;
+                                }
+                            }
+                            else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+                                    break;
+                                }
+                            }
+
+                            if (count === 0) {
+
+                                if (currentPiece.firstElementChild.classList.contains("white")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+
+                                    }
+                                }
+                                else if (currentPiece.firstElementChild.classList.contains("black")) {
+                                    // if this is enemy
+                                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                                        try {
+                                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                                //get next target fot attack
+                                                potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                                hasQueenEnemy = true;
+                                            }
+                                        }
+                                        catch (exp) {
+                                        }
+
+                                    }
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                            count++;
+
+                        }
+                        else {
+                            if (hasQueenEnemy) {
+                                needStep.push(potencialWhiteQueenCell);
+                                needStepBottomLeft.push(potencialWhiteQueenCell);
+
+                                pieceForFuch.push(current_piece);
+                            }
+                            else {
+                                potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                            }
+                        }
+                    }
+                    catch(exb) {}
+
+                    try {
+                        if (potencialWhiteQueenCell[0].firstElementChild && nextPotencialWhiteQueenCell[0].firstElementChild) {
+                            break;
+                        }
+                    }
+                    catch (exp) {
+                    }
+
+                }
+            }
+
+            let queen = [{
+                currentpiece : currentPiece,
+                needeat : needEat,
+                upright: {
+                    needStep : needStepUpRight,
+                    empty : potencialStepsWhiteQueenUpRigth,
+                    enemy : potencialAttackWhiteQueenUpRigth
+                },
+                upleft: {
+                    needStep : needStepUpLeft,
+                    empty : potencialStepsWhiteQueenUpLeft,
+                    enemy : potencialAttackWhiteQueenUpLeft
+                },
+                bottomright: {
+                    needStep : needStepBottomRight,
+                    empty : potencialStepsWhiteQueenBottomRigth,
+                    enemy : potencialAttackWhiteQueenBottomRigth
+                },
+                bottomleft: {
+                    needStep : needStepBottomLeft,
+                    empty : potencialStepsWhiteQueenBottomLeft,
+                    enemy : potencialAttackWhiteQueenBottomLeft
+                }
+            }];
+
+            result.push(queen);
+        }
+
+        return result;
+    }
+
+    function getAllSimpleCells(color) {
+        let result = [];
+
+        let all_pieces = document.querySelectorAll('.' + color);
+
+        let needEat = [];
+
+        for(let i = 0; i < all_pieces.length; i++) {
+            if(!all_pieces[i].classList.contains('queen')) {
+
+                let piece_x = all_pieces[i].parentElement.getAttribute("x");
+                let piece_y = all_pieces[i].parentElement.getAttribute("y");
+
+                let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
+                let potencialStepsWhiteQueenUpRigth = [];
+                let potencialStepsWhiteQueenUpLeft = [];
+                let potencialStepsWhiteQueenBottomRigth = [];
+                let potencialStepsWhiteQueenBottomLeft = [];
+
+
+                let potencialAttackWhiteQueenUpRigth = [];
+                let potencialAttackWhiteQueenUpLeft = [];
+                let potencialAttackWhiteQueenBottomRigth = [];
+                let potencialAttackWhiteQueenBottomLeft = [];
+
+                let potencial_up_right_x = null;
+                let potencial_up_right_y = null;
+                let potencial_up_left_x = null;
+                let potencial_up_left_y = null;
+
+                let potencial_bottom_right_x = null;
+                let potencial_bottom_right_y = null;
+                let potencial_bottom_left_x = null;
+                let potencial_bottom_left_y = null;
+
+                let nextPotencial_up_right_x = null;
+                let nextPotencial_up_right_y = null;
+                let nextPotencial_up_left_x = null;
+                let nextPotencial_up_left_y = null;
+
+                let nextPotencial_bottom_right_x = null;
+                let nextPotencial_bottom_right_y = null;
+                let nextPotencial_bottom_left_x = null;
+                let nextPotencial_bottom_left_y = null;
+
+                let potencialWhiteQueenCell = null;
+                let nextPotencialWhiteQueenCell = null;
+
+                let needStepUpRight = [];
+                let needStepUpLeft = [];
+                let needStepBottomRight = [];
+                let needStepBottomLeft = [];
+
+                let hasQueenEnemy = false;
+                let needStep = [];
+
+                /**
+                 *
+                 * up_right
+                 */
+
+                potencial_up_right_x = parseInt(piece_x) + 1;
+                potencial_up_right_y = parseInt(piece_y) - 1;
+
+                nextPotencial_up_right_x = (parseInt(piece_x) + 1) + 1;
+                nextPotencial_up_right_y = (parseInt(piece_y) - 1) - 1;
+
+                potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_right_x + '][y=' + potencial_up_right_y + ']');
+                nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_right_x + '][y=' + nextPotencial_up_right_y + ']');
+
+                if(potencialWhiteQueenCell.length !== 0) {
+                    if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                        if (currentPiece.firstElementChild.classList.contains("white")) {
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+
+                            }
+                        }
+                        else if (currentPiece.firstElementChild.classList.contains("black")) {
+
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+
+                            }
+                        }
+
+                        if(nextPotencialWhiteQueenCell.length !== 0) {
+                            if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                if (hasQueenEnemy) {
+                                    needStep.push(nextPotencialWhiteQueenCell);
+                                    needStepUpRight.push(nextPotencialWhiteQueenCell);
+
+                                    pieceForFuch.push(current_piece);
+                                }
+                            }
+                        }
+
+
+                    }
+                    else {
+                        if (hasQueenEnemy) {
+                            needStep.push(potencialWhiteQueenCell);
+                            needStepUpRight.push(potencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                        else {
+                            if(color === "white") {
+                                potencialStepsWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                            }
+                        }
+                    }
+                }
+
+
+                /**
+                 *
+                 * up_left
+                 */
+
+
+                hasQueenEnemy = false;
+
+                potencial_up_left_x = parseInt(piece_x) - 1;
+                potencial_up_left_y = parseInt(piece_y) - 1;
+
+                nextPotencial_up_left_x = (parseInt(piece_x) - 1) - 1;
+                nextPotencial_up_left_y = (parseInt(piece_y) - 1) - 1;
+
+
+                potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']');
+                nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_left_x + '][y=' + nextPotencial_up_left_y + ']');
+
+                if(potencialWhiteQueenCell.length !== 0) {
+
+                    if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                        if (currentPiece.firstElementChild.classList.contains("white")) {
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+
+                            }
+                        }
+                        else if (currentPiece.firstElementChild.classList.contains("black")) {
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+
+                            }
+                        }
+
+                        if(nextPotencialWhiteQueenCell.length !== 0) {
+                            if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                if (hasQueenEnemy) {
+                                    needStep.push(nextPotencialWhiteQueenCell);
+                                    needStepUpLeft.push(nextPotencialWhiteQueenCell);
+
+                                    pieceForFuch.push(current_piece);
+                                }
+                            }
+                        }
+
+                    }
+                    else {
+                        if (hasQueenEnemy) {
+                            needStep.push(potencialWhiteQueenCell);
+                            needStepUpLeft.push(potencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                        else {
+                            if(color === "white") {
+                                potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                            }
+                        }
+                    }
+                }
+
+                /**
+                 *
+                 * bottom_right
+                 */
+
+
+                hasQueenEnemy = false;
+
+                potencial_bottom_right_x = parseInt(piece_x) + 1;
+                potencial_bottom_right_y = parseInt(piece_y) + 1;
+
+                nextPotencial_bottom_right_x = (parseInt(piece_x) + 1) + 1;
+                nextPotencial_bottom_right_y = (parseInt(piece_y) + 1) + 1;
+
+
+                potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_right_x + '][y=' + potencial_bottom_right_y + ']');
+                nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_right_x + '][y=' + nextPotencial_bottom_right_y + ']');
+
+                if(potencialWhiteQueenCell.length !== 0) {
+
+                    if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                        if (currentPiece.firstElementChild.classList.contains("white")) {
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+                            }
+                        }
+                        else if (currentPiece.firstElementChild.classList.contains("black")) {
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+                            }
+                        }
+
+                        if(nextPotencialWhiteQueenCell.length !== 0) {
+                            if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                if (hasQueenEnemy) {
+                                    needStep.push(nextPotencialWhiteQueenCell);
+                                    needStepBottomRight.push(nextPotencialWhiteQueenCell);
+
+                                    pieceForFuch.push(current_piece);
+                                }
+                            }
+                        }
+
+                    }
+                    else {
+                        if (hasQueenEnemy) {
+                            needStep.push(potencialWhiteQueenCell);
+                            needStepBottomRight.push(potencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                        else {
+                            if(color === "black") {
+                                potencialStepsWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                            }
+                        }
+                    }
+                }
+
+                /**
+                 *
+                 * bottom_left
+                 */
+
+                hasQueenEnemy = false;
+
+                potencial_bottom_left_x = parseInt(piece_x) - 1;
+                potencial_bottom_left_y = parseInt(piece_y) + 1;
+
+                nextPotencial_bottom_left_x = (parseInt(piece_x) - 1) - 1;
+                nextPotencial_bottom_left_y = (parseInt(piece_y) + 1) + 1;
+
+
+                potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_left_x + '][y=' + potencial_bottom_left_y + ']');
+                nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_left_x + '][y=' + nextPotencial_bottom_left_y + ']');
+
+                if(potencialWhiteQueenCell.length !== 0) {
+
+                    if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                        if (currentPiece.firstElementChild.classList.contains("white")) {
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+
+                            }
+                        }
+                        else if (currentPiece.firstElementChild.classList.contains("black")) {
+                            // if this is enemy
+                            if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+                                if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+
+                                    if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                        //get next target fot attack
+                                        potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                        hasQueenEnemy = true;
+                                        needEat.push(currentPiece);
+                                    }
+                                }
+                            }
+                        }
+
+                        if(nextPotencialWhiteQueenCell.length !== 0) {
+                            if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                if (hasQueenEnemy) {
+                                    needStep.push(nextPotencialWhiteQueenCell);
+                                    needStepBottomLeft.push(nextPotencialWhiteQueenCell);
+
+                                    pieceForFuch.push(current_piece);
+                                }
+                            }
+                        }
+
+                    }
+                    else {
+                        if (hasQueenEnemy) {
+                            needStep.push(potencialWhiteQueenCell);
+                            needStepBottomLeft.push(potencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                        else {
+                            if(color === "black") {
+                                potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                            }
+                        }
+                    }
+                }
+
+                if (currentPiece.firstElementChild.classList.contains("black")) {
+                    if(SIMPLE_BACK_ATTACK !== "on") {
+                        needStepUpRight = [];
+                        needStepUpLeft = [];
+                        potencialAttackWhiteQueenUpRigth = [];
+                        potencialAttackWhiteQueenUpLeft = [];
+                    }
+                }
+                if (currentPiece.firstElementChild.classList.contains("white")) {
+                    if(SIMPLE_BACK_ATTACK !== "on") {
+                        needStepBottomRight = [];
+                        needStepBottomLeft = [];
+                        potencialAttackWhiteQueenBottomRigth = [];
+                        potencialAttackWhiteQueenBottomLeft = [];
+                    }
+                }
+
+                let queen = [{
+                    currentpiece: currentPiece,
+                    needeat: needEat,
+                    upright: {
+                        needStep: needStepUpRight,
+                        empty: potencialStepsWhiteQueenUpRigth,
+                        enemy: potencialAttackWhiteQueenUpRigth
+                    },
+                    upleft: {
+                        needStep: needStepUpLeft,
+                        empty: potencialStepsWhiteQueenUpLeft,
+                        enemy: potencialAttackWhiteQueenUpLeft
+                    },
+                    bottomright: {
+                        needStep: needStepBottomRight,
+                        empty: potencialStepsWhiteQueenBottomRigth,
+                        enemy: potencialAttackWhiteQueenBottomRigth
+                    },
+                    bottomleft: {
+                        needStep: needStepBottomLeft,
+                        empty: potencialStepsWhiteQueenBottomLeft,
+                        enemy: potencialAttackWhiteQueenBottomLeft
+                    }
+                }];
+
+                result.push(queen);
             }
         }
 
+        return result;
+    }
 
-        // try {
-        //     console.log("stepComputer");
-        //
-        //     let arGoodEmptyForNextStep = getPosibleBlackPieces();
-        //     let countGoodStep = arGoodEmptyForNextStep.length - 1;
-        //     let nextStepComputer = randomInteger(0, countGoodStep);
-        //
-        //     let x = arGoodEmptyForNextStep[nextStepComputer]["x"];
-        //     let y = arGoodEmptyForNextStep[nextStepComputer]["y"];
-        //
-        //     let next_x = arGoodEmptyForNextStep[nextStepComputer]["empty_x"];
-        //     let next_y = arGoodEmptyForNextStep[nextStepComputer]["empty_y"];
-        //
-        //     let current_cell = $(".rank__check[x=" + x + "][y=" + y + "]");
-        //     let next_cell = $(".rank__check[x=" + next_x + "][y=" + next_y + "]");
-        //
-        //     // remove current piece
-        //     current_cell[0].firstElementChild.remove();
-        //
-        //     // add new piece
-        //     next_cell.append('<div class="piece black">&#9820;</div>');
-        // }
-        // catch(e_comp){}
+    function getOneSimpleCells(color, currentPiece, prev) {
+        //let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
+        let result = [];
+
+        let needEat = [];
+
+        let danger_up_right = [];
+        let danger_up_left = [];
+        let danger_bottom_right = [];
+        let danger_bottom_left = [];
+
+        let piece_x = currentPiece.getAttribute("x");
+        let piece_y = currentPiece.getAttribute("y");
+
+        let potencialStepsWhiteQueenUpRigth = [];
+        let potencialStepsWhiteQueenUpLeft = [];
+        let potencialStepsWhiteQueenBottomRigth = [];
+        let potencialStepsWhiteQueenBottomLeft = [];
 
 
+        let potencialAttackWhiteQueenUpRigth = [];
+        let potencialAttackWhiteQueenUpLeft = [];
+        let potencialAttackWhiteQueenBottomRigth = [];
+        let potencialAttackWhiteQueenBottomLeft = [];
 
+        let potencial_up_right_x = null;
+        let potencial_up_right_y = null;
+        let potencial_up_left_x = null;
+        let potencial_up_left_y = null;
+
+        let potencial_bottom_right_x = null;
+        let potencial_bottom_right_y = null;
+        let potencial_bottom_left_x = null;
+        let potencial_bottom_left_y = null;
+
+        let nextPotencial_up_right_x = null;
+        let nextPotencial_up_right_y = null;
+        let nextPotencial_up_left_x = null;
+        let nextPotencial_up_left_y = null;
+
+        let nextPotencial_bottom_right_x = null;
+        let nextPotencial_bottom_right_y = null;
+        let nextPotencial_bottom_left_x = null;
+        let nextPotencial_bottom_left_y = null;
+
+        let potencialWhiteQueenCell = null;
+        let nextPotencialWhiteQueenCell = null;
+
+        let needStepUpRight = [];
+        let needStepUpLeft = [];
+        let needStepBottomRight = [];
+        let needStepBottomLeft = [];
+
+        let hasQueenEnemy = false;
+        let needStep = [];
+
+        /**
+         *
+         * up_right
+         */
+
+
+
+        potencial_up_right_x = parseInt(piece_x) + 1;
+        potencial_up_right_y = parseInt(piece_y) - 1;
+
+        nextPotencial_up_right_x = (parseInt(piece_x) + 1) + 1;
+        nextPotencial_up_right_y = (parseInt(piece_y) - 1) - 1;
+
+        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_right_x + '][y=' + potencial_up_right_y + ']');
+        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_right_x + '][y=' + nextPotencial_up_right_y + ']');
+
+        if(potencialWhiteQueenCell.length !== 0) {
+            if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                if (color === "white") {
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                        danger_up_right.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+
+                    }
+                }
+                else if (color === "black") {
+
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                        danger_up_right.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+
+                    }
+                }
+
+                if(nextPotencialWhiteQueenCell.length !== 0) {
+                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                        if (hasQueenEnemy) {
+                            needStep.push(nextPotencialWhiteQueenCell);
+                            needStepUpRight.push(nextPotencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                    }
+                }
+
+
+            }
+            else {
+                if (hasQueenEnemy) {
+                    needStep.push(potencialWhiteQueenCell);
+                    needStepUpRight.push(potencialWhiteQueenCell);
+
+                    pieceForFuch.push(current_piece);
+                }
+                else {
+                    if(color === "white") {
+                        potencialStepsWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                    }
+                }
+            }
+        }
+
+        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
+        if(nextPotencialWhiteQueenCell[0] ===  prev[0]) {
+            danger_up_right = [];
+        }
+
+        /**
+         *
+         * up_left
+         */
+
+
+        hasQueenEnemy = false;
+
+        potencial_up_left_x = parseInt(piece_x) - 1;
+        potencial_up_left_y = parseInt(piece_y) - 1;
+
+        nextPotencial_up_left_x = (parseInt(piece_x) - 1) - 1;
+        nextPotencial_up_left_y = (parseInt(piece_y) - 1) - 1;
+
+
+        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']');
+        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_left_x + '][y=' + nextPotencial_up_left_y + ']');
+
+        if(potencialWhiteQueenCell.length !== 0) {
+
+            if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                if (color === "white") {
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                        danger_up_left.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+
+                    }
+                }
+                else if (color === "black") {
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                        danger_up_left.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+
+                    }
+                }
+
+                if(nextPotencialWhiteQueenCell.length !== 0) {
+                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                        if (hasQueenEnemy) {
+                            needStep.push(nextPotencialWhiteQueenCell);
+                            needStepUpLeft.push(nextPotencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                    }
+                }
+
+            }
+            else {
+                if (hasQueenEnemy) {
+                    needStep.push(potencialWhiteQueenCell);
+                    needStepUpLeft.push(potencialWhiteQueenCell);
+
+                    pieceForFuch.push(current_piece);
+                }
+                else {
+                    if(color === "white") {
+                        potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                    }
+                }
+            }
+        }
+
+        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
+        if(nextPotencialWhiteQueenCell[0] === prev[0]) {
+            danger_up_left = [];
+        }
+        /**
+         *
+         * bottom_right
+         */
+
+
+        hasQueenEnemy = false;
+
+        potencial_bottom_right_x = parseInt(piece_x) + 1;
+        potencial_bottom_right_y = parseInt(piece_y) + 1;
+
+        nextPotencial_bottom_right_x = (parseInt(piece_x) + 1) + 1;
+        nextPotencial_bottom_right_y = (parseInt(piece_y) + 1) + 1;
+
+
+        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_right_x + '][y=' + potencial_bottom_right_y + ']');
+        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_right_x + '][y=' + nextPotencial_bottom_right_y + ']');
+
+        if(potencialWhiteQueenCell.length !== 0) {
+
+            if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                if (color === "white") {
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                        danger_bottom_right.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+                    }
+                }
+                else if (color === "black") {
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                        danger_bottom_right.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+
+                    }
+                }
+
+                if(nextPotencialWhiteQueenCell.length !== 0) {
+                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                        if (hasQueenEnemy) {
+                            needStep.push(nextPotencialWhiteQueenCell);
+                            needStepBottomRight.push(nextPotencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                    }
+                }
+
+            }
+            else {
+                if (hasQueenEnemy) {
+                    needStep.push(potencialWhiteQueenCell);
+                    needStepBottomRight.push(potencialWhiteQueenCell);
+
+                    pieceForFuch.push(current_piece);
+                }
+                else {
+                    if(color === "black") {
+                        potencialStepsWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                    }
+                }
+            }
+        }
+
+        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
+        if(nextPotencialWhiteQueenCell[0] ===  prev[0]) {
+            danger_bottom_right = [];
+        }
+        /**
+         *
+         * bottom_left
+         */
+
+        hasQueenEnemy = false;
+
+        potencial_bottom_left_x = parseInt(piece_x) - 1;
+        potencial_bottom_left_y = parseInt(piece_y) + 1;
+
+        nextPotencial_bottom_left_x = (parseInt(piece_x) - 1) - 1;
+        nextPotencial_bottom_left_y = (parseInt(piece_y) + 1) + 1;
+
+
+        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_left_x + '][y=' + potencial_bottom_left_y + ']');
+        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_left_x + '][y=' + nextPotencial_bottom_left_y + ']');
+
+        if(potencialWhiteQueenCell.length !== 0) {
+
+            if (potencialWhiteQueenCell[0].firstElementChild) {
+
+                if (color === "white") {
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
+
+                        danger_bottom_left.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+                    }
+                }
+                else if (color === "black") {
+                    // if this is enemy
+                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
+
+                        danger_bottom_left.push(potencialWhiteQueenCell[0]);
+
+                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
+
+                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                                //get next target fot attack
+                                potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                hasQueenEnemy = true;
+                                needEat.push(currentPiece);
+                            }
+                        }
+                    }
+                }
+
+                if(nextPotencialWhiteQueenCell.length !== 0) {
+                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
+                        if (hasQueenEnemy) {
+                            needStep.push(nextPotencialWhiteQueenCell);
+                            needStepBottomLeft.push(nextPotencialWhiteQueenCell);
+
+                            pieceForFuch.push(current_piece);
+                        }
+                    }
+                }
+
+            }
+            else {
+                if (hasQueenEnemy) {
+                    needStep.push(potencialWhiteQueenCell);
+                    needStepBottomLeft.push(potencialWhiteQueenCell);
+
+                    pieceForFuch.push(current_piece);
+                }
+                else {
+                    if(color === "black") {
+                        potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                    }
+                }
+            }
+        }
+
+        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
+        if(nextPotencialWhiteQueenCell[0] ===  prev[0]) {
+            danger_bottom_left = [];
+        }
+
+        if (color === "black") {
+            if(SIMPLE_BACK_ATTACK !== "on") {
+                needStepUpRight = [];
+                needStepUpLeft = [];
+                potencialAttackWhiteQueenUpRigth = [];
+                potencialAttackWhiteQueenUpLeft = [];
+            }
+
+        }
+        if (color === "white") {
+            if(SIMPLE_BACK_ATTACK !== "on") {
+                needStepBottomRight = [];
+                needStepBottomLeft = [];
+                potencialAttackWhiteQueenBottomRigth = [];
+                potencialAttackWhiteQueenBottomLeft = [];
+            }
+        }
+
+        let queen = [{
+            currentpiece: currentPiece,
+            needeat: needEat,
+            upright: {
+                needStep: needStepUpRight,
+                empty: potencialStepsWhiteQueenUpRigth,
+                enemy: potencialAttackWhiteQueenUpRigth,
+                danger: danger_up_right
+            },
+            upleft: {
+                needStep: needStepUpLeft,
+                empty: potencialStepsWhiteQueenUpLeft,
+                enemy: potencialAttackWhiteQueenUpLeft,
+                danger: danger_up_left
+            },
+            bottomright: {
+                needStep: needStepBottomRight,
+                empty: potencialStepsWhiteQueenBottomRigth,
+                enemy: potencialAttackWhiteQueenBottomRigth,
+                danger: danger_bottom_right
+            },
+            bottomleft: {
+                needStep: needStepBottomLeft,
+                empty: potencialStepsWhiteQueenBottomLeft,
+                enemy: potencialAttackWhiteQueenBottomLeft,
+                danger: danger_bottom_left
+            }
+        }];
+
+        result.push(queen);
+
+        console.log(queen)
+
+        return result;
     }
 
     // click on checkers
     addDynamicEventListener(document.body, 'click', '.piece', function (e) {
 
-        // current piece
-        current_piece = e.target;
+        if(current_piece !== null) {
+            if (current_piece.classList.contains("next")) {
+                return false;
+            }
+        }
 
-        // check player
         let currentPlayer = checkPlayer(e.target);
-        if(player !== currentPlayer) {
-            alert("Сейчас ходит " + player);
+        if(currentPlayer !== player) {
             return false;
         }
+
+        // current piece
+        current_piece = e.target;
 
         //remove active from all pieces
         $(".piece").removeClass("active");
@@ -847,415 +1526,396 @@ $(document).ready(function(){
         let piece_x = current_piece.parentElement.getAttribute("x");
         let piece_y = current_piece.parentElement.getAttribute("y");
 
-        // надо исправить это недразумение будет
-        let potencial_up_right_x = null;
-        let potencial_up_right_y = null;
-        let potencial_right_x = null;
-        let potencial_right_y = null;
-        let potencial_bottom_right_x = null;
-        let potencial_bottom_right_y = null;
+        /**
+         * QUEEN
+         */
 
-        let potencial_up_left_x = null;
-        let potencial_up_left_y = null;
-        let potencial_left_x = null;
-        let potencial_left_y = null;
-        let potencial_bottom_left_x = null;
-        let potencial_bottom_left_y = null;
+        let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
 
-        // get all pieces
-        let allPiece = document.querySelectorAll('.rank__check');
+        if(currentPiece.firstElementChild.classList.contains("queen")) {
+            $(current_piece).addClass("active");
 
-        let arPotencialWhite = [];
-        let isWhiteNeedAttack = [];
+            let queens = [];
 
-        let arPotencialBlack = [];
-        let isBlackNeedAttack = [];
-
-        for(let i = 0; i < allPiece.length; i++) {
-            // remove from all pieces potencial style cell
-            $(allPiece[i]).removeClass("over");
-
-            if(isMoviableCell(allPiece[i])){
-
-                // get for white next step
-                if(current_piece.classList.contains("white")) {
-                    potencial_right_x = parseInt(piece_x) + 1;
-                    potencial_right_y = parseInt(piece_y) - 1;
-
-                    if ((potencial_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("black")) {
-
-                                potencial_right_x = parseInt(piece_x) + 2;
-                                potencial_right_y = parseInt(piece_y) - 2;
-
-                                try {
-
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_right_x + '][y=' + potencial_right_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isWhiteNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e) {}
-                            }
-                        }
-                        else {
-                            arPotencialWhite.push(allPiece[i]);
-                        }
-                    }
-
-                    potencial_left_x = parseInt(piece_x) - 1;
-                    potencial_left_y = parseInt(piece_y) - 1;
-
-                    if ((potencial_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("black")) {
-
-                                potencial_left_x = parseInt(piece_x) - 2;
-                                potencial_left_y = parseInt(piece_y) - 2;
-
-                                try {
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_left_x + '][y=' + potencial_left_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isWhiteNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e) {}
-
-                            }
-                        }
-                        else {
-                            arPotencialWhite.push(allPiece[i]);
-                        }
-                    }
-
-                    potencial_bottom_right_x = parseInt(piece_x) + 1;
-                    potencial_bottom_right_y = parseInt(piece_y) + 1;
-
-                    if ((potencial_bottom_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_bottom_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("black")) {
-
-                                potencial_bottom_right_x = parseInt(piece_x) + 2;
-                                potencial_bottom_right_y = parseInt(piece_y) + 2;
-
-                                try {
-
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_bottom_right_x + '][y=' + potencial_bottom_right_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isWhiteNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e) {}
-                            }
-                        }
-                    }
-
-                    potencial_bottom_left_x = parseInt(piece_x) - 1;
-                    potencial_bottom_left_y = parseInt(piece_y) + 1;
-
-                    if ((potencial_bottom_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_bottom_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("black")) {
-
-                                potencial_bottom_left_x = parseInt(piece_x) - 2;
-                                potencial_bottom_left_y = parseInt(piece_y) + 2;
-
-                                try {
-
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_bottom_left_x + '][y=' + potencial_bottom_left_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isWhiteNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e) {}
-                            }
-                        }
-                    }
-                }
-
-                if(current_piece.classList.contains("black")) {
-                    potencial_right_x = parseInt(piece_x) - 1;
-                    potencial_right_y = parseInt(piece_y) + 1;
-
-                    if ((potencial_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("white")) {
-
-                                potencial_right_x = parseInt(piece_x) - 2;
-                                potencial_right_y = parseInt(piece_y) + 2;
-
-                                try {
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_right_x + '][y=' + potencial_right_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isBlackNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e){}
-                            }
-                        }
-                        else {
-                            arPotencialBlack.push(allPiece[i]);
-                        }
-                    }
-
-                    potencial_left_x = parseInt(piece_x) + 1;
-                    potencial_left_y = parseInt(piece_y) + 1;
-
-                    if ((potencial_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("white")) {
-
-                                potencial_left_x = parseInt(piece_x) + 2;
-                                potencial_left_y = parseInt(piece_y) + 2;
-
-                                try {
-
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_left_x + '][y=' + potencial_left_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isBlackNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e){}
-
-                            }
-                        }
-                        else {
-                            arPotencialBlack.push(allPiece[i]);
-                        }
-                    }
-
-                    potencial_up_right_x = parseInt(piece_x) + 1;
-                    potencial_up_right_y = parseInt(piece_y) - 1;
-
-                    if ((potencial_up_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_up_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("white")) {
-
-                                potencial_up_right_x = parseInt(piece_x) + 2;
-                                potencial_up_right_y = parseInt(piece_y) - 2;
-
-                                try {
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_up_right_x + '][y=' + potencial_up_right_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isBlackNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e){}
-                            }
-                        }
-                    }
-
-                    potencial_up_left_x = parseInt(piece_x) - 1;
-                    potencial_up_left_y = parseInt(piece_y) - 1;
-
-                    if ((potencial_up_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_up_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-                        if (allPiece[i].hasChildNodes()) {
-                            if (allPiece[i].firstElementChild.classList.contains("white")) {
-
-                                potencial_up_left_x = parseInt(piece_x) - 2;
-                                potencial_up_left_y = parseInt(piece_y) - 2;
-
-                                try {
-                                    let piece_for_attack = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']')[0];
-
-                                    if (!piece_for_attack.hasChildNodes()) {
-                                        // get next step
-                                        // arPotencialWhite.push(piece_for_attack);
-
-                                        isBlackNeedAttack.push({
-                                            enemy: allPiece[i],
-                                            target: piece_for_attack,
-                                            isAttack: true
-                                        });
-
-                                        isHasEnemy = true;
-                                    }
-                                }
-                                catch(piece_for_e){}
-                            }
-                        }
-                    }
-                }
-
-
+            if(currentPlayer === "white") {
+                queens = getAllQueenCells("white");
+            }
+            else if(currentPlayer === "black") {
+                queens = getAllQueenCells("black");
             }
 
+            potencialStepsWhiteQueenGlobal = queens;
 
-            // get rank__check without piece
-            // if(!allPiece[i].hasChildNodes()) {
-            //     // if isset coordinates
-            //     if(allPiece[i].getAttribute("x")) {
-            //         potencial_x = allPiece[i].getAttribute("x");
-            //         potencial_y = allPiece[i].getAttribute("y");
-            //
-            //         if(e.target.classList.contains('black')) {
-            //
-            //             // get next success cells
-            //             if (isPotencialCellBlack(piece_x, piece_y, potencial_x, potencial_y)) {
-            //
-            //                 // set active class to current piece
-            //                 $(e.target).addClass("active");
-            //
-            //                 let rank_check = allPiece[i];
-            //
-            //                 $(rank_check).addClass("over");
-            //             }
-            //         }
-            //         else if(e.target.classList.contains('white')) {
-            //
-            //             // get next success cells
-            //             if (isPotencialCellWhite(piece_x, piece_y, potencial_x, potencial_y)) {
-            //                 // set active class to current piece
-            //                 $(e.target).addClass("active");
-            //
-            //                 let rank_check = allPiece[i];
-            //
-            //                 $(rank_check).addClass("over");
-            //             }
-            //         }
-            //
-            //         // console.log(potencial_x + ", " + potencial_y);
-            //     }
-            // }
+            $('.rank__check').toggleClass("over", false);
+
+            // подсвечивание
+            queens.forEach(function (value) {
+
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
+
+                if(OVER_STEPS === "on") {
+
+                    if (current_piece.parentElement === value[0].currentpiece) {
+                        value[0].upright.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upright.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+
+                        value[0].upleft.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upleft.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+                        value[0].bottomright.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+
+                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                    }
+                }
+            });
+
+            $(current_piece).toggleClass("fuch", false);
+
         }
-
-        // attack
-        if(isHasEnemy) {
-            if(current_piece.classList.contains("white")) {
-                // set for white next step
-
-                // if next cell has enemy then attack
-                if(isWhiteNeedAttack.length > 0) {
-                    let jumping = isWhiteNeedAttack[0].target;
-                    let enemy = isWhiteNeedAttack[0].enemy;
-
-                    nextTarget = enemy;
-
-                    $(current_piece).addClass("active");
-                    $($(enemy)[0].firstElementChild).addClass("potencial_dead");
-                    $(jumping).addClass("over");
-
-                    nextAttack = jumping;
-                    isHasEnemy = true;
-
-                }
-            }
-            else if(current_piece.classList.contains("black")) {
-                // set for black next step
-
-                // if next cell has enemy then attack
-                if(isBlackNeedAttack.length > 0) {
-                    let jumping = isBlackNeedAttack[0].target;
-                    let enemy = isBlackNeedAttack[0].enemy;
-
-                    nextTarget = enemy;
-
-                    $(current_piece).addClass("active");
-                    $($(enemy)[0].firstElementChild).addClass("potencial_dead");
-                    $(jumping).addClass("over");
-
-                    nextAttack = jumping;
-                    isHasEnemy = true;
-
-                }
-            }
-        }
-        // step
+        /**
+         * SIMPLE CHECKERS
+         */
         else {
-            if(current_piece.classList.contains("white")) {
+            $(current_piece).addClass("active");
 
-                $(current_piece).addClass("active");
+            let simples = [];
 
-                arPotencialWhite.forEach(function (value, index) {
-                    $(value).addClass("over");
-                });
-
-                nextStep = arPotencialWhite;
-
+            if(currentPlayer === "white") {
+                simples = getAllSimpleCells("white");
             }
-            else if(current_piece.classList.contains("black")) {
-
-                $(current_piece).addClass("active");
-
-                arPotencialBlack.forEach(function (value, index) {
-                    $(value).addClass("over");
-                });
-
-                nextStep = arPotencialBlack;
+            else if(currentPlayer === "black") {
+                simples = getAllSimpleCells("black");
             }
+
+            potencialStepsSimpleGlobal = simples;
+
+            $('.rank__check').toggleClass("over", false);
+
+            // подсвечивание
+            simples.forEach(function (value) {
+
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
+
+                if(OVER_STEPS === "on") {
+                    if (current_piece.parentElement === value[0].currentpiece) {
+                        value[0].upright.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upright.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+
+                        value[0].upleft.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upleft.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+                        value[0].bottomright.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+
+                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                    }
+                }
+            });
+
+            $(current_piece).toggleClass("fuch", false);
         }
 
+    });
+
+    function nextQueenAttack(new_piece) {
+        let queens = [];
+
+        let currentColor = null;
+        if(new_piece.classList.contains("black")) {
+            currentColor = "black";
+        }
+        else if(new_piece.classList.contains("white")) {
+            currentColor = "white";
+        }
+
+        if(currentColor === "white") {
+            queens = getAllQueenCells("white");
+        }
+        else if(currentColor === "black") {
+            queens = getAllQueenCells("black");
+        }
+
+        let needAttack = false;
+        queens.forEach(function (value) {
+            if (new_piece.parentElement === value[0].currentpiece) {
+                if (value[0].upright.needStep.length > 0) {
+                    needAttack = true;
+                }
+
+                if (value[0].upleft.needStep.length > 0) {
+                    needAttack = true;
+                }
+
+                if (value[0].bottomright.needStep.length > 0) {
+                    needAttack = true;
+                }
+
+                if (value[0].bottomleft.needStep.length > 0) {
+                    needAttack = true;
+                }
+            }
+        });
+
+        if(needAttack) {
+            $('.rank__check').toggleClass("over", false);
+            // $(new_piece).addClass("active");
+
+            // подсвечивание
+            queens.forEach(function (value) {
+
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
+            });
+
+            $(new_piece).toggleClass("fuch", false);
+
+            return true;
+
+        }
+        else {
+            return false;
+        }
+    }
+
+    function nextSimpleAttack(new_piece) {
+        let simples = [];
+
+        let currentColor = null;
+        if(new_piece.classList.contains("black")) {
+            currentColor = "black";
+        }
+        else if(new_piece.classList.contains("white")) {
+            currentColor = "white";
+        }
+
+        if(currentColor === "white") {
+            simples = getAllSimpleCells("white");
+        }
+        else if(currentColor === "black") {
+            simples = getAllSimpleCells("black");
+        }
+
+        let needAttack = false;
+        simples.forEach(function (value) {
+            if (new_piece.parentElement === value[0].currentpiece) {
+                if (value[0].upright.needStep.length > 0) {
+                    needAttack = true;
+                }
+
+                if (value[0].upleft.needStep.length > 0) {
+                    needAttack = true;
+                }
+
+                if (value[0].bottomright.needStep.length > 0) {
+                    needAttack = true;
+                }
+
+                if (value[0].bottomleft.needStep.length > 0) {
+                    needAttack = true;
+                }
+            }
+        });
+
+        if(needAttack) {
+            $('.rank__check').toggleClass("over", false);
+
+            // подсвечивание
+            simples.forEach(function (value) {
+
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
+            });
+
+            $(new_piece).toggleClass("fuch", false);
+
+            return true;
+
+        }
+        else {
+            return false;
+        }
+    }
+
+    // click on next attack
+    addDynamicEventListener(document.body, 'click', ".next", function (event) {
+        try {
+            if (event.target.firstChild.classList.contains('active')) {
+
+            }
+        }catch (e) {
+            if (current_piece) {
+
+                $(current_piece).addClass("active");
+
+                let currentColor = null;
+                if (current_piece.classList.contains("black")) {
+                    currentColor = "black";
+                }
+                else if (current_piece.classList.contains("white")) {
+                    currentColor = "white";
+                }
+
+                if (current_piece.classList.contains("queen")) {
+
+                    if (currentColor === "white") {
+                        potencialStepsWhiteQueenGlobal = getAllQueenCells("white");
+                    }
+                    else if (currentColor === "black") {
+                        potencialStepsWhiteQueenGlobal = getAllQueenCells("black");
+                    }
+
+                    // подсвечивание
+                    potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                        if(COLOR_FUCHS === "on") {
+                            value[0].needeat.forEach(function (val_need) {
+                                $(val_need.firstElementChild).toggleClass("fuch", true);
+                            });
+                        }
+
+                        if(OVER_STEPS === "on") {
+
+                            if (current_piece.parentElement === value[0].currentpiece) {
+                                value[0].upright.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upright.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+
+
+                                value[0].upleft.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upleft.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+
+                                value[0].bottomright.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomright.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+
+                                value[0].bottomleft.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                            }
+                        }
+                    });
+
+                    $(current_piece).toggleClass("fuch", false);
+                }
+                else {
+                    if (currentColor === "white") {
+                        potencialStepsSimpleGlobal = getAllSimpleCells("white");
+                    }
+                    else if (currentColor === "black") {
+                        potencialStepsSimpleGlobal = getAllSimpleCells("black");
+                    }
+
+                    // подсвечивание
+                    potencialStepsSimpleGlobal.forEach(function (value) {
+
+                        if(COLOR_FUCHS === "on") {
+                            value[0].needeat.forEach(function (val_need) {
+                                $(val_need.firstElementChild).toggleClass("fuch", true);
+                            });
+                        }
+
+                        if(OVER_STEPS === "on") {
+
+                            if (current_piece.parentElement === value[0].currentpiece) {
+                                value[0].upright.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upright.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+
+                                value[0].upleft.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upleft.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+
+                                value[0].bottomright.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomright.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+
+                                value[0].bottomleft.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                            }
+                        }
+                    });
+
+                    $(current_piece).toggleClass("fuch", false);
+                }
+            }
+        }
     });
 
     // click on cell
@@ -1267,6 +1927,8 @@ $(document).ready(function(){
             }
         }catch (e) {
             if(current_piece){
+                let wasStep = false;
+
                 let but_x = current_piece.parentElement.getAttribute("x");
                 let but_y = current_piece.parentElement.getAttribute("y");
 
@@ -1281,78 +1943,1476 @@ $(document).ready(function(){
                     currentColor = "white";
                 }
 
+                let isPlayerChange = false;
 
-                //attack
-                if(nextAttack !== null) {
+                /**
+                 * QUEENS CHECKERS
+                 */
+                if(current_piece.classList.contains("queen")) {
 
-                    if((nextAttack.getAttribute("x") === event.target.getAttribute("x")) && (nextAttack.getAttribute("y") === event.target.getAttribute("y"))) {
+                    // если режим "обязательно рубить", то проверяем, срубилена шашка
+                    // если не срублена, то шашка "съедается"
+                    let needAttack = false;
 
-                        // createElement
-                        if (currentColor === "white") {
-                            $(event.target).append('<div class="piece white">&#9814;</div>');
+                    potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                        //и заодно убираем лишние классы
+                        value[0].needeat.forEach(function (val_need) {
+                            $(val_need.firstElementChild).toggleClass("fuch", false);
+                        });
+
+                        if(value[0].upright.needStep.length > 0) {
+                            needAttack = true;
                         }
-                        else if (currentColor === "black") {
-                            $(event.target).append('<div class="piece black">&#9820;</div>');
+
+                        if(value[0].upleft.needStep.length > 0) {
+                            needAttack = true;
                         }
 
-                        $(current_piece).remove();
-                        current_piece = null;
+                        if(value[0].bottomright.needStep.length > 0) {
+                            needAttack = true;
+                        }
 
-                        let kill_target = nextTarget.firstElementChild;
-                        $(kill_target).remove();
+                        if(value[0].bottomleft.needStep.length > 0) {
+                            needAttack = true;
+                        }
 
-                        // kill enemy
-                        isHasEnemy = false;
+                    });
 
-                        // more attack must can do it...
-                        //...
-                        //...
+                    // queen need attack
+                    if(needAttack) {
+
+                        // если режим "обязательно рубить", то проверяем, срубилена шашка
+                        // если не срублена, то шашка "съедается"
+                        let needEat = false;
+
+                        potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                            value[0].upright.needStep.forEach(function (val_up) {
+                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                            value[0].upleft.needStep.forEach(function (val_up) {
+                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                            value[0].bottomright.needStep.forEach(function (val_bot) {
+                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                            value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                        });
+
+                        // надо съесть (возможен фук)
+                        if(!needEat && FUCHS === "on") {
+
+                            isPlayerChange = false;
+                            let isFuch = false;
+                            let indexNeadEat = randomInteger(0, potencialStepsWhiteQueenGlobal[0][0].needeat.length - 1);
+
+                            potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        if(!isFuch) {
+                                            value[0].upright.empty.forEach(function (val_up) {
+                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+
+                                                    isFuch = true;
+                                                    isPlayerChange = true;
+                                                }
+                                            });
+                                        }
+
+                                        if(!isFuch) {
+                                            value[0].upleft.empty.forEach(function (val_up) {
+                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isPlayerChange = true;
+                                                }
+                                            });
+                                        }
+
+                                        if(!isFuch) {
+                                            value[0].bottomright.empty.forEach(function (val_bot) {
+                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isPlayerChange = true;
+                                                }
+                                            });
+                                        }
+
+                                        if(!isFuch) {
+                                            value[0].bottomleft.empty.forEach(function (val_bot) {
+                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                    $(potencialStepsWhiteQueenGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isPlayerChange = true;
+                                                    // current_piece = null;
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+
+                                // прозевал шашку, но дальше ход сделать то надо
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        value[0].upright.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].upleft.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].bottomright.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+
+                                            }
+                                        });
+
+                                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+                                    }
+                                }
+
+                            });
+
+                            if(isPlayerChange) {
+                                // change player
+                                if (currentColor === "white") {
+                                    player = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player = "white";
+                                }
+                            }
+
+                        }
+                        //шаг без фука
+                        else if(!needEat && FUCHS !== "on") {
+                            potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        value[0].upright.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].upleft.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].bottomright.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+
+                                            }
+                                        });
+
+                                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                            if(isPlayerChange) {
+                                // change player
+                                if (currentColor === "white") {
+                                    player = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player = "white";
+                                }
+                            }
+                        }
+                        //не надо съесть. Обычная аттака
+                        else {
+
+                            let isAttackSucces = false;
+                            let resultAttack = [];
+
+                            potencialStepsWhiteQueenGlobal.forEach(function (value) {
+
+                                if (current_piece.parentElement === value[0].currentpiece) {
+                                    if(isAttackSucces === false) {
+                                        value[0].upright.needStep.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].upright.enemy[0][0].getAttribute("x") + "][y=" + value[0].upright.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
+                                        });
+                                    }
+
+                                    if(isAttackSucces === false) {
+                                        value[0].upleft.needStep.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].upleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].upleft.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+
+                                            }
+                                        });
+                                    }
+
+                                    if(isAttackSucces === false) {
+                                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].bottomright.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomright.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
+                                        });
+                                    }
+
+                                    if(isAttackSucces === false) {
+                                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomleft.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
 
 
-                        stepComputer();
+                            // если атака прошла успешно
+                            if(!$.isEmptyObject(resultAttack)) {
+
+                                if(resultAttack.local_color === "white") {
+                                    $(resultAttack.target_place).append('<div class="piece white queen">&#9813;</div>');
+                                }
+                                else if(resultAttack.local_color === "black") {
+                                    $(resultAttack.target_place).append('<div class="piece black queen">&#9819;</div>');
+                                }
+
+                                $(current_piece).remove();
+                                current_piece = null;
+
+                                $(resultAttack.kill_target)[0].firstElementChild.remove();
+
+                                /**
+                                 * NEXT ATTACK
+                                 * ===========================================
+                                 *
+                                 */
+
+                                current_piece = $(".rank__check[x=" + current_x + "][y=" + current_y + "]")[0].firstElementChild;
+
+                                let next = nextQueenAttack(current_piece);
+
+                                if(next) {
+                                    $(current_piece).addClass("next");
+
+                                    return false;
+                                }
+                                else {
+                                    // change player
+                                    if (currentColor === "white") {
+                                        player = "black";
+                                    }
+                                    else if (currentColor === "black") {
+                                        player = "white";
+                                    }
+
+                                    $(".piece").removeClass("active");
+                                    $(".piece").removeClass("potencial_dead");
+                                    $('.rank__check').removeClass("over");
+
+                                    return false;
+                                }
+
+                                /**
+                                 *
+                                 * ===========================================
+                                 *
+                                 */
+
+                            }
+                        }
+
+                    }
+                    // queen step
+                    else {
+
+                        potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                            if(current_piece !== null) {
+                                if (current_piece.parentElement === value[0].currentpiece) {
+
+                                    value[0].upright.empty.forEach(function (val_up) {
+                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                            if(currentColor === "white") {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            }
+                                            else if(currentColor === "black") {
+                                                $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
+                                    });
+
+                                    value[0].upleft.empty.forEach(function (val_up) {
+                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                            if(currentColor === "white") {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            }
+                                            else if(currentColor === "black") {
+                                                $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
+                                    });
+
+                                    value[0].bottomright.empty.forEach(function (val_bot) {
+                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                            if(currentColor === "white") {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            }
+                                            else if(currentColor === "black") {
+                                                $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
+                                    });
+
+                                    value[0].bottomleft.empty.forEach(function (val_bot) {
+                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                            if(currentColor === "white") {
+                                                $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                            }
+                                            else if(currentColor === "black") {
+                                                $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            // change player
+                                            if (currentColor === "white") {
+                                                player = "black";
+                                            }
+                                            else if (currentColor === "black") {
+                                                player = "white";
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
 
                     }
 
+
+                    $(".piece").removeClass("active");
+                    $(".piece").removeClass("potencial_dead");
+                    $('.rank__check').removeClass("over");
+
+                    return false;
+
                 }
-                //step
-                else if(nextStep !== null) {
-                    nextStep.forEach(function (value, index) {
-                        if((value.getAttribute("x") === current_x) && (value.getAttribute("y") === current_y)) {
+                /**
+                 * SIMPLE CHECKERS
+                 */
+                else {
+
+                    // если режим "обязательно рубить", то проверяем, срубилена шашка
+                    // если не срублена, то шашка "съедается"
+                    needAttack = false;
+
+                    potencialStepsSimpleGlobal.forEach(function (value) {
+
+                        //и заодно убираем лишние классы
+                        value[0].needeat.forEach(function (val_need) {
+                            $(val_need.firstElementChild).toggleClass("fuch", false);
+                        });
 
 
-                            if(currentColor === "white") {
-                                if(event.target.getAttribute("queen") === "white") {
-                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                }
-                                else {
-                                    $(event.target).append('<div class="piece white">&#9814;</div>');
-                                }
-
-                            }
-                            else if(currentColor === "black") {
-                                if(event.target.getAttribute("queen") === "black") {
-                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                }
-                                else {
-                                    $(event.target).append('<div class="piece black">&#9820;</div>');
-                                }
-                            }
-
-
-                            $(current_piece).remove();
-                            current_piece = null;
-
-                            stepComputer();
-
+                        if(value[0].upright.needStep.length > 0) {
+                            needAttack = true;
                         }
+
+                        if(value[0].upleft.needStep.length > 0) {
+                            needAttack = true;
+                        }
+
+                        if(value[0].bottomright.needStep.length > 0) {
+                            needAttack = true;
+                        }
+
+                        if(value[0].bottomleft.needStep.length > 0) {
+                            needAttack = true;
+                        }
+
                     });
 
+                    // simple need attack
+                    if(needAttack) {
+
+                        // если режим "обязательно рубить", то проверяем, срубилена шашка
+                        // если не срублена, то шашка "съедается"
+                        needEat = false;
+
+                        potencialStepsSimpleGlobal.forEach(function (value) {
+
+                            value[0].upright.needStep.forEach(function (val_up) {
+                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                            value[0].upleft.needStep.forEach(function (val_up) {
+                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                            value[0].bottomright.needStep.forEach(function (val_bot) {
+                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                            value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                    needEat = true;
+                                }
+                            });
+
+                        });
+
+                        // надо съесть (возможен фук)
+                        if(!needEat && FUCHS === "on") {
+
+                            isPlayerChange = false;
+                            isFuch = false;
+                            indexNeadEat = randomInteger(0, potencialStepsSimpleGlobal[0][0].needeat.length - 1);
+
+                            potencialStepsSimpleGlobal.forEach(function (value) {
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        if(!isFuch) {
+                                            value[0].upright.empty.forEach(function (val_up) {
+                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+
+                                                    isFuch = true;
+                                                    isPlayerChange = true;
+
+                                                }
+                                            });
+                                        }
+
+                                        if(!isFuch) {
+                                            value[0].upleft.empty.forEach(function (val_up) {
+                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isFuch = true;
+                                                    isPlayerChange = true;
+                                                }
+                                            });
+                                        }
+
+                                        if(!isFuch) {
+                                            value[0].bottomright.empty.forEach(function (val_bot) {
+                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isFuch = true;
+                                                    isPlayerChange = true;
+                                                }
+                                            });
+                                        }
+
+                                        if(!isFuch) {
+                                            value[0].bottomleft.empty.forEach(function (val_bot) {
+                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                                                    isFuch = true;
+                                                    isPlayerChange = true;
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
+
+                                // прозевал шашку, но дальше ход сделать то надо
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        value[0].upright.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if(event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if(event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+                                            }
+                                        });
+
+                                        value[0].upleft.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if(event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if(event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+                                            }
+                                        });
+
+                                        value[0].bottomright.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if(event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if(event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+
+                                            }
+                                        });
+
+                                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if(event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if(event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+                                            }
+                                        });
+                                    }
+                                }
+
+                            });
+
+                            if(wasStep) {
+                                stepComputer();
+                            }
+
+                        }
+                        else if (!needEat && FUCHS !== "on") {
+                            potencialStepsSimpleGlobal.forEach(function (value) {
+                                if (current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        value[0].upright.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+                                            }
+                                        });
+
+                                        value[0].upleft.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+                                            }
+                                        });
+
+                                        value[0].bottomright.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+                                            }
+                                        });
+
+                                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                                wasStep = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                            if(wasStep) {
+                                stepComputer();
+                            }
+                        }
+                        //не надо съесть. Обычная аттака
+                        else {
+
+                            isAttackSucces = false;
+                            resultAttack = [];
+
+                            potencialStepsSimpleGlobal.forEach(function (value) {
+
+                                if (current_piece.parentElement === value[0].currentpiece) {
+                                    if (isAttackSucces === false) {
+                                        value[0].upright.needStep.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].upright.enemy[0][0].getAttribute("x") + "][y=" + value[0].upright.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
+                                        });
+                                    }
+
+                                    if (isAttackSucces === false) {
+                                        value[0].upleft.needStep.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].upleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].upleft.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+
+                                            }
+                                        });
+                                    }
+
+                                    if (isAttackSucces === false) {
+                                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].bottomright.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomright.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
+                                        });
+                                    }
+
+                                    if (isAttackSucces === false) {
+                                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                let kill_target = $(".rank__check[x=" + value[0].bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomleft.enemy[0][0].getAttribute("y") + "]");
+
+                                                if (currentColor === "white") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "white",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        kill_target: kill_target
+                                                    };
+
+                                                }
+                                                else if (currentColor === "black") {
+                                                    resultAttack = {
+                                                        target_place: event.target,
+                                                        local_color: "black",
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: current_x,
+                                                            y: current_y,
+                                                        },
+                                                        target: {
+                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true,
+                                                        kill_target: kill_target
+                                                    };
+                                                }
+
+                                                isAttackSucces = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                            // если атака прошла успешно
+                            if (!$.isEmptyObject(resultAttack)) {
+
+                                if (resultAttack.local_color === "white") {
+                                    if(resultAttack.target_place.getAttribute("queen") === "white") {
+                                        $(resultAttack.target_place).append('<div class="piece white queen">&#9813;</div>');
+                                    }
+                                    else {
+                                        $(resultAttack.target_place).append('<div class="piece white">&#9814;</div>');
+                                    }
+                                }
+                                else if (resultAttack.local_color === "black") {
+                                    if(resultAttack.target_place.getAttribute("queen") === "black") {
+                                        $(resultAttack.target_place).append('<div class="piece black queen">&#9819;</div>');
+                                    }
+                                    else {
+                                        $(resultAttack.target_place).append('<div class="piece black">&#9820;</div>');
+                                    }
+                                }
+
+                                $(current_piece).remove();
+                                current_piece = null;
+
+                                $(resultAttack.kill_target)[0].firstElementChild.remove();
+
+                                /**
+                                 * NEXT ATTACK
+                                 * ===========================================
+                                 *
+                                 */
+
+                                current_piece = $(".rank__check[x=" + current_x + "][y=" + current_y + "]")[0].firstElementChild;
+
+                                next = nextSimpleAttack(current_piece);
+
+                                if (next) {
+                                    $(current_piece).addClass("next");
+                                }
+                                else {
+                                    stepComputer();
+
+                                    $(".piece").removeClass("active");
+                                    $(".piece").removeClass("potencial_dead");
+                                    $('.rank__check').removeClass("over");
+                                }
+                            }
+                        }
+                    }
+                    // simple step
+                    else {
+
+                        potencialStepsSimpleGlobal.forEach(function (value) {
+                            if(current_piece !== null) {
+                                if (current_piece.parentElement === value[0].currentpiece) {
+
+                                    value[0].upright.empty.forEach(function (val_up) {
+                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                            if (currentColor === "white") {
+                                                if(event.target.getAttribute("queen") === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                }
+                                            }
+                                            else if (currentColor === "black") {
+                                                if(event.target.getAttribute("queen") === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                }
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            wasStep = true;
+                                        }
+                                    });
+
+                                    value[0].upleft.empty.forEach(function (val_up) {
+                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                            if (currentColor === "white") {
+                                                if(event.target.getAttribute("queen") === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                }
+                                            }
+                                            else if (currentColor === "black") {
+                                                if(event.target.getAttribute("queen") === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                }
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            wasStep = true;
+                                        }
+                                    });
+
+                                    value[0].bottomright.empty.forEach(function (val_bot) {
+                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                            if (currentColor === "white") {
+                                                if(event.target.getAttribute("queen") === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                }
+                                            }
+                                            else if (currentColor === "black") {
+                                                if(event.target.getAttribute("queen") === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                }
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            wasStep = true;
+                                        }
+                                    });
+
+                                    value[0].bottomleft.empty.forEach(function (val_bot) {
+                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                            if (currentColor === "white") {
+                                                if(event.target.getAttribute("queen") === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                }
+                                            }
+                                            else if (currentColor === "black") {
+                                                if(event.target.getAttribute("queen") === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+                                                else {
+                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                }
+                                            }
+
+                                            $(current_piece).remove();
+                                            current_piece = null;
+
+                                            wasStep = true;
+                                        }
+                                    });
+                                }
+                            }
+                        });
+
+                        if(wasStep) {
+                            stepComputer(event.target);
+                        }
+                    }
+
+
+                    $(".piece").removeClass("active");
+                    $(".piece").removeClass("potencial_dead");
+                    $('.rank__check').removeClass("over");
+
                 }
-
-                nextStep = null;
-                nextTarget = null;
-                nextAttack = null;
-
             }
         }
 
@@ -1361,5 +3421,418 @@ $(document).ready(function(){
         $('.rank__check').removeClass("over");
 
     });
+
+    //AI
+    function markFunction(count_white_queen, count_black_queen, count_white_simple, count_black_simple, count_success_next_move_white, count_success_next_move_black, distance_to_last_line) {
+        return (parseInt(count_white_queen) - parseInt(count_black_queen)) + (parseInt(count_white_simple) - parseInt(count_black_simple)) + (parseInt(count_success_next_move_white) - parseInt(count_success_next_move_black)) + parseInt(distance_to_last_line);
+    }
+
+    let temp = null;
+
+    function stepComputer(new_piece) {
+        if(COMPUTER_LEVEL === "low") {
+            let simples = getAllSimpleCells("black");
+            let queens = getAllQueenCells("black");
+
+            // приоритет на дамок
+            if (queens.length > 0) {
+                // но сначала глянь есть ли враги у простых шашек
+                    //руби обычной
+                // ходи дамкой
+
+            }
+            else if(simples.length > 0) {
+                let arEmptySteps = [];
+
+                let arNeedStepFotAttack = [];
+                let needAttack = false;
+                simples.forEach(function (value) {
+                    // need attack
+
+                    if (value[0].upright.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+                    if (value[0].upleft.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+                    if (value[0].bottomright.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+                    if (value[0].bottomleft.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+
+                    // empties
+
+                    if (value[0].upright.empty.length > 0) {
+                        arEmptySteps.push(value[0]);
+                    }
+
+                    if (value[0].upleft.empty.length > 0) {
+                        arEmptySteps.push(value[0]);
+                    }
+
+                    if (value[0].bottomright.empty.length > 0) {
+                        arEmptySteps.push(value[0]);
+                    }
+
+                    if (value[0].bottomleft.empty.length > 0) {
+                        arEmptySteps.push(value[0]);
+                    }
+                });
+
+                if(needAttack) {
+                    let arNeedStepUpRight = [];
+                    let arNeedStepUpLeft = [];
+                    let arNeedStepBottomRight = [];
+                    let arNeedStepBottomLeft = [];
+
+                    let arEnemyUpRight = [];
+                    let arEnemyUpLeft = [];
+                    let arEnemyBottomRight = [];
+                    let arEnemyBottomLeft = [];
+
+                    let targets = [];
+
+                    for(let i = 0; i < arNeedStepFotAttack.length; i++) {
+                        let target = [];
+
+                        for (let prop in arNeedStepFotAttack[i]) {
+                            if (prop === "upright") {
+                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
+                                    arNeedStepUpRight.push(arNeedStepFotAttack[i][prop].needStep)
+                                }
+                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
+                                    arEnemyUpRight.push(arNeedStepFotAttack[i][prop].enemy)
+                                }
+
+                                if (arNeedStepUpRight.length > 0 && arEnemyUpRight.length > 0) {
+                                    target = [{
+                                        upright: {
+                                            current: arNeedStepFotAttack[i]["currentpiece"],
+                                            enemy: arEnemyUpRight,
+                                            next: arNeedStepUpRight
+                                        }
+                                    }]
+                                }
+                            }
+                            if (prop === "upleft") {
+
+                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
+                                    arNeedStepUpLeft.push(arNeedStepFotAttack[i][prop].needStep)
+                                }
+
+                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
+                                    arEnemyUpLeft.push(arNeedStepFotAttack[i][prop].enemy)
+                                }
+
+                                if (arNeedStepUpLeft.length > 0 && arEnemyUpLeft.length > 0) {
+                                    target = [{
+                                        upleft: {
+                                            current: arNeedStepFotAttack[i]["currentpiece"],
+                                            enemy: arEnemyUpLeft,
+                                            next: arNeedStepUpLeft
+                                        }
+                                    }]
+                                }
+                            }
+                            if (prop === "bottomright") {
+
+                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
+                                    arNeedStepBottomRight.push(arNeedStepFotAttack[i][prop].needStep)
+                                }
+
+                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
+                                    arEnemyBottomRight.push(arNeedStepFotAttack[i][prop].enemy)
+                                }
+
+                                if (arNeedStepBottomRight.length > 0 && arEnemyBottomRight.length > 0) {
+                                    target = [{
+                                        bottomright: {
+                                            current: arNeedStepFotAttack[i]["currentpiece"],
+                                            enemy: arEnemyBottomRight,
+                                            next: arNeedStepBottomRight
+                                        }
+                                    }]
+                                }
+                            }
+                            if (prop === "bottomleft") {
+
+                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
+                                    arNeedStepBottomLeft.push(arNeedStepFotAttack[i][prop].needStep)
+                                }
+
+                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
+                                    arEnemyBottomLeft.push(arNeedStepFotAttack[i][prop].enemy)
+                                }
+
+                                if (arNeedStepBottomLeft.length > 0 && arEnemyBottomLeft.length > 0) {
+                                    target = [{
+                                        bottomleft: {
+                                            current: arNeedStepFotAttack[i]["currentpiece"],
+                                            enemy: arEnemyBottomLeft,
+                                            next: arNeedStepBottomLeft
+                                        }
+                                    }]
+                                }
+                            }
+
+                        }
+
+                        targets.push(target);
+                    }
+
+                    let ind = randomInteger(0, targets.length - 1);
+                    targets[ind].forEach(function (value) {
+                        if(typeof value.upright !== "undefined"){
+                            simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0]);
+                        }
+                        if(typeof value.upleft !== "undefined"){
+                            simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0]);
+                        }
+                        if(typeof value.bottomright !== "undefined"){
+                            simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0]);
+                        }
+                        if(typeof value.bottomleft !== "undefined"){
+                            simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0]);
+                        }
+                    })
+
+                }
+                else {
+                    //научить ходить
+                    console.log(arEmptySteps);
+                    let prev = []; // currentPiece
+                    let enemy = []; // enemy for currentPiece
+                    let next = []; //needStep
+
+                    // let index_next = randomInteger(0, arNeedStepFotAttack.length - 1);
+                }
+            }
+            else {
+                //game over
+            }
+
+        }
+        else  if(COMPUTER_LEVEL === "medium") {
+            let count_white_queen = 0, count_black_queen = 0,
+                count_white_simple = 0, count_black_simple = 0,
+                count_success_next_move_white = 0, count_success_next_move_black = 0,
+                distance_to_last_line = 0;
+
+            let new_x = new_piece.getAttribute("x");
+            let new_y = new_piece.getAttribute("y");
+
+            new_piece = $('.rank__check[x=' + new_x + '][y=' + new_y + ']')[0];
+            console.log("computer step");
+
+            let simples = getAllSimpleCells("black");
+            let queens = getAllQueenCells("black");
+
+            let simples_enemy = getAllSimpleCells("white");
+            let queens_enemy = getAllQueenCells("white");
+
+            // приоритет на дамок
+            if (queens.length > 0) {
+                // но сначала глянь есть ли враги у простых шашек
+                //руби обычной
+                // ходи дамкой
+
+            }
+            else if (simples.length > 0) {
+                // сначала проверить на наличие врагов
+
+                let arNeedStepFotAttack = [];
+                let needAttack = false;
+                simples.forEach(function (value) {
+                    if (value[0].upright.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+
+                    if (value[0].upleft.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+
+                    if (value[0].bottomright.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+
+                    if (value[0].bottomleft.needStep.length > 0) {
+                        needAttack = true;
+                        arNeedStepFotAttack.push(value[0]);
+                    }
+                });
+
+                if (needAttack) {
+                    console.log("computer need attack");
+                    let prev = []; // currentPiece
+                    let enemy = []; // enemy for currentPiece
+                    let next = []; //needStep
+
+                    // let index_next = randomInteger(0, arNeedStepFotAttack.length - 1);
+
+                    for (let i = 0; i < arNeedStepFotAttack.length; i++) {
+                        prev = [];
+                        enemy = [];
+                        next = [];
+
+                        for (let prop in arNeedStepFotAttack[i]) {
+                            if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
+
+                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
+                                    next.push(arNeedStepFotAttack[i][prop].needStep);
+                                }
+
+                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
+                                    enemy.push(arNeedStepFotAttack[i][prop].enemy);
+                                }
+                            }
+                            else if (prop === "currentpiece") {
+                                prev.push(arNeedStepFotAttack[i][prop]);
+                            }
+                        }
+
+                        let current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
+                        let isDanger = 0;
+
+                        current_situation.forEach(function (value) {
+                            if (value[0].upright.danger.length > 0) {
+                                isDanger = 1;
+                            }
+                            if (value[0].upleft.danger.length > 0) {
+                                isDanger = 1;
+                            }
+                            if (value[0].bottomright.danger.length > 0) {
+                                isDanger = 1;
+                            }
+                            if (value[0].bottomleft.danger.length > 0) {
+                                isDanger = 1;
+                            }
+                        });
+
+                        let next_potencial_cells = [];
+                        simples.forEach(function (value) {
+                            if (value[0].bottomright.empty.length > 0) {
+                                value[0].bottomright.empty.forEach(function (val_e) {
+                                    next_potencial_cells.push(val_e);
+                                })
+                            }
+
+                            if (value[0].bottomleft.empty.length > 0) {
+                                value[0].bottomleft.empty.forEach(function (val_e) {
+                                    next_potencial_cells.push(val_e);
+                                })
+                            }
+                        });
+                        let next_potencial_cells_enemy = [];
+                        simples_enemy.forEach(function (value) {
+                            if (value[0].upright.empty.length > 0) {
+                                value[0].upright.empty.forEach(function (val_e) {
+                                    next_potencial_cells_enemy.push(val_e);
+                                })
+                            }
+
+                            if (value[0].upleft.empty.length > 0) {
+                                value[0].upleft.empty.forEach(function (val_e) {
+                                    next_potencial_cells_enemy.push(val_e);
+                                })
+                            }
+                        });
+
+
+                        count_black_simple = simples.length;
+                        count_white_simple = simples_enemy.length;
+
+                        count_success_next_move_white = next_potencial_cells.length;
+                        count_success_next_move_black = next_potencial_cells_enemy.length;
+
+                        let mark = markFunction(count_white_queen, count_black_queen,
+                            count_white_simple, count_black_simple,
+                            count_success_next_move_white, count_success_next_move_black, isDanger);
+
+                        console.log(current_situation);
+
+                        console.log(mark);
+                    }
+                }
+                else {
+
+                    let next_potencial_cells = [];
+                    simples.forEach(function (value) {
+                        if (value[0].bottomright.empty.length > 0) {
+                            value[0].bottomright.empty.forEach(function (val_e) {
+                                next_potencial_cells.push(val_e);
+                            })
+                        }
+
+                        if (value[0].bottomleft.empty.length > 0) {
+                            value[0].bottomleft.empty.forEach(function (val_e) {
+                                next_potencial_cells.push(val_e);
+                            })
+                        }
+                    });
+                    let next_potencial_cells_enemy = [];
+                    simples_enemy.forEach(function (value) {
+                        if (value[0].upright.empty.length > 0) {
+                            value[0].upright.empty.forEach(function (val_e) {
+                                next_potencial_cells_enemy.push(val_e);
+                            })
+                        }
+
+                        if (value[0].upleft.empty.length > 0) {
+                            value[0].upleft.empty.forEach(function (val_e) {
+                                next_potencial_cells_enemy.push(val_e);
+                            })
+                        }
+                    });
+
+
+                    count_black_simple = simples.length;
+                    count_white_simple = simples_enemy.length;
+
+                    count_success_next_move_white = next_potencial_cells.length;
+                    count_success_next_move_black = next_potencial_cells_enemy.length;
+
+                    distance_to_last_line = new_y;
+
+
+                    let mark = markFunction(count_white_queen, count_black_queen,
+                        count_white_simple, count_black_simple,
+                        count_success_next_move_white, count_success_next_move_black, distance_to_last_line);
+
+                    console.log(mark);
+                }
+            }
+            else {
+                //game over
+            }
+        }
+        else if(COMPUTER_LEVEL === "high") {
+
+        }
+
+    }
+
+    function simple_attack(prev, enemy, next) {
+        let color = prev.firstElementChild.classList.contains("black");
+
+        $(prev.firstElementChild).remove();
+        $(enemy.firstElementChild).remove();
+
+        if(color) {
+            $(next).append('<div class="piece black">&#9820;</div>');
+        }
+        else {
+            $(next).append('<div class="piece white">&#9814;</div>');
+        }
+
+    }
 
 });

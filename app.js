@@ -8,6 +8,7 @@ let io = require('socket.io')(http);
 let port = process.env.PORT || 3015;
 
 let indexRouter = require('./routes/index.js');
+let usersRouter = require('./routes/users');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use('/', indexRouter);
+app.use('/users', usersRouter);
 
 let lobbyUsers = {};
 let users = {};
@@ -71,6 +73,7 @@ io.on('connection', function(socket) {
         users[game.users.black].games[game.id] = game.id;
 
         console.log('starting game: ' + game.id);
+
         lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white', settings: msg.settings_game});
         lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black', settings: msg.settings_game});
 
@@ -143,6 +146,7 @@ io.on('connection', function(socket) {
     });
 
 });
+
 
 http.listen(port, function() {
     console.log('listening on *: ' + port);

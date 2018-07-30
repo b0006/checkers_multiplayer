@@ -26,6 +26,10 @@
     display: none;
 }
 
+#color_potencial_fuchs {
+    display: none;
+}
+
 .board {
   display: inline-block;
   border: 2px solid black;

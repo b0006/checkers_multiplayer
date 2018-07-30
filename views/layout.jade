@@ -25,6 +25,15 @@ html
                 }
             });
 
+            addDynamicEventListener(document.body, 'click', '#fuchs', function (e) {
+                if ($("#fuchs").prop('checked')) {
+                    $("#color_potencial_fuchs").show();
+                }
+                else {
+                    $("#color_potencial_fuchs").hide();
+                }
+            });
+
 
         });
 
@@ -48,7 +57,7 @@ html
                     data[value.name] = value.value;
                 });
 
-                $.redirect("/game", data, "POST");
+                $.redirect("/ai", data, "POST");
 
             });
 
@@ -77,6 +86,7 @@ html
         multiattack='#{multiattack}'
         fuchs='#{fuchs}'
         simple_back_attack='#{simple_back_attack}'
+        color_potencial_fuchs = '#{color_potencial_fuchs}'
         )
     else
         script(src="/js/script.js"

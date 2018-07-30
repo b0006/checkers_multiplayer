@@ -28,7 +28,7 @@ block content
     div(class='page computer' id='page-computer')
         h2 Против компьютера
         h3 Сложность
-        form(action='/game' id='cpu_level' method='post')
+        form(action='/ai' id='cpu_level' method='post')
             input(type='hidden' name="game_mode" value="CP")
             input(type='radio' name='level' value="low")
             | Легкий
@@ -51,23 +51,31 @@ block content
     div(class'page setting' id='page-setting' style="display: none")
         form(id="settings")
             h3 Общие
-            input(type='checkbox' name='color_potencial_step')
-            | Подсвечивать возможные ходы
+            div
+                input(type='checkbox' name='color_potencial_step' checked)
+                | Подсвечивать возможные ходы
             br
-            input(type='checkbox' id="time_check_checkbox" name='time_check')
-            | Учитывать время
-            input(type="text" id='time_check_text' name='time_value' placeholder="__:__")
+            div
+                input(type='checkbox' id="time_check_checkbox" name='time_check')
+                | Учитывать время
+            div
+                input(type="text" id='time_check_text' name='time_value' placeholder="__:__")
+                br
+            //div
+                //input(type='checkbox' name='multiattack')
+                //| Возможность "рубить" несколько шашек за один ход
+                //br
+            div
+                input(type='checkbox' id="fuchs" name='fuchs' checked)
+                | Играть с фуками
             br
-            input(type='checkbox' name='multiattack')
-            | Возможность "рубить" несколько шашек за один ход
-            br
-            input(type='checkbox' name='fuchs')
-            | Играть с фуками
-            input(type='checkbox' name='color_potencial_fuchs')
-            | Подсвечивать фуки
+            div(id='color_potencial_fuchs' style='display: block;')
+                input(type='checkbox' name='color_potencial_fuchs')
+                | Подсвечивать фуки
 
             h3 Обычные шашки
-            input(type='checkbox' name='simple_back_attack')
-            | Рубить назад
+            div
+                input(type='checkbox' name='simple_back_attack' checked)
+                | Рубить назад
 
 

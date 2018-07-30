@@ -24,6 +24,8 @@ $( document ).ready(function() {
 
     //фуки
     let FUCHS = null;
+    //подсвечивать возможные фуки
+    let COLOR_FUCHS = null;
 
     //можно обычным шашка аттаковать назад
     let SIMPLE_BACK_ATTACK = null;
@@ -101,9 +103,9 @@ $( document ).ready(function() {
         OVER_STEPS = settings_game.color_potencial_step;
         TIME_CHECK = settings_game.time_check_checkbox;
         TIME_VALUE = settings_game.time_check_text;
-        MULTYATTACK = settings_game.multiattack;
         FUCHS = settings_game.fuchs;
         SIMPLE_BACK_ATTACK = settings_game.simple_back_attack;
+        COLOR_FUCHS = settings_game.color_potencial_fuchs;
 
         console.log("joined as game id: " + msg.game.id );
         playerColor = msg.color;
@@ -418,6 +420,8 @@ $( document ).ready(function() {
             $('.board').addClass("rotate_board");
             $('.rank__check').addClass("rotate_board");
         }
+
+        $( "#page-setting" ).hide();
     };
 
     let current_piece = null; // global last click piece
@@ -1000,6 +1004,7 @@ $( document ).ready(function() {
                             }
                         }
                         else if (currentPiece.firstElementChild.classList.contains("black")) {
+
                             // if this is enemy
                             if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
                                 if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
@@ -1278,6 +1283,22 @@ $( document ).ready(function() {
                     }
                 }
 
+                if (currentPiece.firstElementChild.classList.contains("black")) {
+                    if(SIMPLE_BACK_ATTACK !== "on") {
+                        needStepUpRight = [];
+                        needStepUpLeft = [];
+                        potencialAttackWhiteQueenUpRigth = [];
+                        potencialAttackWhiteQueenUpLeft = [];
+                    }
+                }
+                if (currentPiece.firstElementChild.classList.contains("white")) {
+                    if(SIMPLE_BACK_ATTACK !== "on") {
+                        needStepBottomRight = [];
+                        needStepBottomLeft = [];
+                        potencialAttackWhiteQueenBottomRigth = [];
+                        potencialAttackWhiteQueenBottomLeft = [];
+                    }
+                }
 
                 let queen = [{
                     currentpiece: currentPiece,
@@ -1341,32 +1362,6 @@ $( document ).ready(function() {
         let piece_x = current_piece.parentElement.getAttribute("x");
         let piece_y = current_piece.parentElement.getAttribute("y");
 
-        // надо исправить это недразумение будет
-        let potencial_up_right_x = null;
-        let potencial_up_right_y = null;
-        let potencial_right_x = null;
-        let potencial_right_y = null;
-        let potencial_bottom_right_x = null;
-        let potencial_bottom_right_y = null;
-
-        let potencial_up_left_x = null;
-        let potencial_up_left_y = null;
-        let potencial_left_x = null;
-        let potencial_left_y = null;
-        let potencial_bottom_left_x = null;
-        let potencial_bottom_left_y = null;
-
-
-        // get all pieces
-        let allPiece = document.querySelectorAll('.rank__check');
-
-
-        let arPotencialWhite = [];
-        let isWhiteNeedAttack = [];
-
-        let arPotencialBlack = [];
-        let isBlackNeedAttack = [];
-
         /**
          * QUEEN
          */
@@ -1392,40 +1387,45 @@ $( document ).ready(function() {
             // подсвечивание
             queens.forEach(function (value) {
 
-                value[0].needeat.forEach(function (val_need) {
-                    $(val_need.firstElementChild).toggleClass("fuch", true);
-                });
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
 
-               if(current_piece.parentElement === value[0].currentpiece) {
-                   value[0].upright.empty.forEach(function (val_up) {
-                       val_up.toggleClass("over", true);
-                   });
-                   value[0].upright.needStep.forEach(function (val_up) {
-                       val_up.toggleClass("over", true);
-                   });
+                if(OVER_STEPS === "on") {
+
+                    if (current_piece.parentElement === value[0].currentpiece) {
+                        value[0].upright.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upright.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
 
 
-                   value[0].upleft.empty.forEach(function (val_up) {
-                       val_up.toggleClass("over", true);
-                   });
-                   value[0].upleft.needStep.forEach(function (val_up) {
-                       val_up.toggleClass("over", true);
-                   });
+                        value[0].upleft.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upleft.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
 
-                   value[0].bottomright.empty.forEach(function (val_bot) {
-                       val_bot.toggleClass("over", true);
-                   });
-                   value[0].bottomright.needStep.forEach(function (val_bot) {
-                       val_bot.toggleClass("over", true);
-                   });
+                        value[0].bottomright.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
 
-                   value[0].bottomleft.empty.forEach(function (val_bot) {
-                       val_bot.toggleClass("over", true);
-                   });
-                   value[0].bottomleft.needStep.forEach(function (val_bot) {
-                       val_bot.toggleClass("over", true);
-                   });
-               }
+                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                    }
+                }
             });
 
             $(current_piece).toggleClass("fuch", false);
@@ -1453,404 +1453,47 @@ $( document ).ready(function() {
             // подсвечивание
             simples.forEach(function (value) {
 
-                value[0].needeat.forEach(function (val_need) {
-                    $(val_need.firstElementChild).toggleClass("fuch", true);
-                });
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
 
-                if(current_piece.parentElement === value[0].currentpiece) {
-                    value[0].upright.empty.forEach(function (val_up) {
-                        val_up.toggleClass("over", true);
-                    });
-                    value[0].upright.needStep.forEach(function (val_up) {
-                        val_up.toggleClass("over", true);
-                    });
+                if(OVER_STEPS === "on") {
+                    if (current_piece.parentElement === value[0].currentpiece) {
+                        value[0].upright.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upright.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
 
 
-                    value[0].upleft.empty.forEach(function (val_up) {
-                        val_up.toggleClass("over", true);
-                    });
-                    value[0].upleft.needStep.forEach(function (val_up) {
-                        val_up.toggleClass("over", true);
-                    });
+                        value[0].upleft.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upleft.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
 
-                    value[0].bottomright.empty.forEach(function (val_bot) {
-                        val_bot.toggleClass("over", true);
-                    });
-                    value[0].bottomright.needStep.forEach(function (val_bot) {
-                        val_bot.toggleClass("over", true);
-                    });
+                        value[0].bottomright.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
 
-                    value[0].bottomleft.empty.forEach(function (val_bot) {
-                        val_bot.toggleClass("over", true);
-                    });
-                    value[0].bottomleft.needStep.forEach(function (val_bot) {
-                        val_bot.toggleClass("over", true);
-                    });
+                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                    }
                 }
             });
 
             $(current_piece).toggleClass("fuch", false);
-
-            // for(let i = 0; i < allPiece.length; i++) {
-            //     // remove from all pieces potencial style cell
-            //     $(allPiece[i]).removeClass("over");
-            //
-            //     if(isMoviableCell(allPiece[i])){
-            //
-            //
-            //         // get for white next step
-            //         if(current_piece.classList.contains("white")) {
-            //             if (current_piece.classList.contains("queen")) {
-            //
-            //             }
-            //             else {
-            //                 potencial_right_x = parseInt(piece_x) + 1;
-            //                 potencial_right_y = parseInt(piece_y) - 1;
-            //
-            //                 if ((potencial_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("black")) {
-            //
-            //                             potencial_right_x = parseInt(piece_x) + 2;
-            //                             potencial_right_y = parseInt(piece_y) - 2;
-            //
-            //                             try {
-            //
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_right_x + '][y=' + potencial_right_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //
-            //                                     isWhiteNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //                         }
-            //                     }
-            //                     else {
-            //                         // get next step
-            //                         arPotencialWhite.push(allPiece[i]);
-            //                     }
-            //                 }
-            //
-            //                 potencial_left_x = parseInt(piece_x) - 1;
-            //                 potencial_left_y = parseInt(piece_y) - 1;
-            //
-            //                 if ((potencial_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("black")) {
-            //
-            //                             potencial_left_x = parseInt(piece_x) - 2;
-            //                             potencial_left_y = parseInt(piece_y) - 2;
-            //
-            //                             try {
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_left_x + '][y=' + potencial_left_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //                                     isWhiteNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //
-            //                         }
-            //                     }
-            //                     else {
-            //                         // get next step
-            //                         arPotencialWhite.push(allPiece[i]);
-            //                     }
-            //                 }
-            //
-            //                 potencial_bottom_right_x = parseInt(piece_x) + 1;
-            //                 potencial_bottom_right_y = parseInt(piece_y) + 1;
-            //
-            //                 if ((potencial_bottom_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_bottom_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("black")) {
-            //
-            //                             potencial_bottom_right_x = parseInt(piece_x) + 2;
-            //                             potencial_bottom_right_y = parseInt(piece_y) + 2;
-            //
-            //                             try {
-            //
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_bottom_right_x + '][y=' + potencial_bottom_right_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //
-            //                                     isWhiteNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //
-            //                 potencial_bottom_left_x = parseInt(piece_x) - 1;
-            //                 potencial_bottom_left_y = parseInt(piece_y) + 1;
-            //
-            //                 if ((potencial_bottom_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_bottom_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("black")) {
-            //
-            //                             potencial_bottom_left_x = parseInt(piece_x) - 2;
-            //                             potencial_bottom_left_y = parseInt(piece_y) + 2;
-            //
-            //                             try {
-            //
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_bottom_left_x + '][y=' + potencial_bottom_left_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //
-            //                                     isWhiteNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //
-            //         if(current_piece.classList.contains("black")) {
-            //
-            //             if (current_piece.classList.contains("queen")) {
-            //                 console.log("queen black");
-            //
-            //             }
-            //             else {
-            //
-            //                 potencial_right_x = parseInt(piece_x) - 1;
-            //                 potencial_right_y = parseInt(piece_y) + 1;
-            //
-            //                 if ((potencial_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("white")) {
-            //
-            //                             potencial_right_x = parseInt(piece_x) - 2;
-            //                             potencial_right_y = parseInt(piece_y) + 2;
-            //
-            //                             try {
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_right_x + '][y=' + potencial_right_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //                                     // get next step
-            //                                     // arPotencialWhite.push(piece_for_attack);
-            //
-            //                                     isBlackNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //                         }
-            //                     }
-            //                     else {
-            //                         arPotencialBlack.push(allPiece[i]);
-            //                     }
-            //                 }
-            //
-            //                 potencial_left_x = parseInt(piece_x) + 1;
-            //                 potencial_left_y = parseInt(piece_y) + 1;
-            //
-            //                 if ((potencial_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("white")) {
-            //
-            //                             potencial_left_x = parseInt(piece_x) + 2;
-            //                             potencial_left_y = parseInt(piece_y) + 2;
-            //
-            //                             try {
-            //
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_left_x + '][y=' + potencial_left_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //                                     // get next step
-            //                                     // arPotencialWhite.push(piece_for_attack);
-            //
-            //                                     isBlackNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //
-            //                         }
-            //                     }
-            //                     else {
-            //                         arPotencialBlack.push(allPiece[i]);
-            //                     }
-            //                 }
-            //
-            //                 potencial_up_right_x = parseInt(piece_x) + 1;
-            //                 potencial_up_right_y = parseInt(piece_y) - 1;
-            //
-            //                 if ((potencial_up_right_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_up_right_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("white")) {
-            //
-            //                             potencial_up_right_x = parseInt(piece_x) + 2;
-            //                             potencial_up_right_y = parseInt(piece_y) - 2;
-            //
-            //                             try {
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_up_right_x + '][y=' + potencial_up_right_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //                                     // get next step
-            //                                     // arPotencialWhite.push(piece_for_attack);
-            //
-            //                                     isBlackNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //
-            //                 potencial_up_left_x = parseInt(piece_x) - 1;
-            //                 potencial_up_left_y = parseInt(piece_y) - 1;
-            //
-            //                 if ((potencial_up_left_x === parseInt(allPiece[i].getAttribute("x"))) && (potencial_up_left_y === parseInt(allPiece[i].getAttribute("y")))) {
-            //                     if (allPiece[i].hasChildNodes()) {
-            //                         if (allPiece[i].firstElementChild.classList.contains("white")) {
-            //
-            //                             potencial_up_left_x = parseInt(piece_x) - 2;
-            //                             potencial_up_left_y = parseInt(piece_y) - 2;
-            //
-            //                             try {
-            //                                 let piece_for_attack = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']')[0];
-            //
-            //                                 if (!piece_for_attack.hasChildNodes()) {
-            //                                     // get next step
-            //                                     // arPotencialWhite.push(piece_for_attack);
-            //
-            //                                     isBlackNeedAttack.push({
-            //                                         enemy: allPiece[i],
-            //                                         target: piece_for_attack,
-            //                                         isAttack: true
-            //                                     });
-            //
-            //                                     isHasEnemy = true;
-            //                                 }
-            //                             }
-            //                             catch (piece_for_e) {
-            //                             }
-            //                         }
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-            //
-            // // attack
-            // if(isHasEnemy) {
-            //     if(current_piece.classList.contains("white")) {
-            //         // set for white next step
-            //
-            //         // if next cell has enemy then attack
-            //         if(isWhiteNeedAttack.length > 0) {
-            //             let jumping = isWhiteNeedAttack[0].target;
-            //             let enemy = isWhiteNeedAttack[0].enemy;
-            //
-            //             nextTarget = enemy;
-            //
-            //             $(current_piece).addClass("active");
-            //             $($(enemy)[0].firstElementChild).addClass("potencial_dead");
-            //             $(jumping).addClass("over");
-            //
-            //             nextAttack = jumping;
-            //             isHasEnemy = true;
-            //
-            //         }
-            //     }
-            //     else if(current_piece.classList.contains("black")) {
-            //         // set for black next step
-            //
-            //         // if next cell has enemy then attack
-            //         if(isBlackNeedAttack.length > 0) {
-            //             let jumping = isBlackNeedAttack[0].target;
-            //             let enemy = isBlackNeedAttack[0].enemy;
-            //
-            //             nextTarget = enemy;
-            //
-            //             $(current_piece).addClass("active");
-            //             $($(enemy)[0].firstElementChild).addClass("potencial_dead");
-            //             $(jumping).addClass("over");
-            //
-            //             nextAttack = jumping;
-            //             isHasEnemy = true;
-            //
-            //         }
-            //     }
-            // }
-            // // step
-            // else {
-            //
-            //     if(current_piece.classList.contains("white")) {
-            //
-            //         $(current_piece).addClass("active");
-            //
-            //         arPotencialWhite.forEach(function (value, index) {
-            //             $(value).addClass("over");
-            //         });
-            //
-            //         nextStep = arPotencialWhite;
-            //
-            //     }
-            //     else if(current_piece.classList.contains("black")) {
-            //
-            //         $(current_piece).addClass("active");
-            //
-            //         arPotencialBlack.forEach(function (value, index) {
-            //             $(value).addClass("over");
-            //         });
-            //
-            //         nextStep = arPotencialBlack;
-            //     }
-            // }
         }
 
     });
@@ -1901,41 +1544,11 @@ $( document ).ready(function() {
             // подсвечивание
             queens.forEach(function (value) {
 
-                value[0].needeat.forEach(function (val_need) {
-                    $(val_need.firstElementChild).toggleClass("fuch", true);
-                });
-
-                // if(new_piece.parentElement === value[0].currentpiece) {
-                //
-                //     value[0].upright.empty.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //     value[0].upright.needStep.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //
-                //
-                //     value[0].upleft.empty.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //     value[0].upleft.needStep.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //
-                //     value[0].bottomright.empty.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                //     value[0].bottomright.needStep.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                //
-                //     value[0].bottomleft.empty.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                //     value[0].bottomleft.needStep.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                // }
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
             });
 
             $(new_piece).toggleClass("fuch", false);
@@ -1993,41 +1606,11 @@ $( document ).ready(function() {
             // подсвечивание
             simples.forEach(function (value) {
 
-                value[0].needeat.forEach(function (val_need) {
-                    $(val_need.firstElementChild).toggleClass("fuch", true);
-                });
-
-                // if(new_piece.parentElement === value[0].currentpiece) {
-                //
-                //     value[0].upright.empty.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //     value[0].upright.needStep.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //
-                //
-                //     value[0].upleft.empty.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //     value[0].upleft.needStep.forEach(function (val_up) {
-                //         val_up.toggleClass("over", true);
-                //     });
-                //
-                //     value[0].bottomright.empty.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                //     value[0].bottomright.needStep.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                //
-                //     value[0].bottomleft.empty.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                //     value[0].bottomleft.needStep.forEach(function (val_bot) {
-                //         val_bot.toggleClass("over", true);
-                //     });
-                // }
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
             });
 
             $(new_piece).toggleClass("fuch", false);
@@ -2071,39 +1654,44 @@ $( document ).ready(function() {
                     // подсвечивание
                     potencialStepsWhiteQueenGlobal.forEach(function (value) {
 
-                        value[0].needeat.forEach(function (val_need) {
-                            $(val_need.firstElementChild).toggleClass("fuch", true);
-                        });
+                        if(COLOR_FUCHS === "on") {
+                            value[0].needeat.forEach(function (val_need) {
+                                $(val_need.firstElementChild).toggleClass("fuch", true);
+                            });
+                        }
 
-                        if (current_piece.parentElement === value[0].currentpiece) {
-                            value[0].upright.empty.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
-                            value[0].upright.needStep.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
+                        if(OVER_STEPS === "on") {
+
+                            if (current_piece.parentElement === value[0].currentpiece) {
+                                value[0].upright.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upright.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
 
 
-                            value[0].upleft.empty.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
-                            value[0].upleft.needStep.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
+                                value[0].upleft.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upleft.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
 
-                            value[0].bottomright.empty.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
-                            value[0].bottomright.needStep.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
+                                value[0].bottomright.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomright.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
 
-                            value[0].bottomleft.empty.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
-                            value[0].bottomleft.needStep.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
+                                value[0].bottomleft.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                            }
                         }
                     });
 
@@ -2120,38 +1708,43 @@ $( document ).ready(function() {
                     // подсвечивание
                     potencialStepsSimpleGlobal.forEach(function (value) {
 
-                        value[0].needeat.forEach(function (val_need) {
-                            $(val_need.firstElementChild).toggleClass("fuch", true);
-                        });
+                        if(COLOR_FUCHS === "on") {
+                            value[0].needeat.forEach(function (val_need) {
+                                $(val_need.firstElementChild).toggleClass("fuch", true);
+                            });
+                        }
 
-                        if (current_piece.parentElement === value[0].currentpiece) {
-                            value[0].upright.empty.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
-                            value[0].upright.needStep.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
+                        if(OVER_STEPS === "on") {
 
-                            value[0].upleft.empty.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
-                            value[0].upleft.needStep.forEach(function (val_up) {
-                                val_up.toggleClass("over", true);
-                            });
+                            if (current_piece.parentElement === value[0].currentpiece) {
+                                value[0].upright.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upright.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
 
-                            value[0].bottomright.empty.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
-                            value[0].bottomright.needStep.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
+                                value[0].upleft.empty.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
+                                value[0].upleft.needStep.forEach(function (val_up) {
+                                    val_up.toggleClass("over", true);
+                                });
 
-                            value[0].bottomleft.empty.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
-                            value[0].bottomleft.needStep.forEach(function (val_bot) {
-                                val_bot.toggleClass("over", true);
-                            });
+                                value[0].bottomright.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomright.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+
+                                value[0].bottomleft.empty.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                                value[0].bottomleft.needStep.forEach(function (val_bot) {
+                                    val_bot.toggleClass("over", true);
+                                });
+                            }
                         }
                     });
 
@@ -2183,6 +1776,8 @@ $( document ).ready(function() {
                 else if(current_piece.classList.contains("white")) {
                     currentColor = "white";
                 }
+
+                let isPlayerChange = false;
 
                 /**
                  * QUEENS CHECKERS
@@ -2255,9 +1850,9 @@ $( document ).ready(function() {
                         });
 
                         // надо съесть (возможен фук)
-                        if(!needEat) {
+                        if(!needEat && FUCHS === "on") {
 
-                            let isPlayerChange = false;
+                            isPlayerChange = false;
                             let isFuch = false;
                             let indexNeadEat = randomInteger(0, potencialStepsWhiteQueenGlobal[0][0].needeat.length - 1);
 
@@ -2480,6 +2075,149 @@ $( document ).ready(function() {
                                 }
                             }
 
+                        }
+                        //шаг без фука
+                        else if(!needEat && FUCHS !== "on") {
+                            potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                                if(current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        value[0].upright.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_up[0].getAttribute("x"),
+                                                        y: val_up[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].upleft.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_up[0].getAttribute("x"),
+                                                        y: val_up[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].bottomright.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_bot[0].getAttribute("x"),
+                                                        y: val_bot[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+
+                                            }
+                                        });
+
+                                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                                                if(currentColor === "white") {
+                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                }
+                                                else if(currentColor === "black") {
+                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                }
+
+                                                socket.emit('step', {
+                                                    gameId: serverGame.id,
+                                                    prev: {
+                                                        x: but_x,
+                                                        y: but_y,
+                                                    },
+                                                    next: {
+                                                        x: val_bot[0].getAttribute("x"),
+                                                        y: val_bot[0].getAttribute("y"),
+                                                    },
+                                                    currentPlayer: player,
+                                                    isQueen: true
+                                                });
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                            if(isPlayerChange) {
+                                // change player
+                                if (currentColor === "white") {
+                                    player = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player = "white";
+                                }
+                            }
                         }
                         //не надо съесть. Обычная аттака
                         else {
@@ -3047,7 +2785,7 @@ $( document ).ready(function() {
                         });
 
                         // надо съесть (возможен фук)
-                        if(!needEat) {
+                        if(!needEat && FUCHS === "on") {
 
                             isPlayerChange = false;
                             isFuch = false;
@@ -3373,6 +3111,249 @@ $( document ).ready(function() {
                                 }
                             }
 
+                        }
+                        else if (!needEat && FUCHS !== "on") {
+                            potencialStepsSimpleGlobal.forEach(function (value) {
+                                if (current_piece !== null) {
+                                    if (current_piece.parentElement === value[0].currentpiece) {
+
+                                        value[0].upright.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                if (event.target.getAttribute("queen") !== null) {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_up[0].getAttribute("x"),
+                                                            y: val_up[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true
+                                                    });
+                                                }
+                                                else {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_up[0].getAttribute("x"),
+                                                            y: val_up[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                    });
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].upleft.empty.forEach(function (val_up) {
+                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                if (event.target.getAttribute("queen") !== null) {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_up[0].getAttribute("x"),
+                                                            y: val_up[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true
+                                                    });
+                                                }
+                                                else {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_up[0].getAttribute("x"),
+                                                            y: val_up[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                    });
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+
+                                        value[0].bottomright.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                if (event.target.getAttribute("queen") !== null) {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_bot[0].getAttribute("x"),
+                                                            y: val_bot[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true
+                                                    });
+                                                }
+                                                else {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_bot[0].getAttribute("x"),
+                                                            y: val_bot[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                    });
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+
+                                            }
+                                        });
+
+                                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                                                if (currentColor === "white") {
+                                                    if (event.target.getAttribute("queen") === "white") {
+                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
+                                                    }
+                                                }
+                                                else if (currentColor === "black") {
+                                                    if (event.target.getAttribute("queen") === "black") {
+                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
+                                                    }
+                                                    else {
+                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
+                                                    }
+                                                }
+
+                                                if (event.target.getAttribute("queen") !== null) {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_bot[0].getAttribute("x"),
+                                                            y: val_bot[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                        isQueen: true
+                                                    });
+                                                }
+                                                else {
+                                                    socket.emit('step', {
+                                                        gameId: serverGame.id,
+                                                        prev: {
+                                                            x: but_x,
+                                                            y: but_y,
+                                                        },
+                                                        next: {
+                                                            x: val_bot[0].getAttribute("x"),
+                                                            y: val_bot[0].getAttribute("y"),
+                                                        },
+                                                        currentPlayer: player,
+                                                    });
+                                                }
+
+                                                $(current_piece).remove();
+                                                current_piece = null;
+
+                                                isPlayerChange = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                            if(isPlayerChange) {
+                                // change player
+                                if (currentColor === "white") {
+                                    player = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player = "white";
+                                }
+                            }
                         }
                         //не надо съесть. Обычная аттака
                         else {
