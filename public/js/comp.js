@@ -3604,13 +3604,29 @@ $(document).ready(function(){
 
                 }
                 else {
-                    //научить ходить
-                    console.log(arEmptySteps);
-                    let prev = []; // currentPiece
-                    let enemy = []; // enemy for currentPiece
-                    let next = []; //needStep
+                    //step
+                    let ind = randomInteger(0, arEmptySteps.length - 1);
+                    let current = arEmptySteps[ind].currentpiece;
 
-                    // let index_next = randomInteger(0, arNeedStepFotAttack.length - 1);
+                    let next = [];
+
+                    if(arEmptySteps[ind].upright.empty.length > 0) {
+                        next.push(arEmptySteps[ind].upright.empty[0][0])
+                    }
+                    if(arEmptySteps[ind].upleft.empty.length > 0) {
+                        next.push(arEmptySteps[ind].upleft.empty[0][0])
+                    }
+                    if(arEmptySteps[ind].bottomright.empty.length > 0) {
+                        next.push(arEmptySteps[ind].bottomright.empty[0][0])
+                    }
+                    if(arEmptySteps[ind].bottomleft.empty.length > 0) {
+                        next.push(arEmptySteps[ind].bottomleft.empty[0][0])
+                    }
+
+                    next = next[randomInteger(0, next.length - 1)];
+
+                    simple_attack(current, null, next);
+
                 }
             }
             else {
@@ -3820,11 +3836,14 @@ $(document).ready(function(){
 
     }
 
-    function simple_attack(prev, enemy, next) {
+    function simple_attack(prev, enemy = null, next) {
         let color = prev.firstElementChild.classList.contains("black");
 
         $(prev.firstElementChild).remove();
-        $(enemy.firstElementChild).remove();
+
+        if(enemy !== null) {
+            $(enemy.firstElementChild).remove();
+        }
 
         if(color) {
             $(next).append('<div class="piece black">&#9820;</div>');
