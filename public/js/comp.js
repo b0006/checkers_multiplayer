@@ -72,6 +72,11 @@ function initBoard() {
                         piece.className = "piece black";
                         piece.innerHTML = "&#9820;";
                         rank__check.append(piece);
+
+                        // piece = document.createElement("div");
+                        // piece.className = "piece black queen";
+                        // piece.innerHTML = "&#9819;";
+                        // rank__check.append(piece);
                     }
                 }
             }
@@ -153,8 +158,8 @@ $(document).ready(function(){
 
     let pieceForFuch = [];
 
-    function randomInteger(min, max) {
-        var rand = min - 0.5 + Math.random() * (max - min + 1)
+    function getId(current, new_current) {
+        let rand = current - 0.5 + Math.random() * (new_current - current + 1);
         rand = Math.round(rand);
         return rand;
     }
@@ -1496,8 +1501,6 @@ $(document).ready(function(){
 
         result.push(queen);
 
-        console.log(queen)
-
         return result;
     }
 
@@ -2019,7 +2022,7 @@ $(document).ready(function(){
 
                             isPlayerChange = false;
                             let isFuch = false;
-                            let indexNeadEat = randomInteger(0, potencialStepsWhiteQueenGlobal[0][0].needeat.length - 1);
+                            let indexNeadEat = getId(0, potencialStepsWhiteQueenGlobal[0][0].needeat.length - 1);
 
                             potencialStepsWhiteQueenGlobal.forEach(function (value) {
                                 if(current_piece !== null) {
@@ -2147,13 +2150,7 @@ $(document).ready(function(){
                             });
 
                             if(isPlayerChange) {
-                                // change player
-                                if (currentColor === "white") {
-                                    player = "black";
-                                }
-                                else if (currentColor === "black") {
-                                    player = "white";
-                                }
+                                stepComputer(event.target);
                             }
 
                         }
@@ -2235,13 +2232,7 @@ $(document).ready(function(){
                             });
 
                             if(isPlayerChange) {
-                                // change player
-                                if (currentColor === "white") {
-                                    player = "black";
-                                }
-                                else if (currentColor === "black") {
-                                    player = "white";
-                                }
+                                stepComputer(event.target);
                             }
                         }
                         //не надо съесть. Обычная аттака
@@ -2508,13 +2499,7 @@ $(document).ready(function(){
                                     return false;
                                 }
                                 else {
-                                    // change player
-                                    if (currentColor === "white") {
-                                        player = "black";
-                                    }
-                                    else if (currentColor === "black") {
-                                        player = "white";
-                                    }
+                                    stepComputer(event.target);
 
                                     $(".piece").removeClass("active");
                                     $(".piece").removeClass("potencial_dead");
@@ -2552,13 +2537,7 @@ $(document).ready(function(){
                                             $(current_piece).remove();
                                             current_piece = null;
 
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
+                                            stepComputer(event.target);
                                         }
                                     });
 
@@ -2574,13 +2553,7 @@ $(document).ready(function(){
                                             $(current_piece).remove();
                                             current_piece = null;
 
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
+                                            stepComputer(event.target);
                                         }
                                     });
 
@@ -2596,13 +2569,7 @@ $(document).ready(function(){
                                             $(current_piece).remove();
                                             current_piece = null;
 
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
+                                            stepComputer(event.target);
                                         }
                                     });
 
@@ -2618,13 +2585,7 @@ $(document).ready(function(){
                                             $(current_piece).remove();
                                             current_piece = null;
 
-                                            // change player
-                                            if (currentColor === "white") {
-                                                player = "black";
-                                            }
-                                            else if (currentColor === "black") {
-                                                player = "white";
-                                            }
+                                            stepComputer(event.target);
                                         }
                                     });
                                 }
@@ -2716,7 +2677,7 @@ $(document).ready(function(){
 
                             isPlayerChange = false;
                             isFuch = false;
-                            indexNeadEat = randomInteger(0, potencialStepsSimpleGlobal[0][0].needeat.length - 1);
+                            indexNeadEat = getId(0, potencialStepsSimpleGlobal[0][0].needeat.length - 1);
 
                             potencialStepsSimpleGlobal.forEach(function (value) {
                                 if(current_piece !== null) {
@@ -2888,7 +2849,7 @@ $(document).ready(function(){
                             });
 
                             if(wasStep) {
-                                stepComputer();
+                                stepComputer(event.target);
                             }
 
                         }
@@ -3009,7 +2970,7 @@ $(document).ready(function(){
                             });
 
                             if(wasStep) {
-                                stepComputer();
+                                stepComputer(event.target);
                             }
                         }
                         //не надо съесть. Обычная аттака
@@ -3278,7 +3239,7 @@ $(document).ready(function(){
                                     $(current_piece).addClass("next");
                                 }
                                 else {
-                                    stepComputer();
+                                    stepComputer(event.target);
 
                                     $(".piece").removeClass("active");
                                     $(".piece").removeClass("potencial_dead");
@@ -3427,65 +3388,120 @@ $(document).ready(function(){
         return (parseInt(count_white_queen) - parseInt(count_black_queen)) + (parseInt(count_white_simple) - parseInt(count_black_simple)) + (parseInt(count_success_next_move_white) - parseInt(count_success_next_move_black)) + parseInt(distance_to_last_line);
     }
 
-    let temp = null;
-
     function stepComputer(new_piece) {
         if(COMPUTER_LEVEL === "low") {
+            let any = [0, 1];
+            let tax = getId(0, any.length - 1);
+            let choose = null;
+
             let simples = getAllSimpleCells("black");
             let queens = getAllQueenCells("black");
 
-            // приоритет на дамок
-            if (queens.length > 0) {
-                // но сначала глянь есть ли враги у простых шашек
-                    //руби обычной
-                // ходи дамкой
+            let arEmptySteps = [];
+            let arNeedStepFotAttack = [];
+            let needAttackSimple = false;
+            simples.forEach(function (value) {
+                // need attack
 
+                if (value[0].upright.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+                if (value[0].upleft.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+                if (value[0].bottomright.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+                if (value[0].bottomleft.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+
+                // empties
+
+                if (value[0].upright.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+
+                if (value[0].upleft.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+
+                if (value[0].bottomright.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+
+                if (value[0].bottomleft.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+            });
+
+            let arEmptyStepsQueen  = [];
+            let arNeedStepFotAttackQueen  = [];
+            let needAttackQueen = false;
+            queens.forEach(function (value) {
+                // need attack
+
+                if (value[0].upright.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+                if (value[0].upleft.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+                if (value[0].bottomright.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+                if (value[0].bottomleft.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+
+                // empties
+
+                if (value[0].upright.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+
+                if (value[0].upleft.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+
+                if (value[0].bottomright.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+
+                if (value[0].bottomleft.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+            });
+
+            if(needAttackQueen && !needAttackSimple) {
+                choose = any[1];
             }
-            else if(simples.length > 0) {
-                let arEmptySteps = [];
+            else if(!needAttackQueen && needAttackSimple){
+                choose = any[0];
+            }
+            else if(!needAttackQueen && !needAttackSimple) {
+                if(queens.length > 0 && simples.length > 0) {
+                    choose = any[tax];
+                }
+                else if(queens.length > 0 && simples.length <= 0) {
+                    choose = any[1];
+                }
+                else if(queens.length <= 0 && simples.length > 0) {
+                    choose = any[0];
+                }
+            }
 
-                let arNeedStepFotAttack = [];
-                let needAttack = false;
-                simples.forEach(function (value) {
-                    // need attack
+            if(choose === 1) {
 
-                    if (value[0].upright.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-                    if (value[0].upleft.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-                    if (value[0].bottomright.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-                    if (value[0].bottomleft.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-
-                    // empties
-
-                    if (value[0].upright.empty.length > 0) {
-                        arEmptySteps.push(value[0]);
-                    }
-
-                    if (value[0].upleft.empty.length > 0) {
-                        arEmptySteps.push(value[0]);
-                    }
-
-                    if (value[0].bottomright.empty.length > 0) {
-                        arEmptySteps.push(value[0]);
-                    }
-
-                    if (value[0].bottomleft.empty.length > 0) {
-                        arEmptySteps.push(value[0]);
-                    }
-                });
-
-                if(needAttack) {
+                if (needAttackQueen) {
                     let arNeedStepUpRight = [];
                     let arNeedStepUpLeft = [];
                     let arNeedStepBottomRight = [];
@@ -3498,7 +3514,153 @@ $(document).ready(function(){
 
                     let targets = [];
 
-                    for(let i = 0; i < arNeedStepFotAttack.length; i++) {
+                    for (let i = 0; i < arNeedStepFotAttackQueen.length; i++) {
+                        let target = [];
+
+                        for (let prop in arNeedStepFotAttackQueen[i]) {
+                            if (prop === "upright") {
+                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
+                                    arNeedStepUpRight.push(arNeedStepFotAttackQueen[i][prop].needStep)
+                                }
+                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
+                                    arEnemyUpRight.push(arNeedStepFotAttackQueen[i][prop].enemy)
+                                }
+
+                                if (arNeedStepUpRight.length > 0 && arEnemyUpRight.length > 0) {
+                                    target = [{
+                                        upright: {
+                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
+                                            enemy: arEnemyUpRight,
+                                            next: arNeedStepUpRight
+                                        }
+                                    }]
+                                }
+                            }
+                            if (prop === "upleft") {
+
+                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
+                                    arNeedStepUpLeft.push(arNeedStepFotAttackQueen[i][prop].needStep)
+                                }
+
+                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
+                                    arEnemyUpLeft.push(arNeedStepFotAttackQueen[i][prop].enemy)
+                                }
+
+                                if (arNeedStepUpLeft.length > 0 && arEnemyUpLeft.length > 0) {
+                                    target = [{
+                                        upleft: {
+                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
+                                            enemy: arEnemyUpLeft,
+                                            next: arNeedStepUpLeft
+                                        }
+                                    }]
+                                }
+                            }
+                            if (prop === "bottomright") {
+
+                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
+                                    arNeedStepBottomRight.push(arNeedStepFotAttackQueen[i][prop].needStep)
+                                }
+
+                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
+                                    arEnemyBottomRight.push(arNeedStepFotAttackQueen[i][prop].enemy)
+                                }
+
+                                if (arNeedStepBottomRight.length > 0 && arEnemyBottomRight.length > 0) {
+                                    target = [{
+                                        bottomright: {
+                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
+                                            enemy: arEnemyBottomRight,
+                                            next: arNeedStepBottomRight
+                                        }
+                                    }]
+                                }
+                            }
+                            if (prop === "bottomleft") {
+
+                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
+                                    arNeedStepBottomLeft.push(arNeedStepFotAttackQueen[i][prop].needStep)
+                                }
+
+                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
+                                    arEnemyBottomLeft.push(arNeedStepFotAttackQueen[i][prop].enemy)
+                                }
+
+                                if (arNeedStepBottomLeft.length > 0 && arEnemyBottomLeft.length > 0) {
+                                    target = [{
+                                        bottomleft: {
+                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
+                                            enemy: arEnemyBottomLeft,
+                                            next: arNeedStepBottomLeft
+                                        }
+                                    }]
+                                }
+                            }
+
+                        }
+
+                        targets.push(target);
+                    }
+
+                    let ind = getId(0, targets.length - 1);
+                    targets[ind].forEach(function (value) {
+                        if (typeof value.upright !== "undefined") {
+                            simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][getId(0, value.upright.next[0].length - 1)][0], "queen");
+                        }
+                        if (typeof value.upleft !== "undefined") {
+                            simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][getId(0, value.upleft.next[0].length - 1)][0], "queen");
+                        }
+                        if (typeof value.bottomright !== "undefined") {
+                            simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][getId(0, value.bottomright.next[0].length - 1)][0], "queen");
+                        }
+                        if (typeof value.bottomleft !== "undefined") {
+                            simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][getId(0, value.bottomleft.next[0].length - 1)][0], "queen");
+                        }
+                    })
+
+                }
+                else {
+
+                    //step
+                    let ind = getId(0, arEmptyStepsQueen.length - 1);
+                    let current = arEmptyStepsQueen[ind].currentpiece;
+
+                    let next = [];
+
+                    if (arEmptyStepsQueen[ind].upright.empty.length > 0) {
+                        next.push(arEmptyStepsQueen[ind].upright.empty[getId(0, arEmptyStepsQueen[ind].upright.empty.length - 1)][0]);
+                    }
+                    if (arEmptyStepsQueen[ind].upleft.empty.length > 0) {
+                        next.push(arEmptyStepsQueen[ind].upleft.empty[getId(0, arEmptyStepsQueen[ind].upleft.empty.length - 1)][0]);
+                    }
+                    if (arEmptyStepsQueen[ind].bottomright.empty.length > 0) {
+                        next.push(arEmptyStepsQueen[ind].bottomright.empty[getId(0, arEmptyStepsQueen[ind].bottomright.empty.length - 1)][0]);
+                    }
+                    if (arEmptyStepsQueen[ind].bottomleft.empty.length > 0) {
+                        next.push(arEmptyStepsQueen[ind].bottomleft.empty[getId(0, arEmptyStepsQueen[ind].bottomleft.empty.length - 1)][0]);
+                    }
+
+                    next = next[getId(0, next.length - 1)];
+
+                    simple_attack(current, null, next, "queen");
+                }
+            }
+            else {
+
+                if (needAttackSimple) {
+                    let arNeedStepUpRight = [];
+                    let arNeedStepUpLeft = [];
+                    let arNeedStepBottomRight = [];
+                    let arNeedStepBottomLeft = [];
+
+                    let arEnemyUpRight = [];
+                    let arEnemyUpLeft = [];
+                    let arEnemyBottomRight = [];
+                    let arEnemyBottomLeft = [];
+
+                    let targets = [];
+
+                    for (let i = 0; i < arNeedStepFotAttack.length; i++) {
                         let target = [];
 
                         for (let prop in arNeedStepFotAttack[i]) {
@@ -3586,248 +3748,344 @@ $(document).ready(function(){
                         targets.push(target);
                     }
 
-                    let ind = randomInteger(0, targets.length - 1);
+                    let ind = getId(0, targets.length - 1);
                     targets[ind].forEach(function (value) {
-                        if(typeof value.upright !== "undefined"){
-                            simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0]);
+                        if (typeof value.upright !== "undefined") {
+                            if(value.upright.next[0][0][0].getAttribute("queen") === "black"){
+                                simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0], "queen");
+                            }
+                            else {
+                                simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0]);
+                            }
                         }
-                        if(typeof value.upleft !== "undefined"){
-                            simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0]);
+                        if (typeof value.upleft !== "undefined") {
+                            if(value.upleft.next[0][0][0].getAttribute("queen") === "black") {
+                                simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0], "queen");
+                            }
+                            else {
+                                simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0]);
+                            }
                         }
-                        if(typeof value.bottomright !== "undefined"){
-                            simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0]);
+                        if (typeof value.bottomright !== "undefined") {
+                            if(value.bottomright.next[0][0][0].getAttribute("queen") === "black") {
+                                simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0], "queen");
+                            }
+                            else {
+                                simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0]);
+                            }
                         }
-                        if(typeof value.bottomleft !== "undefined"){
-                            simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0]);
+                        if (typeof value.bottomleft !== "undefined") {
+                            if(value.bottomleft.next[0][0][0].getAttribute("queen") === "black") {
+                                simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0], "queen");
+                            }
+                            else {
+                                simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0]);
+                            }
                         }
                     })
 
                 }
                 else {
+
                     //step
-                    let ind = randomInteger(0, arEmptySteps.length - 1);
+                    let ind = getId(0, arEmptySteps.length - 1);
                     let current = arEmptySteps[ind].currentpiece;
 
                     let next = [];
 
-                    if(arEmptySteps[ind].upright.empty.length > 0) {
+                    if (arEmptySteps[ind].upright.empty.length > 0) {
                         next.push(arEmptySteps[ind].upright.empty[0][0])
                     }
-                    if(arEmptySteps[ind].upleft.empty.length > 0) {
+                    if (arEmptySteps[ind].upleft.empty.length > 0) {
                         next.push(arEmptySteps[ind].upleft.empty[0][0])
                     }
-                    if(arEmptySteps[ind].bottomright.empty.length > 0) {
+                    if (arEmptySteps[ind].bottomright.empty.length > 0) {
                         next.push(arEmptySteps[ind].bottomright.empty[0][0])
                     }
-                    if(arEmptySteps[ind].bottomleft.empty.length > 0) {
+                    if (arEmptySteps[ind].bottomleft.empty.length > 0) {
                         next.push(arEmptySteps[ind].bottomleft.empty[0][0])
                     }
 
-                    next = next[randomInteger(0, next.length - 1)];
-
-                    simple_attack(current, null, next);
+                    next = next[getId(0, next.length - 1)];
+                    if(next.getAttribute("queen") === "black") {
+                        simple_attack(current, null, next, "queen");
+                    }
+                    else {
+                        simple_attack(current, null, next);
+                    }
 
                 }
             }
-            else {
-                //game over
-            }
-
         }
-        else  if(COMPUTER_LEVEL === "medium") {
+        else if(COMPUTER_LEVEL === "medium") {
+            let new_x = new_piece.getAttribute("x");
+            let new_y = new_piece.getAttribute("y");
+
+            new_piece = $('.rank__check[x=' + new_x + '][y=' + new_y + ']')[0];
+
+            let simples_enemy = getAllSimpleCells("white");
+            let queens_enemy = getAllQueenCells("white");
+
             let count_white_queen = 0, count_black_queen = 0,
                 count_white_simple = 0, count_black_simple = 0,
                 count_success_next_move_white = 0, count_success_next_move_black = 0,
                 distance_to_last_line = 0;
 
-            let new_x = new_piece.getAttribute("x");
-            let new_y = new_piece.getAttribute("y");
 
-            new_piece = $('.rank__check[x=' + new_x + '][y=' + new_y + ']')[0];
-            console.log("computer step");
+            let any = [0, 1];
+            let tax = getId(0, any.length - 1);
+            let choose = null;
 
             let simples = getAllSimpleCells("black");
             let queens = getAllQueenCells("black");
 
-            let simples_enemy = getAllSimpleCells("white");
-            let queens_enemy = getAllQueenCells("white");
+            let arEmptySteps = [];
+            let arNeedStepFotAttack = [];
+            let needAttackSimple = false;
+            simples.forEach(function (value) {
+                // need attack
 
-            // приоритет на дамок
-            if (queens.length > 0) {
+                if (value[0].upright.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+                if (value[0].upleft.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+                if (value[0].bottomright.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+                if (value[0].bottomleft.needStep.length > 0) {
+                    needAttackSimple = true;
+                    arNeedStepFotAttack.push(value[0]);
+                }
+
+                // empties
+
+                if (value[0].upright.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+
+                if (value[0].upleft.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+
+                if (value[0].bottomright.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+
+                if (value[0].bottomleft.empty.length > 0) {
+                    arEmptySteps.push(value[0]);
+                }
+            });
+
+            let arEmptyStepsEnemy = [];
+            let arNeedStepFotAttackEnemy = [];
+            simples_enemy.forEach(function (value) {
+                // need attack
+
+                if (value[0].upright.needStep.length > 0) {
+                    arNeedStepFotAttackEnemy.push(value[0]);
+                }
+                if (value[0].upleft.needStep.length > 0) {
+                    arNeedStepFotAttackEnemy.push(value[0]);
+                }
+                if (value[0].bottomright.needStep.length > 0) {
+                    arNeedStepFotAttackEnemy.push(value[0]);
+                }
+                if (value[0].bottomleft.needStep.length > 0) {
+                    arNeedStepFotAttackEnemy.push(value[0]);
+                }
+
+                // empties
+
+                if (value[0].upright.empty.length > 0) {
+                    arEmptyStepsEnemy.push(value[0]);
+                }
+
+                if (value[0].upleft.empty.length > 0) {
+                    arEmptyStepsEnemy.push(value[0]);
+                }
+
+                if (value[0].bottomright.empty.length > 0) {
+                    arEmptyStepsEnemy.push(value[0]);
+                }
+
+                if (value[0].bottomleft.empty.length > 0) {
+                    arEmptyStepsEnemy.push(value[0]);
+                }
+            });
+
+            let arEmptyStepsQueen  = [];
+            let arNeedStepFotAttackQueen  = [];
+            let needAttackQueen = false;
+            queens.forEach(function (value) {
+                // need attack
+
+                if (value[0].upright.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+                if (value[0].upleft.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+                if (value[0].bottomright.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+                if (value[0].bottomleft.needStep.length > 0) {
+                    needAttackQueen = true;
+                    arNeedStepFotAttackQueen.push(value[0]);
+                }
+
+                // empties
+
+                if (value[0].upright.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+
+                if (value[0].upleft.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+
+                if (value[0].bottomright.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+
+                if (value[0].bottomleft.empty.length > 0) {
+                    arEmptyStepsQueen.push(value[0]);
+                }
+            });
+
+            count_white_queen = queens.length;
+            count_black_queen = queens_enemy.length;
+            count_white_simple = simples.length;
+            count_black_simple = simples_enemy.length;
+            count_success_next_move_white = arEmptyStepsEnemy.length;
+            count_success_next_move_black = arEmptySteps.length;
+
+            if(needAttackQueen && !needAttackSimple) {
+                choose = any[1];
+            }
+            else if(!needAttackQueen && needAttackSimple){
+                choose = any[0];
+            }
+            else if(!needAttackQueen && !needAttackSimple) {
+                if(queens.length > 0 && simples.length > 0) {
+                    choose = any[tax];
+                }
+                else if(queens.length > 0 && simples.length <= 0) {
+                    choose = any[1];
+                }
+                else if(queens.length <= 0 && simples.length > 0) {
+                    choose = any[0];
+                }
+            }
+
+            if (choose === 1) {
                 // но сначала глянь есть ли враги у простых шашек
                 //руби обычной
                 // ходи дамкой
 
             }
-            else if (simples.length > 0) {
-                // сначала проверить на наличие врагов
-
-                let arNeedStepFotAttack = [];
-                let needAttack = false;
-                simples.forEach(function (value) {
-                    if (value[0].upright.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-
-                    if (value[0].upleft.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-
-                    if (value[0].bottomright.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-
-                    if (value[0].bottomleft.needStep.length > 0) {
-                        needAttack = true;
-                        arNeedStepFotAttack.push(value[0]);
-                    }
-                });
-
-                if (needAttack) {
+            else {
+                if (needAttackSimple) {
                     console.log("computer need attack");
                     let prev = []; // currentPiece
                     let enemy = []; // enemy for currentPiece
                     let next = []; //needStep
 
-                    // let index_next = randomInteger(0, arNeedStepFotAttack.length - 1);
-
                     for (let i = 0; i < arNeedStepFotAttack.length; i++) {
-                        prev = [];
-                        enemy = [];
-                        next = [];
+                        prev = getPrev(arNeedStepFotAttack[i]);
+                        enemy = getEnemy(arNeedStepFotAttack[i]);
+                        next = getNext(arNeedStepFotAttack[i]);
 
-                        for (let prop in arNeedStepFotAttack[i]) {
-                            if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
-
-                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
-                                    next.push(arNeedStepFotAttack[i][prop].needStep);
-                                }
-
-                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
-                                    enemy.push(arNeedStepFotAttack[i][prop].enemy);
-                                }
-                            }
-                            else if (prop === "currentpiece") {
-                                prev.push(arNeedStepFotAttack[i][prop]);
-                            }
-                        }
+                        // for (let prop in arNeedStepFotAttack[i]) {
+                        //     if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
+                        //
+                        //         if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
+                        //             next.push(arNeedStepFotAttack[i][prop].needStep);
+                        //         }
+                        //
+                        //         if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
+                        //             enemy.push(arNeedStepFotAttack[i][prop].enemy);
+                        //         }
+                        //     }
+                        //     else if (prop === "currentpiece") {
+                        //         prev.push(arNeedStepFotAttack[i][prop]);
+                        //     }
+                        // }
 
                         let current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
+
                         let isDanger = 0;
-
+                        let needNextAttack = false;
                         current_situation.forEach(function (value) {
-                            if (value[0].upright.danger.length > 0) {
+                            if (value[0].upright.danger.length > 0 && value[0].bottomleft.danger.length <= 0) {
                                 isDanger = 1;
                             }
-                            if (value[0].upleft.danger.length > 0) {
+                            if (value[0].upleft.danger.length > 0 && value[0].bottomright.danger.length <= 0) {
                                 isDanger = 1;
                             }
-                            if (value[0].bottomright.danger.length > 0) {
+                            if (value[0].bottomright.danger.length > 0 && value[0].upleft.danger.length <= 0) {
                                 isDanger = 1;
                             }
-                            if (value[0].bottomleft.danger.length > 0) {
+                            if (value[0].bottomleft.danger.length > 0 && value[0].upright.danger.length <= 0) {
                                 isDanger = 1;
                             }
+
+                            if(value[0].upright.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+                            if(value[0].upleft.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+                            if(value[0].bottomright.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+                            if(value[0].bottomleft.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+
                         });
 
-                        let next_potencial_cells = [];
-                        simples.forEach(function (value) {
-                            if (value[0].bottomright.empty.length > 0) {
-                                value[0].bottomright.empty.forEach(function (val_e) {
-                                    next_potencial_cells.push(val_e);
-                                })
-                            }
+                        isNeedAttackCP(current_situation);
 
-                            if (value[0].bottomleft.empty.length > 0) {
-                                value[0].bottomleft.empty.forEach(function (val_e) {
-                                    next_potencial_cells.push(val_e);
-                                })
-                            }
-                        });
-                        let next_potencial_cells_enemy = [];
-                        simples_enemy.forEach(function (value) {
-                            if (value[0].upright.empty.length > 0) {
-                                value[0].upright.empty.forEach(function (val_e) {
-                                    next_potencial_cells_enemy.push(val_e);
-                                })
-                            }
+                        if(needNextAttack) {
 
-                            if (value[0].upleft.empty.length > 0) {
-                                value[0].upleft.empty.forEach(function (val_e) {
-                                    next_potencial_cells_enemy.push(val_e);
-                                })
-                            }
-                        });
+                            // isNeedAttackCP(current_situation);
 
+                            // console.log(getPrev(current_situation[0][0])); // один 0
+                            // console.log(getEnemy(current_situation[0][0])); // три 0
+                            // console.log(getNext(current_situation[0][0])); // три 0
 
-                        count_black_simple = simples.length;
-                        count_white_simple = simples_enemy.length;
+                            // let nnn = getOneSimpleCells("black", $(next)[0][0][0], prev);
+                            // let test = isNeedAttackCP(nnn);
 
-                        count_success_next_move_white = next_potencial_cells.length;
-                        count_success_next_move_black = next_potencial_cells_enemy.length;
+                            isDanger--;
+                        }
+
+                        // return false;
 
                         let mark = markFunction(count_white_queen, count_black_queen,
                             count_white_simple, count_black_simple,
                             count_success_next_move_white, count_success_next_move_black, isDanger);
 
-                        console.log(current_situation);
-
-                        console.log(mark);
+                        // console.log(count_white_queen + ", " + count_black_queen);
+                        // console.log(count_white_simple + ", " + count_black_simple);
+                        // console.log(count_success_next_move_white + ", " + count_success_next_move_black + ", " + isDanger);
+                        //
+                        // console.log(current_situation);
+                        // console.log(mark);
                     }
                 }
                 else {
+                    console.log("computer step");
 
-                    let next_potencial_cells = [];
-                    simples.forEach(function (value) {
-                        if (value[0].bottomright.empty.length > 0) {
-                            value[0].bottomright.empty.forEach(function (val_e) {
-                                next_potencial_cells.push(val_e);
-                            })
-                        }
-
-                        if (value[0].bottomleft.empty.length > 0) {
-                            value[0].bottomleft.empty.forEach(function (val_e) {
-                                next_potencial_cells.push(val_e);
-                            })
-                        }
-                    });
-                    let next_potencial_cells_enemy = [];
-                    simples_enemy.forEach(function (value) {
-                        if (value[0].upright.empty.length > 0) {
-                            value[0].upright.empty.forEach(function (val_e) {
-                                next_potencial_cells_enemy.push(val_e);
-                            })
-                        }
-
-                        if (value[0].upleft.empty.length > 0) {
-                            value[0].upleft.empty.forEach(function (val_e) {
-                                next_potencial_cells_enemy.push(val_e);
-                            })
-                        }
-                    });
-
-
-                    count_black_simple = simples.length;
-                    count_white_simple = simples_enemy.length;
-
-                    count_success_next_move_white = next_potencial_cells.length;
-                    count_success_next_move_black = next_potencial_cells_enemy.length;
-
-                    distance_to_last_line = new_y;
-
-
-                    let mark = markFunction(count_white_queen, count_black_queen,
-                        count_white_simple, count_black_simple,
-                        count_success_next_move_white, count_success_next_move_black, distance_to_last_line);
-
-                    console.log(mark);
                 }
-            }
-            else {
-                //game over
             }
         }
         else if(COMPUTER_LEVEL === "high") {
@@ -3836,7 +4094,7 @@ $(document).ready(function(){
 
     }
 
-    function simple_attack(prev, enemy = null, next) {
+    function simple_attack(prev, enemy = null, next, type = null) {
         let color = prev.firstElementChild.classList.contains("black");
 
         $(prev.firstElementChild).remove();
@@ -3846,12 +4104,102 @@ $(document).ready(function(){
         }
 
         if(color) {
-            $(next).append('<div class="piece black">&#9820;</div>');
+            if(type !== null) {
+                $(next).append('<div class="piece black queen">&#9819;</div>');
+            }
+            else {
+                $(next).append('<div class="piece black">&#9820;</div>');
+            }
         }
         else {
-            $(next).append('<div class="piece white">&#9814;</div>');
+            if(type !== null) {
+                $(next).append('<div class="piece white queen">&#9813;</div>');
+            }
+            else {
+                $(next).append('<div class="piece white">&#9814;</div>');
+            }
+        }
+    }
+
+    function gameOver() {
+
+    }
+
+    let count = 0;
+
+    function isNeedAttackCP(current_situation) {
+        let needNextAttack = false;
+
+        console.log(current_situation);
+
+        current_situation.forEach(function (value) {
+            if(value[0].upright.enemy.length > 0) {
+                needNextAttack = true;
+            }
+            if(value[0].upleft.enemy.length > 0) {
+                needNextAttack = true;
+            }
+            if(value[0].bottomright.enemy.length > 0) {
+                needNextAttack = true;
+            }
+            if(value[0].bottomleft.enemy.length > 0) {
+                needNextAttack = true;
+            }
+
+        });
+
+        if(needNextAttack) {
+            let prev = getPrev(current_situation[0][0]);
+            let next = getNext(current_situation[0][0]);
+            current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
+
+            isNeedAttackCP(current_situation);
+
+        }
+        else {
+            // console.log("false");
+            return false;
+        }
+    }
+
+    function getNext(arNeedStepFotAttack) {
+        let next = [];
+
+        for (let prop in arNeedStepFotAttack) {
+            if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
+
+                if (arNeedStepFotAttack[prop].needStep.length > 0) {
+                    next.push(arNeedStepFotAttack[prop].needStep);
+                }
+            }
         }
 
+        return next;
+    }
+    function getEnemy(arNeedStepFotAttack) {
+        let enemy = [];
+
+        for (let prop in arNeedStepFotAttack) {
+            if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
+
+                if (arNeedStepFotAttack[prop].enemy.length > 0) {
+                    enemy.push(arNeedStepFotAttack[prop].enemy);
+                }
+            }
+        }
+
+        return enemy;
+    }
+    function getPrev(arNeedStepFotAttack) {
+        let prev = [];
+
+        for (let prop in arNeedStepFotAttack) {
+            if (prop === "currentpiece") {
+                prev.push(arNeedStepFotAttack[prop]);
+            }
+        }
+
+        return prev;
     }
 
 });
