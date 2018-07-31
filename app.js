@@ -2,6 +2,7 @@ let express = require('express');
 let app = express();
 let path = require ('path');
 app.use(express.static('public'));
+let fs = require("fs");
 
 let http = require('http').Server(app);
 let io = require('socket.io')(http);

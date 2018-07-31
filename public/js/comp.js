@@ -3748,6 +3748,8 @@ $(document).ready(function(){
                         targets.push(target);
                     }
 
+                    let next = null;
+
                     let ind = getId(0, targets.length - 1);
                     targets[ind].forEach(function (value) {
                         if (typeof value.upright !== "undefined") {
@@ -3756,6 +3758,7 @@ $(document).ready(function(){
                             }
                             else {
                                 simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0]);
+                                next = getOneSimpleCells("black", value.upright.next[0][0][0], value.upright.current);
                             }
                         }
                         if (typeof value.upleft !== "undefined") {
@@ -3764,6 +3767,7 @@ $(document).ready(function(){
                             }
                             else {
                                 simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0]);
+                                next= getOneSimpleCells("black", value.upleft.next[0][0][0], value.upleft.current);
                             }
                         }
                         if (typeof value.bottomright !== "undefined") {
@@ -3772,6 +3776,7 @@ $(document).ready(function(){
                             }
                             else {
                                 simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0]);
+                                next = getOneSimpleCells("black", value.bottomright.next[0][0][0], value.bottomright.current);
                             }
                         }
                         if (typeof value.bottomleft !== "undefined") {
@@ -3780,9 +3785,58 @@ $(document).ready(function(){
                             }
                             else {
                                 simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0]);
+                                next = getOneSimpleCells("black", value.bottomleft.next[0][0][0], value.bottomleft.current);
                             }
                         }
-                    })
+                    });
+
+                    let isDanger = 0;
+                    let needNextAttack = false;
+                    next.forEach(function (value) {
+                        if (value[0].upright.danger.length > 0 && value[0].bottomleft.danger.length <= 0) {
+                            isDanger = 1;
+                        }
+                        if (value[0].upleft.danger.length > 0 && value[0].bottomright.danger.length <= 0) {
+                            isDanger = 1;
+                        }
+                        if (value[0].bottomright.danger.length > 0 && value[0].upleft.danger.length <= 0) {
+                            isDanger = 1;
+                        }
+                        if (value[0].bottomleft.danger.length > 0 && value[0].upright.danger.length <= 0) {
+                            isDanger = 1;
+                        }
+
+                        if(value[0].upright.enemy.length > 0) {
+                            needNextAttack = true;
+                        }
+                        if(value[0].upleft.enemy.length > 0) {
+                            needNextAttack = true;
+                        }
+                        if(value[0].bottomright.enemy.length > 0) {
+                            needNextAttack = true;
+                        }
+                        if(value[0].bottomleft.enemy.length > 0) {
+                            needNextAttack = true;
+                        }
+
+                    });
+
+                    let prev_target = getPrev(next[0][0]);
+                    let enemy_target = getEnemy(next[0][0]);
+                    let next_target = getNext(next[0][0]);
+
+
+
+                    try {
+                        isNeedAttackCP2(next, enemy_target[0][0][0], prev_target[0], next_target[0][0][0]);
+                    }
+                    catch(exp) {
+                        console.log(exp.message);
+                    }
+
+                    // isNeedAttackCP(next, enemy_target[0][0][0], prev_target[0], next_target[0][0][0]);
+
+
 
                 }
                 else {
@@ -3808,10 +3862,16 @@ $(document).ready(function(){
 
                     next = next[getId(0, next.length - 1)];
                     if(next.getAttribute("queen") === "black") {
+
                         simple_attack(current, null, next, "queen");
+
+                        // simple_attack(current, null, next, "queen");
                     }
                     else {
-                        simple_attack(current, null, next);
+
+                        // simple_attack(current, null, next);
+
+                        // simple_attack(current, null, next);
                     }
 
                 }
@@ -4052,7 +4112,7 @@ $(document).ready(function(){
 
                         });
 
-                        isNeedAttackCP(current_situation);
+                        // isNeedAttackCP(current_situation, enemy[0][0][0]);
 
                         if(needNextAttack) {
 
@@ -4097,67 +4157,144 @@ $(document).ready(function(){
     function simple_attack(prev, enemy = null, next, type = null) {
         let color = prev.firstElementChild.classList.contains("black");
 
-        $(prev.firstElementChild).remove();
 
-        if(enemy !== null) {
-            $(enemy.firstElementChild).remove();
-        }
+            $(prev.firstElementChild).remove();
 
-        if(color) {
-            if(type !== null) {
-                $(next).append('<div class="piece black queen">&#9819;</div>');
+            if(enemy !== null) {
+                $(enemy.firstElementChild).remove();
+            }
+
+            if(color) {
+                if(type !== null) {
+                    $(next).append('<div class="piece black queen">&#9819;</div>');
+                }
+                else {
+                    $(next).append('<div class="piece black">&#9820;</div>');
+                }
             }
             else {
-                $(next).append('<div class="piece black">&#9820;</div>');
+                if(type !== null) {
+                    $(next).append('<div class="piece white queen">&#9813;</div>');
+                }
+                else {
+                    $(next).append('<div class="piece white">&#9814;</div>');
+                }
             }
-        }
-        else {
-            if(type !== null) {
-                $(next).append('<div class="piece white queen">&#9813;</div>');
-            }
-            else {
-                $(next).append('<div class="piece white">&#9814;</div>');
-            }
-        }
+
+
+
     }
 
     function gameOver() {
 
     }
 
-    let count = 0;
+    let prev_temp = [];
+    let next_temp = [];
 
-    function isNeedAttackCP(current_situation) {
+    function isNeedAttackCP(current_situation, enemy = null, prev_target = null, next_target = null) {
         let needNextAttack = false;
 
-        console.log(current_situation);
+        if (enemy !== null) {
+            $(enemy.firstElementChild).remove();
+        }
+
+        if (prev_target !== null) {
+            $(prev_target.firstElementChild).remove();
+        }
+
+        prev_temp.push(prev_target);
+        next_temp.push(next_target);
 
         current_situation.forEach(function (value) {
-            if(value[0].upright.enemy.length > 0) {
+            if (value[0].upright.enemy.length > 0) {
                 needNextAttack = true;
             }
-            if(value[0].upleft.enemy.length > 0) {
+            if (value[0].upleft.enemy.length > 0) {
                 needNextAttack = true;
             }
-            if(value[0].bottomright.enemy.length > 0) {
+            if (value[0].bottomright.enemy.length > 0) {
                 needNextAttack = true;
             }
-            if(value[0].bottomleft.enemy.length > 0) {
+            if (value[0].bottomleft.enemy.length > 0) {
                 needNextAttack = true;
             }
 
         });
 
-        if(needNextAttack) {
-            let prev = getPrev(current_situation[0][0]);
-            let next = getNext(current_situation[0][0]);
+        let prev = getPrev(current_situation[0][0]);
+        let new_enemy = getEnemy(current_situation[0][0]);
+        let next = getNext(current_situation[0][0]);
+
+        if (needNextAttack) {
+
             current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
+            isNeedAttackCP(current_situation, new_enemy[0][0][0], prev[0], next[0][0][0]);
 
-            isNeedAttackCP(current_situation);
-
+            // isNeedAttackCP(current_situation, new_enemy[0][0][0], prev[0], next[0][0][0]);
         }
         else {
-            // console.log("false");
+
+            if (next_target !== null) {
+                $(next_target).append('<div class="piece black">&#9820;</div>');
+            }
+
+            if (prev_temp[prev_temp.length - 1] === next_temp[next_temp.length - 2]) {
+                $(next_temp[next_temp.length - 2]).append('<div class="piece black">&#9820;</div>');
+            }
+            if (prev_temp[prev_temp.length - 2] === next_temp[next_temp.length - 1]) {
+                $(prev_temp[prev_temp.length - 2].firstElementChild).remove();
+            }
+
+            prev_temp = [];
+            next_temp = [];
+
+            return false;
+        }
+    }
+
+    function isNeedAttackCP2(current_situation, enemy = null, prev_target = null, next_target = null) {
+        let needNextAttack = false;
+
+        current_situation.forEach(function (value) {
+            if (value[0].upright.enemy.length > 0) {
+                needNextAttack = true;
+            }
+            if (value[0].upleft.enemy.length > 0) {
+                needNextAttack = true;
+            }
+            if (value[0].bottomright.enemy.length > 0) {
+                needNextAttack = true;
+            }
+            if (value[0].bottomleft.enemy.length > 0) {
+                needNextAttack = true;
+            }
+
+        });
+
+        let prev = getPrev(current_situation[0][0]);
+        let new_enemy = getEnemy(current_situation[0][0]);
+        let next = getNext(current_situation[0][0]);
+
+        console.log(prev[0]);
+        console.log(new_enemy[0][0][0]);
+        console.log(next[0][0][0]);
+
+
+
+        if (needNextAttack) {
+
+            // simple_attack(prev[0], new_enemy[0][0][0], next[0][0][0]);
+            sleep(1000).then(() => {
+                simple_attack(prev[0], new_enemy[0][0][0], next[0][0][0]);
+
+
+                current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
+                isNeedAttackCP2(current_situation, new_enemy[0][0][0], prev[0], next[0][0][0]);
+            });
+        }
+        else {
+
             return false;
         }
     }
@@ -4200,6 +4337,10 @@ $(document).ready(function(){
         }
 
         return prev;
+    }
+
+    function sleep (time) {
+        return new Promise((resolve) => setTimeout(resolve, time));
     }
 
 });
