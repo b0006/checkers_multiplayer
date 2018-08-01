@@ -1,4 +1,8 @@
 
+let words = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+let digits = ['8', '7', '6', '5', '4', '3', '2', '1'];
+let count_history = 1;
+
 function initBoard() {
     let checkers_board = $("#game-board");
     let content = document.createElement("div");
@@ -17,6 +21,7 @@ function initBoard() {
     for(let i = 0; i < 8; i++) {
         rank = document.createElement("div");
         rank.className = "rank";
+        rank.innerHTML = digits[i];
         board.append(rank);
 
         for(let t = 0; t < 8; t++){
@@ -36,6 +41,7 @@ function initBoard() {
 
                     rank__check.setAttribute("x", t);
                     rank__check.setAttribute("y", i);
+                    rank__check.setAttribute("not", words[t] + "" + digits[i]);
                 }
             }
 
@@ -51,6 +57,7 @@ function initBoard() {
 
                     rank__check.setAttribute("x", t);
                     rank__check.setAttribute("y", i);
+                    rank__check.setAttribute("not", words[t] + "" + digits[i]);
                 }
             }
 
@@ -105,9 +112,443 @@ function initBoard() {
         }
 
     }
+
+    // words notation
+    for(let i = 0; i < words.length; i++) {
+        let span_not_words = document.createElement("span");
+        span_not_words.className = "not_words";
+        span_not_words.innerHTML = words[i];
+        board.append(span_not_words)
+    }
+
+
 }
 
 $(document).ready(function(){
+
+    function add_history(prev, next, isAttack = null, isEnemy = null) {
+        if(isEnemy === true) {
+            let current_hys = $("#hys_" + (count_history - 1));
+            if (isAttack === true) {
+                current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + ":" + next.getAttribute("not"));
+            }
+            else {
+                current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + "-" + next.getAttribute("not"));
+            }
+        }
+        else {
+            if (isAttack === true) {
+                $("#history").append("<p id='hys_"+ count_history +"'>" + count_history + ". " + prev.getAttribute("not") + ":" + next.getAttribute("not") + "</p>");
+            }
+            else {
+                $("#history").append("<p id='hys_"+ count_history +"'>" + count_history + ". " + prev.getAttribute("not") + "-" + next.getAttribute("not") + "</p>");
+            }
+            count_history++;
+        }
+    }
+
+    function clear_color_fuchs() {
+        potencialStepsSimpleGlobal.forEach(function (value) {
+            value[0].needeat.forEach(function (val_need) {
+                $(val_need.firstElementChild).toggleClass("fuch", false);
+            });
+        });
+    }
+
+    function clear_color() {
+        $(".piece").removeClass("active");
+        $(".piece").removeClass("potencial_dead");
+        $('.rank__check').removeClass("over");
+    }
+
+    function isNeedAttackSimple() {
+        let needAttack = false;
+        potencialStepsSimpleGlobal.forEach(function (value) {
+
+            if(value[0].upright.needStep.length > 0) {
+                needAttack = true;
+            }
+
+            if(value[0].upleft.needStep.length > 0) {
+                needAttack = true;
+            }
+
+            if(value[0].bottomright.needStep.length > 0) {
+                needAttack = true;
+            }
+
+            if(value[0].bottomleft.needStep.length > 0) {
+                needAttack = true;
+            }
+
+        });
+
+        return needAttack;
+    }
+
+    function isNeedEatSimple(current_x, current_y) {
+        let needEat = false;
+
+        potencialStepsSimpleGlobal.forEach(function (value) {
+
+            value[0].upright.needStep.forEach(function (val_up) {
+                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                    needEat = true;
+                }
+            });
+
+            value[0].upleft.needStep.forEach(function (val_up) {
+                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                    needEat = true;
+                }
+            });
+
+            value[0].bottomright.needStep.forEach(function (val_bot) {
+                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                    needEat = true;
+                }
+            });
+
+            value[0].bottomleft.needStep.forEach(function (val_bot) {
+                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                    needEat = true;
+                }
+            });
+
+        });
+
+        return needEat;
+    }
+
+    function isFuchs(value, indexNeadEat, current_x, current_y) {
+        let isFuch = false;
+
+        value.empty.forEach(function (val_up) {
+            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                alert("Фук");
+
+                isFuch = true;
+
+            }
+        });
+        return isFuch;
+    }
+
+    function removeCurrentPiece() {
+        $(current_piece).remove();
+        current_piece = null;
+    }
+
+    function appendPiece(target, currentColor, isAttack = null) {
+        if (currentColor === "white") {
+            if(target.getAttribute("queen") === "white") {
+                $(target).append('<div class="piece white queen">&#9813;</div>');
+            }
+            else {
+                $(target).append('<div class="piece white">&#9814;</div>');
+            }
+        }
+        else if (currentColor === "black") {
+            if(target.getAttribute("queen") === "black") {
+                $(target).append('<div class="piece black queen">&#9819;</div>');
+            }
+            else {
+                $(target).append('<div class="piece black">&#9820;</div>');
+            }
+        }
+
+        if(isAttack === true) {
+            add_history(current_piece.parentElement, target, true);
+        }
+        else {
+            add_history(current_piece.parentElement, target);
+        }
+    }
+
+    function stepPlayer(target, current_x, current_y, currentColor) {
+        let wasStep = false;
+
+        potencialStepsSimpleGlobal.forEach(function (value) {
+            if(current_piece !== null) {
+                if (current_piece.parentElement === value[0].currentpiece) {
+
+                    value[0].upright.empty.forEach(function (val_up) {
+                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                            appendPiece(target, currentColor);
+
+                            removeCurrentPiece();
+
+                            wasStep = true;
+                        }
+                    });
+
+                    value[0].upleft.empty.forEach(function (val_up) {
+                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+                            appendPiece(target, currentColor);
+
+
+                            removeCurrentPiece();
+
+                            wasStep = true;
+                        }
+                    });
+
+                    value[0].bottomright.empty.forEach(function (val_bot) {
+                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                            appendPiece(target, currentColor);
+
+                            removeCurrentPiece();
+
+                            wasStep = true;
+                        }
+                    });
+
+                    value[0].bottomleft.empty.forEach(function (val_bot) {
+                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+                            appendPiece(target, currentColor);
+
+                            removeCurrentPiece();
+
+                            wasStep = true;
+                        }
+                    });
+                }
+            }
+        });
+
+        return wasStep;
+    }
+
+    function attackPlayer(target, current_x, current_y, currentColor, but_x, but_y) {
+        let isAttackSucces = false;
+        let resultAttack = [];
+
+        potencialStepsSimpleGlobal.forEach(function (value) {
+
+            if (current_piece.parentElement === value[0].currentpiece) {
+                if (isAttackSucces === false) {
+                    value[0].upright.needStep.forEach(function (val_up) {
+                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                            let kill_target = $(".rank__check[x=" + value[0].upright.enemy[0][0].getAttribute("x") + "][y=" + value[0].upright.enemy[0][0].getAttribute("y") + "]");
+
+                            if (currentColor === "white") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "white",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                        y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    kill_target: kill_target
+                                };
+
+                            }
+                            else if (currentColor === "black") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "black",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].upright.enemy[0][0].getAttribute("x"),
+                                        y: value[0].upright.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    kill_target: kill_target
+                                };
+                            }
+
+                            isAttackSucces = true;
+                        }
+                    });
+                }
+
+                if (isAttackSucces === false) {
+                    value[0].upleft.needStep.forEach(function (val_up) {
+                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
+
+                            let kill_target = $(".rank__check[x=" + value[0].upleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].upleft.enemy[0][0].getAttribute("y") + "]");
+
+                            if (currentColor === "white") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "white",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                        y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    kill_target: kill_target
+                                };
+
+                            }
+                            else if (currentColor === "black") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "black",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].upleft.enemy[0][0].getAttribute("x"),
+                                        y: value[0].upleft.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    isQueen: true,
+                                    kill_target: kill_target
+                                };
+                            }
+
+                            isAttackSucces = true;
+
+                        }
+                    });
+                }
+
+                if (isAttackSucces === false) {
+                    value[0].bottomright.needStep.forEach(function (val_bot) {
+                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                            let kill_target = $(".rank__check[x=" + value[0].bottomright.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomright.enemy[0][0].getAttribute("y") + "]");
+
+                            if (currentColor === "white") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "white",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                        y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    kill_target: kill_target
+                                };
+
+                            }
+                            else if (currentColor === "black") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "black",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                        y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    isQueen: true,
+                                    kill_target: kill_target
+                                };
+                            }
+
+                            isAttackSucces = true;
+                        }
+                    });
+                }
+
+                if (isAttackSucces === false) {
+                    value[0].bottomleft.needStep.forEach(function (val_bot) {
+                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
+
+                            let kill_target = $(".rank__check[x=" + value[0].bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomleft.enemy[0][0].getAttribute("y") + "]");
+
+                            if (currentColor === "white") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "white",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                        y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    kill_target: kill_target
+                                };
+
+                            }
+                            else if (currentColor === "black") {
+                                resultAttack = {
+                                    target_place: target,
+                                    local_color: "black",
+                                    prev: {
+                                        x: but_x,
+                                        y: but_y,
+                                    },
+                                    next: {
+                                        x: current_x,
+                                        y: current_y,
+                                    },
+                                    target: {
+                                        x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                        y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                    },
+                                    currentPlayer: player,
+                                    isQueen: true,
+                                    kill_target: kill_target
+                                };
+                            }
+
+                            isAttackSucces = true;
+                        }
+                    });
+                }
+            }
+        });
+
+        return resultAttack;
+    }
+
     initBoard();
 
     let current_script = document.querySelector('script[src*="comp.js"]');
@@ -2606,76 +3047,19 @@ $(document).ready(function(){
                  * SIMPLE CHECKERS
                  */
                 else {
-
-                    // если режим "обязательно рубить", то проверяем, срубилена шашка
-                    // если не срублена, то шашка "съедается"
-                    needAttack = false;
-
-                    potencialStepsSimpleGlobal.forEach(function (value) {
-
-                        //и заодно убираем лишние классы
-                        value[0].needeat.forEach(function (val_need) {
-                            $(val_need.firstElementChild).toggleClass("fuch", false);
-                        });
-
-
-                        if(value[0].upright.needStep.length > 0) {
-                            needAttack = true;
-                        }
-
-                        if(value[0].upleft.needStep.length > 0) {
-                            needAttack = true;
-                        }
-
-                        if(value[0].bottomright.needStep.length > 0) {
-                            needAttack = true;
-                        }
-
-                        if(value[0].bottomleft.needStep.length > 0) {
-                            needAttack = true;
-                        }
-
-                    });
+                    clear_color_fuchs();
+                    needAttack = isNeedAttackSimple();
 
                     // simple need attack
                     if(needAttack) {
 
-                        // если режим "обязательно рубить", то проверяем, срубилена шашка
-                        // если не срублена, то шашка "съедается"
-                        needEat = false;
-
-                        potencialStepsSimpleGlobal.forEach(function (value) {
-
-                            value[0].upright.needStep.forEach(function (val_up) {
-                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                    needEat = true;
-                                }
-                            });
-
-                            value[0].upleft.needStep.forEach(function (val_up) {
-                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                    needEat = true;
-                                }
-                            });
-
-                            value[0].bottomright.needStep.forEach(function (val_bot) {
-                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                    needEat = true;
-                                }
-                            });
-
-                            value[0].bottomleft.needStep.forEach(function (val_bot) {
-                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                    needEat = true;
-                                }
-                            });
-
-                        });
+                        needEat = isNeedEatSimple(current_x, current_y);
 
                         // надо съесть (возможен фук)
                         if(!needEat && FUCHS === "on") {
 
                             isPlayerChange = false;
+
                             isFuch = false;
                             indexNeadEat = getId(0, potencialStepsSimpleGlobal[0][0].needeat.length - 1);
 
@@ -2684,169 +3068,25 @@ $(document).ready(function(){
                                     if (current_piece.parentElement === value[0].currentpiece) {
 
                                         if(!isFuch) {
-                                            value[0].upright.empty.forEach(function (val_up) {
-                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-
-                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
-
-                                                    isFuch = true;
-                                                    isPlayerChange = true;
-
-                                                }
-                                            });
+                                            isFuch = isFuchs(value[0].upright, indexNeadEat, current_x, current_y);
                                         }
 
                                         if(!isFuch) {
-                                            value[0].upleft.empty.forEach(function (val_up) {
-                                                if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-
-                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
-                                                    isFuch = true;
-                                                    isPlayerChange = true;
-                                                }
-                                            });
+                                            isFuch = isFuchs(value[0].upleft, indexNeadEat, current_x, current_y);
                                         }
 
                                         if(!isFuch) {
-                                            value[0].bottomright.empty.forEach(function (val_bot) {
-                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-
-                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
-                                                    isFuch = true;
-                                                    isPlayerChange = true;
-                                                }
-                                            });
+                                            isFuch = isFuchs(value[0].bottomright, indexNeadEat, current_x, current_y);
                                         }
 
                                         if(!isFuch) {
-                                            value[0].bottomleft.empty.forEach(function (val_bot) {
-                                                if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-
-                                                    $(potencialStepsSimpleGlobal[0][0].needeat[indexNeadEat].firstElementChild).remove();
-                                                    isFuch = true;
-                                                    isPlayerChange = true;
-                                                }
-                                            });
+                                            isFuch = isFuchs(value[0].bottomleft, indexNeadEat, current_x, current_y);
                                         }
                                     }
                                 }
-
-                                // прозевал шашку, но дальше ход сделать то надо
-                                if(current_piece !== null) {
-                                    if (current_piece.parentElement === value[0].currentpiece) {
-
-                                        value[0].upright.empty.forEach(function (val_up) {
-                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if(event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if(event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-                                            }
-                                        });
-
-                                        value[0].upleft.empty.forEach(function (val_up) {
-                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if(event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if(event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-                                            }
-                                        });
-
-                                        value[0].bottomright.empty.forEach(function (val_bot) {
-                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if(event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if(event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-
-                                            }
-                                        });
-
-                                        value[0].bottomleft.empty.forEach(function (val_bot) {
-                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if(event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if(event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-                                            }
-                                        });
-                                    }
-                                }
-
                             });
+
+                            wasStep = stepPlayer(event.target, current_x, current_y, currentColor);
 
                             if(wasStep) {
                                 stepComputer(event.target);
@@ -2854,120 +3094,7 @@ $(document).ready(function(){
 
                         }
                         else if (!needEat && FUCHS !== "on") {
-                            potencialStepsSimpleGlobal.forEach(function (value) {
-                                if (current_piece !== null) {
-                                    if (current_piece.parentElement === value[0].currentpiece) {
-
-                                        value[0].upright.empty.forEach(function (val_up) {
-                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if (event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if (event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-                                            }
-                                        });
-
-                                        value[0].upleft.empty.forEach(function (val_up) {
-                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if (event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if (event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-                                            }
-                                        });
-
-                                        value[0].bottomright.empty.forEach(function (val_bot) {
-                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if (event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if (event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-                                            }
-                                        });
-
-                                        value[0].bottomleft.empty.forEach(function (val_bot) {
-                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                                if (currentColor === "white") {
-                                                    if (event.target.getAttribute("queen") === "white") {
-                                                        $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                    }
-                                                }
-                                                else if (currentColor === "black") {
-                                                    if (event.target.getAttribute("queen") === "black") {
-                                                        $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                    }
-                                                    else {
-                                                        $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                    }
-                                                }
-
-                                                $(current_piece).remove();
-                                                current_piece = null;
-
-                                                isPlayerChange = true;
-                                                wasStep = true;
-                                            }
-                                        });
-                                    }
-                                }
-                            });
+                            wasStep = stepPlayer(event.target, current_x, current_y, currentColor);
 
                             if(wasStep) {
                                 stepComputer(event.target);
@@ -2976,252 +3103,13 @@ $(document).ready(function(){
                         //не надо съесть. Обычная аттака
                         else {
 
-                            isAttackSucces = false;
-                            resultAttack = [];
-
-                            potencialStepsSimpleGlobal.forEach(function (value) {
-
-                                if (current_piece.parentElement === value[0].currentpiece) {
-                                    if (isAttackSucces === false) {
-                                        value[0].upright.needStep.forEach(function (val_up) {
-                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-
-                                                let kill_target = $(".rank__check[x=" + value[0].upright.enemy[0][0].getAttribute("x") + "][y=" + value[0].upright.enemy[0][0].getAttribute("y") + "]");
-
-                                                if (currentColor === "white") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "white",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        kill_target: kill_target
-                                                    };
-
-                                                }
-                                                else if (currentColor === "black") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "black",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].upright.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].upright.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        kill_target: kill_target
-                                                    };
-                                                }
-
-                                                isAttackSucces = true;
-                                            }
-                                        });
-                                    }
-
-                                    if (isAttackSucces === false) {
-                                        value[0].upleft.needStep.forEach(function (val_up) {
-                                            if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-
-                                                let kill_target = $(".rank__check[x=" + value[0].upleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].upleft.enemy[0][0].getAttribute("y") + "]");
-
-                                                if (currentColor === "white") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "white",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        kill_target: kill_target
-                                                    };
-
-                                                }
-                                                else if (currentColor === "black") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "black",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].upleft.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].upleft.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        isQueen: true,
-                                                        kill_target: kill_target
-                                                    };
-                                                }
-
-                                                isAttackSucces = true;
-
-                                            }
-                                        });
-                                    }
-
-                                    if (isAttackSucces === false) {
-                                        value[0].bottomright.needStep.forEach(function (val_bot) {
-                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-
-                                                let kill_target = $(".rank__check[x=" + value[0].bottomright.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomright.enemy[0][0].getAttribute("y") + "]");
-
-                                                if (currentColor === "white") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "white",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        kill_target: kill_target
-                                                    };
-
-                                                }
-                                                else if (currentColor === "black") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "black",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        isQueen: true,
-                                                        kill_target: kill_target
-                                                    };
-                                                }
-
-                                                isAttackSucces = true;
-                                            }
-                                        });
-                                    }
-
-                                    if (isAttackSucces === false) {
-                                        value[0].bottomleft.needStep.forEach(function (val_bot) {
-                                            if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-
-                                                let kill_target = $(".rank__check[x=" + value[0].bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomleft.enemy[0][0].getAttribute("y") + "]");
-
-                                                if (currentColor === "white") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "white",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        kill_target: kill_target
-                                                    };
-
-                                                }
-                                                else if (currentColor === "black") {
-                                                    resultAttack = {
-                                                        target_place: event.target,
-                                                        local_color: "black",
-                                                        prev: {
-                                                            x: but_x,
-                                                            y: but_y,
-                                                        },
-                                                        next: {
-                                                            x: current_x,
-                                                            y: current_y,
-                                                        },
-                                                        target: {
-                                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
-                                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
-                                                        },
-                                                        currentPlayer: player,
-                                                        isQueen: true,
-                                                        kill_target: kill_target
-                                                    };
-                                                }
-
-                                                isAttackSucces = true;
-                                            }
-                                        });
-                                    }
-                                }
-                            });
+                            resultAttack = attackPlayer(event.target, current_x, current_y, currentColor, but_x, but_y);
 
                             // если атака прошла успешно
                             if (!$.isEmptyObject(resultAttack)) {
 
-                                if (resultAttack.local_color === "white") {
-                                    if(resultAttack.target_place.getAttribute("queen") === "white") {
-                                        $(resultAttack.target_place).append('<div class="piece white queen">&#9813;</div>');
-                                    }
-                                    else {
-                                        $(resultAttack.target_place).append('<div class="piece white">&#9814;</div>');
-                                    }
-                                }
-                                else if (resultAttack.local_color === "black") {
-                                    if(resultAttack.target_place.getAttribute("queen") === "black") {
-                                        $(resultAttack.target_place).append('<div class="piece black queen">&#9819;</div>');
-                                    }
-                                    else {
-                                        $(resultAttack.target_place).append('<div class="piece black">&#9820;</div>');
-                                    }
-                                }
-
-                                $(current_piece).remove();
-                                current_piece = null;
+                                appendPiece(resultAttack.target_place, resultAttack.local_color, true);
+                                removeCurrentPiece();
 
                                 $(resultAttack.kill_target)[0].firstElementChild.remove();
 
@@ -3241,9 +3129,7 @@ $(document).ready(function(){
                                 else {
                                     stepComputer(event.target);
 
-                                    $(".piece").removeClass("active");
-                                    $(".piece").removeClass("potencial_dead");
-                                    $('.rank__check').removeClass("over");
+                                    clear_color();
                                 }
                             }
                         }
@@ -3251,135 +3137,20 @@ $(document).ready(function(){
                     // simple step
                     else {
 
-                        potencialStepsSimpleGlobal.forEach(function (value) {
-                            if(current_piece !== null) {
-                                if (current_piece.parentElement === value[0].currentpiece) {
-
-                                    value[0].upright.empty.forEach(function (val_up) {
-                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                            if (currentColor === "white") {
-                                                if(event.target.getAttribute("queen") === "white") {
-                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                }
-                                            }
-                                            else if (currentColor === "black") {
-                                                if(event.target.getAttribute("queen") === "black") {
-                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                }
-                                            }
-
-                                            $(current_piece).remove();
-                                            current_piece = null;
-
-                                            wasStep = true;
-                                        }
-                                    });
-
-                                    value[0].upleft.empty.forEach(function (val_up) {
-                                        if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                                            if (currentColor === "white") {
-                                                if(event.target.getAttribute("queen") === "white") {
-                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                }
-                                            }
-                                            else if (currentColor === "black") {
-                                                if(event.target.getAttribute("queen") === "black") {
-                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                }
-                                            }
-
-                                            $(current_piece).remove();
-                                            current_piece = null;
-
-                                            wasStep = true;
-                                        }
-                                    });
-
-                                    value[0].bottomright.empty.forEach(function (val_bot) {
-                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-
-                                            if (currentColor === "white") {
-                                                if(event.target.getAttribute("queen") === "white") {
-                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                }
-                                            }
-                                            else if (currentColor === "black") {
-                                                if(event.target.getAttribute("queen") === "black") {
-                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                }
-                                            }
-
-                                            $(current_piece).remove();
-                                            current_piece = null;
-
-                                            wasStep = true;
-                                        }
-                                    });
-
-                                    value[0].bottomleft.empty.forEach(function (val_bot) {
-                                        if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                                            if (currentColor === "white") {
-                                                if(event.target.getAttribute("queen") === "white") {
-                                                    $(event.target).append('<div class="piece white queen">&#9813;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece white">&#9814;</div>');
-                                                }
-                                            }
-                                            else if (currentColor === "black") {
-                                                if(event.target.getAttribute("queen") === "black") {
-                                                    $(event.target).append('<div class="piece black queen">&#9819;</div>');
-                                                }
-                                                else {
-                                                    $(event.target).append('<div class="piece black">&#9820;</div>');
-                                                }
-                                            }
-
-                                            $(current_piece).remove();
-                                            current_piece = null;
-
-                                            wasStep = true;
-                                        }
-                                    });
-                                }
-                            }
-                        });
+                        wasStep = stepPlayer(event.target, current_x, current_y, currentColor);
 
                         if(wasStep) {
                             stepComputer(event.target);
                         }
                     }
 
-
-                    $(".piece").removeClass("active");
-                    $(".piece").removeClass("potencial_dead");
-                    $('.rank__check').removeClass("over");
+                    clear_color();
 
                 }
             }
         }
 
-        $(".piece").removeClass("active");
-        $(".piece").removeClass("potencial_dead");
-        $('.rank__check').removeClass("over");
+        clear_color();
 
     });
 
@@ -3605,16 +3376,22 @@ $(document).ready(function(){
                     let ind = getId(0, targets.length - 1);
                     targets[ind].forEach(function (value) {
                         if (typeof value.upright !== "undefined") {
-                            simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][getId(0, value.upright.next[0].length - 1)][0], "queen");
+
+                            simple_slow_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][getId(0, value.upright.next[0].length - 1)][0], "queen", true);
+
                         }
                         if (typeof value.upleft !== "undefined") {
-                            simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][getId(0, value.upleft.next[0].length - 1)][0], "queen");
+
+                            simple_slow_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][getId(0, value.upleft.next[0].length - 1)][0], "queen", true);
+
                         }
                         if (typeof value.bottomright !== "undefined") {
-                            simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][getId(0, value.bottomright.next[0].length - 1)][0], "queen");
+
+                            simple_slow_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][getId(0, value.bottomright.next[0].length - 1)][0], "queen", true);
                         }
+
                         if (typeof value.bottomleft !== "undefined") {
-                            simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][getId(0, value.bottomleft.next[0].length - 1)][0], "queen");
+                            simple_slow_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][getId(0, value.bottomleft.next[0].length - 1)][0], "queen", true);
                         }
                     })
 
@@ -3642,7 +3419,7 @@ $(document).ready(function(){
 
                     next = next[getId(0, next.length - 1)];
 
-                    simple_attack(current, null, next, "queen");
+                    simple_slow_attack(current, null, next, "queen");
                 }
             }
             else {
@@ -3754,37 +3531,37 @@ $(document).ready(function(){
                     targets[ind].forEach(function (value) {
                         if (typeof value.upright !== "undefined") {
                             if(value.upright.next[0][0][0].getAttribute("queen") === "black"){
-                                simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0], "queen");
+                                simple_slow_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0], "queen", true);
                             }
                             else {
-                                simple_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0]);
+                                simple_slow_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0], null, true);
                                 next = getOneSimpleCells("black", value.upright.next[0][0][0], value.upright.current);
                             }
                         }
                         if (typeof value.upleft !== "undefined") {
                             if(value.upleft.next[0][0][0].getAttribute("queen") === "black") {
-                                simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0], "queen");
+                                simple_slow_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0], "queen", true);
                             }
                             else {
-                                simple_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0]);
+                                simple_slow_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0], null, true);
                                 next= getOneSimpleCells("black", value.upleft.next[0][0][0], value.upleft.current);
                             }
                         }
                         if (typeof value.bottomright !== "undefined") {
                             if(value.bottomright.next[0][0][0].getAttribute("queen") === "black") {
-                                simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0], "queen");
+                                simple_slow_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0], "queen", true);
                             }
                             else {
-                                simple_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0]);
+                                simple_slow_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0], null, true);
                                 next = getOneSimpleCells("black", value.bottomright.next[0][0][0], value.bottomright.current);
                             }
                         }
                         if (typeof value.bottomleft !== "undefined") {
                             if(value.bottomleft.next[0][0][0].getAttribute("queen") === "black") {
-                                simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0], "queen");
+                                simple_slow_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0], "queen", true);
                             }
                             else {
-                                simple_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0]);
+                                simple_slow_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0], null, true);
                                 next = getOneSimpleCells("black", value.bottomleft.next[0][0][0], value.bottomleft.current);
                             }
                         }
@@ -3792,39 +3569,44 @@ $(document).ready(function(){
 
                     let isDanger = 0;
                     let needNextAttack = false;
-                    next.forEach(function (value) {
-                        if (value[0].upright.danger.length > 0 && value[0].bottomleft.danger.length <= 0) {
-                            isDanger = 1;
-                        }
-                        if (value[0].upleft.danger.length > 0 && value[0].bottomright.danger.length <= 0) {
-                            isDanger = 1;
-                        }
-                        if (value[0].bottomright.danger.length > 0 && value[0].upleft.danger.length <= 0) {
-                            isDanger = 1;
-                        }
-                        if (value[0].bottomleft.danger.length > 0 && value[0].upright.danger.length <= 0) {
-                            isDanger = 1;
-                        }
 
-                        if(value[0].upright.enemy.length > 0) {
-                            needNextAttack = true;
-                        }
-                        if(value[0].upleft.enemy.length > 0) {
-                            needNextAttack = true;
-                        }
-                        if(value[0].bottomright.enemy.length > 0) {
-                            needNextAttack = true;
-                        }
-                        if(value[0].bottomleft.enemy.length > 0) {
-                            needNextAttack = true;
-                        }
+                    try {
+                        next.forEach(function (value) {
+                            if (value[0].upright.danger.length > 0 && value[0].bottomleft.danger.length <= 0) {
+                                isDanger = 1;
+                            }
+                            if (value[0].upleft.danger.length > 0 && value[0].bottomright.danger.length <= 0) {
+                                isDanger = 1;
+                            }
+                            if (value[0].bottomright.danger.length > 0 && value[0].upleft.danger.length <= 0) {
+                                isDanger = 1;
+                            }
+                            if (value[0].bottomleft.danger.length > 0 && value[0].upright.danger.length <= 0) {
+                                isDanger = 1;
+                            }
 
-                    });
+                            if (value[0].upright.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+                            if (value[0].upleft.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+                            if (value[0].bottomright.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+                            if (value[0].bottomleft.enemy.length > 0) {
+                                needNextAttack = true;
+                            }
+
+                        });
+                    }
+                    catch(exp) {
+                        console.log(exp.message);
+                    }
 
                     let prev_target = getPrev(next[0][0]);
                     let enemy_target = getEnemy(next[0][0]);
                     let next_target = getNext(next[0][0]);
-
 
 
                     try {
@@ -3862,16 +3644,10 @@ $(document).ready(function(){
 
                     next = next[getId(0, next.length - 1)];
                     if(next.getAttribute("queen") === "black") {
-
-                        simple_attack(current, null, next, "queen");
-
-                        // simple_attack(current, null, next, "queen");
+                        simple_slow_attack(current, null, next, "queen");
                     }
                     else {
-
-                        // simple_attack(current, null, next);
-
-                        // simple_attack(current, null, next);
+                        simple_slow_attack(current, null, next);
                     }
 
                 }
@@ -4154,9 +3930,48 @@ $(document).ready(function(){
 
     }
 
+    function simple_slow_attack(prev, enemy = null, next, type = null, isAttack = null) {
+        player = null;
+
+        sleep(1000).then(() => {
+            let color = prev.firstElementChild.classList.contains("black");
+
+
+            $(prev.firstElementChild).remove();
+
+            if (enemy !== null) {
+                $(enemy.firstElementChild).remove();
+            }
+
+            if (color) {
+                if (type !== null) {
+                    $(next).append('<div class="piece black queen">&#9819;</div>');
+                }
+                else {
+                    $(next).append('<div class="piece black">&#9820;</div>');
+                }
+            }
+            else {
+                if (type !== null) {
+                    $(next).append('<div class="piece white queen">&#9813;</div>');
+                }
+                else {
+                    $(next).append('<div class="piece white">&#9814;</div>');
+                }
+            }
+            player = "white";
+
+            if(isAttack === true) {
+                add_history(prev, next, true, true);
+            }
+            else {
+                add_history(prev, next, null, true);
+            }
+        });
+    }
+
     function simple_attack(prev, enemy = null, next, type = null) {
         let color = prev.firstElementChild.classList.contains("black");
-
 
             $(prev.firstElementChild).remove();
 
@@ -4276,19 +4091,10 @@ $(document).ready(function(){
         let new_enemy = getEnemy(current_situation[0][0]);
         let next = getNext(current_situation[0][0]);
 
-        console.log(prev[0]);
-        console.log(new_enemy[0][0][0]);
-        console.log(next[0][0][0]);
-
-
-
         if (needNextAttack) {
 
-            // simple_attack(prev[0], new_enemy[0][0][0], next[0][0][0]);
             sleep(1000).then(() => {
-                simple_attack(prev[0], new_enemy[0][0][0], next[0][0][0]);
-
-
+                simple_slow_attack(prev[0], new_enemy[0][0][0], next[0][0][0], null, true);
                 current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
                 isNeedAttackCP2(current_situation, new_enemy[0][0][0], prev[0], next[0][0][0]);
             });

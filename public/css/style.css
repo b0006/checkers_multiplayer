@@ -2,6 +2,11 @@
   box-sizing: border-box;
 }
 
+.not_words {
+    padding-left: 36px;
+    padding-right: 36px;
+}
+
 #page-login {
     display: none;
 }
