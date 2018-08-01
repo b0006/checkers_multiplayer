@@ -106,6 +106,11 @@ io.on('connection', function(socket) {
         }
     });
 
+    socket.on('log', function (msg) {
+        let id_game = msg.id_game;
+        fs.appendFileSync("./log/CP/low/" + id_game + ".txt", msg.text);
+    });
+
     socket.on('fuch', function (msg) {
         socket.broadcast.emit('fuch', msg);
     });
