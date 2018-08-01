@@ -68,23 +68,23 @@ $(document).ready(function(){
                 if(i <= 2) { // первые три поля
                     if (i % 2 === 0) {
                         if ((t % 2 !== 0)) {
-                            // piece = document.createElement("div");
-                            // piece.className = "piece black";
-                            // piece.innerHTML = "&#9820;";
-                            // rank__check.append(piece);
+                            piece = document.createElement("div");
+                            piece.className = "piece black";
+                            piece.innerHTML = "&#9820;";
+                            rank__check.append(piece);
                         }
                     }
                     else {
                         if ((t % 2 === 0)) {
-                            // piece = document.createElement("div");
-                            // piece.className = "piece black";
-                            // piece.innerHTML = "&#9820;";
-                            // rank__check.append(piece);
-
                             piece = document.createElement("div");
-                            piece.className = "piece black queen";
-                            piece.innerHTML = "&#9819;";
+                            piece.className = "piece black";
+                            piece.innerHTML = "&#9820;";
                             rank__check.append(piece);
+
+                            // piece = document.createElement("div");
+                            // piece.className = "piece black queen";
+                            // piece.innerHTML = "&#9819;";
+                            // rank__check.append(piece);
                         }
                     }
                 }
