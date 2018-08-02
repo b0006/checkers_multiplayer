@@ -32,7 +32,7 @@ $(document).ready(function(){
     let current_piece = null; // текущая шашка
     let potencialStepsQueenGlobal = []; // возможные шаги для дамок
     let potencialStepsSimpleGlobal = []; // возможные шаги для обычных шашек
-    
+
     // формируем доску
     function initBoard() {
         let checkers_board = $("#game-board");
