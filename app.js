@@ -10,6 +10,7 @@ let port = process.env.PORT || 3015;
 
 let indexRouter = require('./routes/index.js');
 let usersRouter = require('./routes/users');
+let parserRouter = require('./routes/parser');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use('/', indexRouter);
+app.use('/', parserRouter);
 app.use('/users', usersRouter);
 
 let lobbyUsers = {};

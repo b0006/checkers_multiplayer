@@ -1,189 +1,39 @@
 $(document).ready(function(){
-    function md5 ( str ) {	// Calculate the md5 hash of a string
-        //
-        // +   original by: Webtoolkit.info (http://www.webtoolkit.info/)
-        // + namespaced by: Michael White (http://crestidg.com)
+    let current_script = document.querySelector('script[src*="comp.js"]');
+    // low
+    // medium
+    // hard
+    const COMPUTER_LEVEL = current_script.getAttribute("level");
+    // подсвечивать шаги
+    const OVER_STEPS = current_script.getAttribute("color_potencial_step");
+    //учитывать время
+    const TIME_CHECK = current_script.getAttribute("time_check_checkbox");
+    //если учитывать, то сколько
+    const TIME_VALUE = current_script.getAttribute("time_check_text");
+    //возможность рубить несколько шашек за один ход
+    const MULTYATTACK = current_script.getAttribute("multiattack");
+    //фуки
+    const FUCHS = current_script.getAttribute("fuchs");
+    const COLOR_FUCHS = current_script.getAttribute("color_potencial_fuchs");
+    //можно обычным шашка аттаковать назад
+    const SIMPLE_BACK_ATTACK = current_script.getAttribute("simple_back_attack");
 
-        var RotateLeft = function(lValue, iShiftBits) {
-            return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
-        };
-
-        var AddUnsigned = function(lX,lY) {
-            var lX4,lY4,lX8,lY8,lResult;
-            lX8 = (lX & 0x80000000);
-            lY8 = (lY & 0x80000000);
-            lX4 = (lX & 0x40000000);
-            lY4 = (lY & 0x40000000);
-            lResult = (lX & 0x3FFFFFFF)+(lY & 0x3FFFFFFF);
-            if (lX4 & lY4) {
-                return (lResult ^ 0x80000000 ^ lX8 ^ lY8);
-            }
-            if (lX4 | lY4) {
-                if (lResult & 0x40000000) {
-                    return (lResult ^ 0xC0000000 ^ lX8 ^ lY8);
-                } else {
-                    return (lResult ^ 0x40000000 ^ lX8 ^ lY8);
-                }
-            } else {
-                return (lResult ^ lX8 ^ lY8);
-            }
-        };
-
-        var F = function(x,y,z) { return (x & y) | ((~x) & z); };
-        var G = function(x,y,z) { return (x & z) | (y & (~z)); };
-        var H = function(x,y,z) { return (x ^ y ^ z); };
-        var I = function(x,y,z) { return (y ^ (x | (~z))); };
-
-        var FF = function(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(F(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        };
-
-        var GG = function(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(G(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        };
-
-        var HH = function(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(H(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        };
-
-        var II = function(a,b,c,d,x,s,ac) {
-            a = AddUnsigned(a, AddUnsigned(AddUnsigned(I(b, c, d), x), ac));
-            return AddUnsigned(RotateLeft(a, s), b);
-        };
-
-        var ConvertToWordArray = function(str) {
-            var lWordCount;
-            var lMessageLength = str.length;
-            var lNumberOfWords_temp1=lMessageLength + 8;
-            var lNumberOfWords_temp2=(lNumberOfWords_temp1-(lNumberOfWords_temp1 % 64))/64;
-            var lNumberOfWords = (lNumberOfWords_temp2+1)*16;
-            var lWordArray=Array(lNumberOfWords-1);
-            var lBytePosition = 0;
-            var lByteCount = 0;
-            while ( lByteCount < lMessageLength ) {
-                lWordCount = (lByteCount-(lByteCount % 4))/4;
-                lBytePosition = (lByteCount % 4)*8;
-                lWordArray[lWordCount] = (lWordArray[lWordCount] | (str.charCodeAt(lByteCount)<<lBytePosition));
-                lByteCount++;
-            }
-            lWordCount = (lByteCount-(lByteCount % 4))/4;
-            lBytePosition = (lByteCount % 4)*8;
-            lWordArray[lWordCount] = lWordArray[lWordCount] | (0x80<<lBytePosition);
-            lWordArray[lNumberOfWords-2] = lMessageLength<<3;
-            lWordArray[lNumberOfWords-1] = lMessageLength>>>29;
-            return lWordArray;
-        };
-
-        var WordToHex = function(lValue) {
-            var WordToHexValue="",WordToHexValue_temp="",lByte,lCount;
-            for (lCount = 0;lCount<=3;lCount++) {
-                lByte = (lValue>>>(lCount*8)) & 255;
-                WordToHexValue_temp = "0" + lByte.toString(16);
-                WordToHexValue = WordToHexValue + WordToHexValue_temp.substr(WordToHexValue_temp.length-2,2);
-            }
-            return WordToHexValue;
-        };
-
-        var x=Array();
-        var k,AA,BB,CC,DD,a,b,c,d;
-        var S11=7, S12=12, S13=17, S14=22;
-        var S21=5, S22=9 , S23=14, S24=20;
-        var S31=4, S32=11, S33=16, S34=23;
-        var S41=6, S42=10, S43=15, S44=21;
-
-        // str = this.utf8_encode(str);
-        x = ConvertToWordArray(str);
-        a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
-
-        for (k=0;k<x.length;k+=16) {
-            AA=a; BB=b; CC=c; DD=d;
-            a=FF(a,b,c,d,x[k+0], S11,0xD76AA478);
-            d=FF(d,a,b,c,x[k+1], S12,0xE8C7B756);
-            c=FF(c,d,a,b,x[k+2], S13,0x242070DB);
-            b=FF(b,c,d,a,x[k+3], S14,0xC1BDCEEE);
-            a=FF(a,b,c,d,x[k+4], S11,0xF57C0FAF);
-            d=FF(d,a,b,c,x[k+5], S12,0x4787C62A);
-            c=FF(c,d,a,b,x[k+6], S13,0xA8304613);
-            b=FF(b,c,d,a,x[k+7], S14,0xFD469501);
-            a=FF(a,b,c,d,x[k+8], S11,0x698098D8);
-            d=FF(d,a,b,c,x[k+9], S12,0x8B44F7AF);
-            c=FF(c,d,a,b,x[k+10],S13,0xFFFF5BB1);
-            b=FF(b,c,d,a,x[k+11],S14,0x895CD7BE);
-            a=FF(a,b,c,d,x[k+12],S11,0x6B901122);
-            d=FF(d,a,b,c,x[k+13],S12,0xFD987193);
-            c=FF(c,d,a,b,x[k+14],S13,0xA679438E);
-            b=FF(b,c,d,a,x[k+15],S14,0x49B40821);
-            a=GG(a,b,c,d,x[k+1], S21,0xF61E2562);
-            d=GG(d,a,b,c,x[k+6], S22,0xC040B340);
-            c=GG(c,d,a,b,x[k+11],S23,0x265E5A51);
-            b=GG(b,c,d,a,x[k+0], S24,0xE9B6C7AA);
-            a=GG(a,b,c,d,x[k+5], S21,0xD62F105D);
-            d=GG(d,a,b,c,x[k+10],S22,0x2441453);
-            c=GG(c,d,a,b,x[k+15],S23,0xD8A1E681);
-            b=GG(b,c,d,a,x[k+4], S24,0xE7D3FBC8);
-            a=GG(a,b,c,d,x[k+9], S21,0x21E1CDE6);
-            d=GG(d,a,b,c,x[k+14],S22,0xC33707D6);
-            c=GG(c,d,a,b,x[k+3], S23,0xF4D50D87);
-            b=GG(b,c,d,a,x[k+8], S24,0x455A14ED);
-            a=GG(a,b,c,d,x[k+13],S21,0xA9E3E905);
-            d=GG(d,a,b,c,x[k+2], S22,0xFCEFA3F8);
-            c=GG(c,d,a,b,x[k+7], S23,0x676F02D9);
-            b=GG(b,c,d,a,x[k+12],S24,0x8D2A4C8A);
-            a=HH(a,b,c,d,x[k+5], S31,0xFFFA3942);
-            d=HH(d,a,b,c,x[k+8], S32,0x8771F681);
-            c=HH(c,d,a,b,x[k+11],S33,0x6D9D6122);
-            b=HH(b,c,d,a,x[k+14],S34,0xFDE5380C);
-            a=HH(a,b,c,d,x[k+1], S31,0xA4BEEA44);
-            d=HH(d,a,b,c,x[k+4], S32,0x4BDECFA9);
-            c=HH(c,d,a,b,x[k+7], S33,0xF6BB4B60);
-            b=HH(b,c,d,a,x[k+10],S34,0xBEBFBC70);
-            a=HH(a,b,c,d,x[k+13],S31,0x289B7EC6);
-            d=HH(d,a,b,c,x[k+0], S32,0xEAA127FA);
-            c=HH(c,d,a,b,x[k+3], S33,0xD4EF3085);
-            b=HH(b,c,d,a,x[k+6], S34,0x4881D05);
-            a=HH(a,b,c,d,x[k+9], S31,0xD9D4D039);
-            d=HH(d,a,b,c,x[k+12],S32,0xE6DB99E5);
-            c=HH(c,d,a,b,x[k+15],S33,0x1FA27CF8);
-            b=HH(b,c,d,a,x[k+2], S34,0xC4AC5665);
-            a=II(a,b,c,d,x[k+0], S41,0xF4292244);
-            d=II(d,a,b,c,x[k+7], S42,0x432AFF97);
-            c=II(c,d,a,b,x[k+14],S43,0xAB9423A7);
-            b=II(b,c,d,a,x[k+5], S44,0xFC93A039);
-            a=II(a,b,c,d,x[k+12],S41,0x655B59C3);
-            d=II(d,a,b,c,x[k+3], S42,0x8F0CCC92);
-            c=II(c,d,a,b,x[k+10],S43,0xFFEFF47D);
-            b=II(b,c,d,a,x[k+1], S44,0x85845DD1);
-            a=II(a,b,c,d,x[k+8], S41,0x6FA87E4F);
-            d=II(d,a,b,c,x[k+15],S42,0xFE2CE6E0);
-            c=II(c,d,a,b,x[k+6], S43,0xA3014314);
-            b=II(b,c,d,a,x[k+13],S44,0x4E0811A1);
-            a=II(a,b,c,d,x[k+4], S41,0xF7537E82);
-            d=II(d,a,b,c,x[k+11],S42,0xBD3AF235);
-            c=II(c,d,a,b,x[k+2], S43,0x2AD7D2BB);
-            b=II(b,c,d,a,x[k+9], S44,0xEB86D391);
-            a=AddUnsigned(a,AA);
-            b=AddUnsigned(b,BB);
-            c=AddUnsigned(c,CC);
-            d=AddUnsigned(d,DD);
-        }
-
-        var temp = WordToHex(a)+WordToHex(b)+WordToHex(c)+WordToHex(d);
-
-        return temp.toLowerCase();
-    }
-
+    let socket = io();
     let id_game = new Date;
     id_game = md5(id_game.toString());
 
-    let socket = io();
-
+    // нотация
     let words = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     let digits = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
     let count_history = 0;
 
+    let player = "white"; //the first player
+    let current_piece = null; // текущая шашка
+    let potencialStepsQueenGlobal = []; // возможные шаги для дамок
+    let potencialStepsSimpleGlobal = []; // возможные шаги для обычных шашек
+    
+    // формируем доску
     function initBoard() {
         let checkers_board = $("#game-board");
         let content = document.createElement("div");
@@ -305,6 +155,7 @@ $(document).ready(function(){
 
     }
 
+    // лог на клиенте
     function add_history(prev, next, isAttack = null, isEnemy = null, isMine = null, count, count_enemy) {
 
         if(isEnemy === true) {
@@ -340,14 +191,14 @@ $(document).ready(function(){
             }
         }
     }
-
+    // лог на сервер
     function writeLog(text) {
         socket.emit('log', {
             id_game: id_game,
             text: text
         });
     }
-
+    // убрать все подсвеченные возможные фуки
     function clear_color_fuchs(potencialSteps) {
         potencialSteps.forEach(function (value) {
             value[0].needeat.forEach(function (val_need) {
@@ -355,13 +206,13 @@ $(document).ready(function(){
             });
         });
     }
-
+    // убрать подсветки активности шашки и возможных ходов
     function clear_color() {
         $(".piece").removeClass("active");
         $(".piece").removeClass("potencial_dead");
         $('.rank__check').removeClass("over");
     }
-
+    // нужно ли аттаковать
     function isNeedAttackSimple(potencialSteps) {
         let needAttack = false;
         potencialSteps.forEach(function (value) {
@@ -386,7 +237,7 @@ $(document).ready(function(){
 
         return needAttack;
     }
-
+    // если возможен фук, то получить шашку, которую нужно "фукнуть"
     function isNeedEatSimple(potencialSteps,current_x, current_y) {
         let needEat = false;
 
@@ -420,7 +271,7 @@ $(document).ready(function(){
 
         return needEat;
     }
-
+    // фук
     function isFuchs(potencialSteps, value, indexNeadEat, current_x, current_y) {
         let isFuch = false;
 
@@ -435,13 +286,14 @@ $(document).ready(function(){
         });
         return isFuch;
     }
-
+    // удалить текущую активную шашку после хода
     function removeCurrentPiece() {
         $(current_piece).remove();
         current_piece = null;
     }
-
+    
     let append_count = 0;
+    // создание шашки в новом месте
     function appendPiece(target, currentColor, isAttack = null) {
         if (currentColor === "white") {
             if(target.getAttribute("queen") === "white") {
@@ -468,7 +320,7 @@ $(document).ready(function(){
             add_history(current_piece.parentElement, target);
         }
     }
-
+    // шаг игрока
     function stepPlayer(potencialSteps, target, current_x, current_y, currentColor) {
         let wasStep = false;
 
@@ -513,7 +365,7 @@ $(document).ready(function(){
 
         return wasStep;
     }
-
+    // атака игрока
     function attackPlayer(potencialSteps, target, current_x, current_y, currentColor, but_x, but_y, isQueen) {
         let isAttackSucces = false;
         let resultAttack = [];
@@ -923,38 +775,7 @@ $(document).ready(function(){
         return resultAttack;
     }
 
-    initBoard();
-
-    let current_script = document.querySelector('script[src*="comp.js"]');
-
-    // LOW
-    // MEDIUM
-    // HARD
-    const COMPUTER_LEVEL = current_script.getAttribute("level");
-    // подсвечивать шаги
-    const OVER_STEPS = current_script.getAttribute("color_potencial_step");
-
-    //учитывать время
-    const TIME_CHECK = current_script.getAttribute("time_check_checkbox");
-    //если учитывать, то сколько
-    const TIME_VALUE = current_script.getAttribute("time_check_text");
-
-    //возможность рубить несколько шашек за один ход
-    const MULTYATTACK = current_script.getAttribute("multiattack");
-
-    //фуки
-    const FUCHS = current_script.getAttribute("fuchs");
-    const COLOR_FUCHS = current_script.getAttribute("color_potencial_fuchs");
-
-    //можно обычным шашка аттаковать назад
-    const SIMPLE_BACK_ATTACK = current_script.getAttribute("simple_back_attack");
-
-    let player = "white"; //the first player
-    let current_piece = null; // global last click piece
-
-    let potencialStepsWhiteQueenGlobal = [];
-    let potencialStepsSimpleGlobal = [];
-
+    // какой текущий игрок
     function checkPlayer(object) {
         if(object.classList.contains("black")) {
             return "black";
@@ -965,20 +786,16 @@ $(document).ready(function(){
         }
     }
 
-    // rotate a board
-    addDynamicEventListener(document.body, 'click', '#rotate-board', function (e) {
-        $('.board').toggleClass("rotate_board");
-        $('.rank__check').toggleClass("rotate_board");
-    });
-
     let pieceForFuch = [];
 
-    function getId(current, new_current) {
-        let rand = current - 0.5 + Math.random() * (new_current - current + 1);
+    // рандом
+    function getId(min, max) {
+        let rand = min - 0.5 + Math.random() * (max - min + 1);
         rand = Math.round(rand);
         return rand;
     }
 
+    // получить все возможные ходы дамок
     function getAllQueenCells(color) {
 
         let result = [];
@@ -1444,7 +1261,7 @@ $(document).ready(function(){
 
         return result;
     }
-
+    // получить все возможные ходы обычных шашек
     function getAllSimpleCells(color) {
         let result = [];
 
@@ -2319,167 +2136,6 @@ $(document).ready(function(){
         return result;
     }
 
-    // click on checkers
-    addDynamicEventListener(document.body, 'click', '.piece', function (e) {
-
-        if(current_piece !== null) {
-            if (current_piece.classList.contains("next")) {
-                return false;
-            }
-        }
-
-        let currentPlayer = checkPlayer(e.target);
-        if(currentPlayer !== player) {
-            return false;
-        }
-
-        // current piece
-        current_piece = e.target;
-
-        //remove active from all pieces
-        $(".piece").removeClass("active");
-        $(".piece").removeClass("potencial_dead");
-
-        // get current coordinates
-        let piece_x = current_piece.parentElement.getAttribute("x");
-        let piece_y = current_piece.parentElement.getAttribute("y");
-
-        /**
-         * QUEEN
-         */
-
-        let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
-
-        if(currentPiece.firstElementChild.classList.contains("queen")) {
-            $(current_piece).addClass("active");
-
-            let queens = [];
-
-            if(currentPlayer === "white") {
-                queens = getAllQueenCells("white");
-            }
-            else if(currentPlayer === "black") {
-                queens = getAllQueenCells("black");
-            }
-
-            potencialStepsWhiteQueenGlobal = queens;
-
-            $('.rank__check').toggleClass("over", false);
-
-            // подсвечивание
-            queens.forEach(function (value) {
-
-                if(COLOR_FUCHS === "on") {
-                    value[0].needeat.forEach(function (val_need) {
-                        $(val_need.firstElementChild).toggleClass("fuch", true);
-                    });
-                }
-
-                if(OVER_STEPS === "on") {
-
-                    if (current_piece.parentElement === value[0].currentpiece) {
-                        value[0].upright.empty.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-                        value[0].upright.needStep.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-
-
-                        value[0].upleft.empty.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-                        value[0].upleft.needStep.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-
-                        value[0].bottomright.empty.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-                        value[0].bottomright.needStep.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-
-                        value[0].bottomleft.empty.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-                        value[0].bottomleft.needStep.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-                    }
-                }
-            });
-
-            $(current_piece).toggleClass("fuch", false);
-
-        }
-        /**
-         * SIMPLE CHECKERS
-         */
-        else {
-            $(current_piece).addClass("active");
-
-            let simples = [];
-
-            if(currentPlayer === "white") {
-                simples = getAllSimpleCells("white");
-            }
-            else if(currentPlayer === "black") {
-                simples = getAllSimpleCells("black");
-            }
-
-            potencialStepsSimpleGlobal = simples;
-
-            $('.rank__check').toggleClass("over", false);
-
-            // подсвечивание
-            simples.forEach(function (value) {
-
-                if(COLOR_FUCHS === "on") {
-                    value[0].needeat.forEach(function (val_need) {
-                        $(val_need.firstElementChild).toggleClass("fuch", true);
-                    });
-                }
-
-                if(OVER_STEPS === "on") {
-                    if (current_piece.parentElement === value[0].currentpiece) {
-                        value[0].upright.empty.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-                        value[0].upright.needStep.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-
-
-                        value[0].upleft.empty.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-                        value[0].upleft.needStep.forEach(function (val_up) {
-                            val_up.toggleClass("over", true);
-                        });
-
-                        value[0].bottomright.empty.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-                        value[0].bottomright.needStep.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-
-                        value[0].bottomleft.empty.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-                        value[0].bottomleft.needStep.forEach(function (val_bot) {
-                            val_bot.toggleClass("over", true);
-                        });
-                    }
-                }
-            });
-
-            $(current_piece).toggleClass("fuch", false);
-        }
-
-    });
-
     function nextQueenAttack(new_piece) {
         let queens = [];
 
@@ -2605,7 +2261,260 @@ $(document).ready(function(){
         }
     }
 
-    // click on next attack
+    // проверка на конец игры
+    function gameOver() {
+        let who_is_win = null;
+
+        let queens_white = getAllQueenCells("white");
+        let queens_black = getAllQueenCells("black");
+
+        let simples_white = getAllSimpleCells("white");
+        let simples_black = getAllSimpleCells("black");
+
+        let isSimples_white = false;
+        simples_white.forEach(function (value) {
+            if(value[0].upright.empty.length > 0) {
+                isSimples_white = true;
+            }
+            if(value[0].upleft.empty.length > 0) {
+                isSimples_white = true;
+            }
+            if(value[0].bottomright.empty.length > 0) {
+                isSimples_white = true;
+            }
+            if(value[0].bottomleft.empty.length > 0) {
+                isSimples_white = true;
+            }
+        });
+        let isSimples_black = false;
+        simples_black.forEach(function (value) {
+            if(value[0].upright.empty.length > 0) {
+                isSimples_black = true;
+            }
+            if(value[0].upleft.empty.length > 0) {
+                isSimples_black = true;
+            }
+            if(value[0].bottomright.empty.length > 0) {
+                isSimples_black = true;
+            }
+            if(value[0].bottomleft.empty.length > 0) {
+                isSimples_black = true;
+            }
+        });
+
+        let isQueens_white = false;
+        queens_white.forEach(function (value) {
+            if(value[0].upright.empty.length > 0) {
+                isQueens_white = true;
+            }
+            if(value[0].upleft.empty.length > 0) {
+                isQueens_white = true;
+            }
+            if(value[0].bottomright.empty.length > 0) {
+                isQueens_white = true;
+            }
+            if(value[0].bottomleft.empty.length > 0) {
+                isQueens_white = true;
+            }
+        });
+        let isQueens_black = false;
+        queens_black.forEach(function (value) {
+            if(value[0].upright.empty.length > 0) {
+                isQueens_black = true;
+            }
+            if(value[0].upleft.empty.length > 0) {
+                isQueens_black = true;
+            }
+            if(value[0].bottomright.empty.length > 0) {
+                isQueens_black = true;
+            }
+            if(value[0].bottomleft.empty.length > 0) {
+                isQueens_black = true;
+            }
+        });
+
+        if((isSimples_white || isQueens_white) && (!isSimples_black && !isQueens_black)) {
+            who_is_win = "white";
+            alert("Белые выиграли");
+        }
+        if((isSimples_black || isQueens_black) && (!isSimples_white && !isQueens_white)) {
+            who_is_win = "black";
+            alert("Черные выиграли");
+        }
+
+        return who_is_win;
+    }
+
+    initBoard();
+
+    // повернуть доску
+    addDynamicEventListener(document.body, 'click', '#rotate-board', function (e) {
+        $('.board').toggleClass("rotate_board");
+        $('.rank__check').toggleClass("rotate_board");
+    });
+
+    // клик на шашку
+    addDynamicEventListener(document.body, 'click', '.piece', function (e) {
+
+        if(current_piece !== null) {
+            if (current_piece.classList.contains("next")) {
+                return false;
+            }
+        }
+
+        let currentPlayer = checkPlayer(e.target);
+        if(currentPlayer !== player) {
+            return false;
+        }
+
+        // current piece
+        current_piece = e.target;
+
+        //remove active from all pieces
+        $(".piece").removeClass("active");
+        $(".piece").removeClass("potencial_dead");
+
+        // get current coordinates
+        let piece_x = current_piece.parentElement.getAttribute("x");
+        let piece_y = current_piece.parentElement.getAttribute("y");
+
+        /**
+         * QUEEN
+         */
+
+        let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
+
+        if(currentPiece.firstElementChild.classList.contains("queen")) {
+            $(current_piece).addClass("active");
+
+            let queens = [];
+
+            if(currentPlayer === "white") {
+                queens = getAllQueenCells("white");
+            }
+            else if(currentPlayer === "black") {
+                queens = getAllQueenCells("black");
+            }
+
+            potencialStepsQueenGlobal = queens;
+
+            $('.rank__check').toggleClass("over", false);
+
+            // подсвечивание
+            queens.forEach(function (value) {
+
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
+
+                if(OVER_STEPS === "on") {
+
+                    if (current_piece.parentElement === value[0].currentpiece) {
+                        value[0].upright.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upright.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+
+                        value[0].upleft.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upleft.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+                        value[0].bottomright.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+
+                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                    }
+                }
+            });
+
+            $(current_piece).toggleClass("fuch", false);
+
+        }
+        /**
+         * SIMPLE CHECKERS
+         */
+        else {
+            $(current_piece).addClass("active");
+
+            let simples = [];
+
+            if(currentPlayer === "white") {
+                simples = getAllSimpleCells("white");
+            }
+            else if(currentPlayer === "black") {
+                simples = getAllSimpleCells("black");
+            }
+
+            potencialStepsSimpleGlobal = simples;
+
+            $('.rank__check').toggleClass("over", false);
+
+            // подсвечивание
+            simples.forEach(function (value) {
+
+                if(COLOR_FUCHS === "on") {
+                    value[0].needeat.forEach(function (val_need) {
+                        $(val_need.firstElementChild).toggleClass("fuch", true);
+                    });
+                }
+
+                if(OVER_STEPS === "on") {
+                    if (current_piece.parentElement === value[0].currentpiece) {
+                        value[0].upright.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upright.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+
+                        value[0].upleft.empty.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+                        value[0].upleft.needStep.forEach(function (val_up) {
+                            val_up.toggleClass("over", true);
+                        });
+
+                        value[0].bottomright.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomright.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+
+                        value[0].bottomleft.empty.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                        value[0].bottomleft.needStep.forEach(function (val_bot) {
+                            val_bot.toggleClass("over", true);
+                        });
+                    }
+                }
+            });
+
+            $(current_piece).toggleClass("fuch", false);
+        }
+
+    });
+
+    // клик на шашку (для многоходовочки) сырая версия
     addDynamicEventListener(document.body, 'click', ".next", function (event) {
         try {
             if (event.target.firstChild.classList.contains('active')) {
@@ -2627,14 +2536,14 @@ $(document).ready(function(){
                 if (current_piece.classList.contains("queen")) {
 
                     if (currentColor === "white") {
-                        potencialStepsWhiteQueenGlobal = getAllQueenCells("white");
+                        potencialStepsQueenGlobal = getAllQueenCells("white");
                     }
                     else if (currentColor === "black") {
-                        potencialStepsWhiteQueenGlobal = getAllQueenCells("black");
+                        potencialStepsQueenGlobal = getAllQueenCells("black");
                     }
 
                     // подсвечивание
-                    potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                    potencialStepsQueenGlobal.forEach(function (value) {
 
                         if(COLOR_FUCHS === "on") {
                             value[0].needeat.forEach(function (val_need) {
@@ -2736,13 +2645,8 @@ $(document).ready(function(){
         }
     });
 
-    // click on cell
+    // клик по клетке
     addDynamicEventListener(document.body, 'click', '.rank__check', function (event) {
-
-        let matrix_board = getMatrixBoard();
-        matrix_board.forEach(function (value) {
-            // console.log(value);
-        });
 
         try {
             if (event.target.firstChild.classList.contains('active')) {
@@ -2778,45 +2682,45 @@ $(document).ready(function(){
                  * QUEENS CHECKERS
                  */
                 if(current_piece.classList.contains("queen")) {
-                    clear_color_fuchs(potencialStepsWhiteQueenGlobal);
-                    needAttack = isNeedAttackSimple(potencialStepsWhiteQueenGlobal);
+                    clear_color_fuchs(potencialStepsQueenGlobal);
+                    needAttack = isNeedAttackSimple(potencialStepsQueenGlobal);
 
                     // queen need attack
                     if(needAttack) {
 
-                        needEat = isNeedEatSimple(potencialStepsWhiteQueenGlobal, current_x, current_y);
+                        needEat = isNeedEatSimple(potencialStepsQueenGlobal, current_x, current_y);
 
                         // надо съесть (возможен фук)
                         if(!needEat && FUCHS === "on") {
 
                             isPlayerChange = false;
                             isFuch = false;
-                            indexNeadEat = getId(0, potencialStepsWhiteQueenGlobal[0][0].needeat.length - 1);
+                            indexNeadEat = getId(0, potencialStepsQueenGlobal[0][0].needeat.length - 1);
 
-                            potencialStepsWhiteQueenGlobal.forEach(function (value) {
+                            potencialStepsQueenGlobal.forEach(function (value) {
                                 if(current_piece !== null) {
                                     if (current_piece.parentElement === value[0].currentpiece) {
 
                                         if(!isFuch) {
-                                            isFuch = isFuchs(potencialStepsWhiteQueenGlobal, value[0].upright, indexNeadEat, current_x, current_y);
+                                            isFuch = isFuchs(potencialStepsQueenGlobal, value[0].upright, indexNeadEat, current_x, current_y);
                                         }
 
                                         if(!isFuch) {
-                                            isFuch = isFuchs(potencialStepsWhiteQueenGlobal, value[0].upleft, indexNeadEat, current_x, current_y);
+                                            isFuch = isFuchs(potencialStepsQueenGlobal, value[0].upleft, indexNeadEat, current_x, current_y);
                                         }
 
                                         if(!isFuch) {
-                                            isFuch = isFuchs(potencialStepsWhiteQueenGlobal, value[0].bottomright, indexNeadEat, current_x, current_y);
+                                            isFuch = isFuchs(potencialStepsQueenGlobal, value[0].bottomright, indexNeadEat, current_x, current_y);
                                         }
 
                                         if(!isFuch) {
-                                            isFuch = isFuchs(potencialStepsWhiteQueenGlobal, value[0].bottomleft, indexNeadEat, current_x, current_y);
+                                            isFuch = isFuchs(potencialStepsQueenGlobal, value[0].bottomleft, indexNeadEat, current_x, current_y);
                                         }
                                     }
                                 }
                             });
 
-                            wasStep = stepPlayer(potencialStepsWhiteQueenGlobal, event.target, current_x, current_y, currentColor);
+                            wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor);
 
                             if(wasStep) {
                                 stepComputer(event.target);
@@ -2825,7 +2729,7 @@ $(document).ready(function(){
                         }
                         //шаг без фука
                         else if(!needEat && FUCHS !== "on") {
-                            wasStep = stepPlayer(potencialStepsWhiteQueenGlobal, event.target, current_x, current_y, currentColor);
+                            wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor);
 
                             if(wasStep) {
                                 stepComputer(event.target);
@@ -2833,7 +2737,7 @@ $(document).ready(function(){
                         }
                         //не надо съесть. Обычная аттака
                         else {
-                            resultAttack = attackPlayer(potencialStepsWhiteQueenGlobal, event.target, current_x, current_y, currentColor, but_x, but_y, true);
+                            resultAttack = attackPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor, but_x, but_y, true);
 
                             // если атака прошла успешно
                             if(!$.isEmptyObject(resultAttack)) {
@@ -2877,7 +2781,7 @@ $(document).ready(function(){
                     // queen step
                     else {
 
-                        wasStep = stepPlayer(potencialStepsWhiteQueenGlobal, event.target, current_x, current_y, currentColor);
+                        wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor);
 
                         if(wasStep) {
                             stepComputer(event.target);
@@ -3037,808 +2941,295 @@ $(document).ready(function(){
         slow_count = 0;
     });
 
-    //AI
-    function markFunction(count_white_queen, count_black_queen, count_white_simple, count_black_simple, count_success_next_move_white, count_success_next_move_black, distance_to_last_line) {
-        return (parseInt(count_white_queen) - parseInt(count_black_queen)) + (parseInt(count_white_simple) - parseInt(count_black_simple)) + (parseInt(count_success_next_move_white) - parseInt(count_success_next_move_black)) + parseInt(distance_to_last_line);
+    /**
+     * COMPUTER LOGIC
+     */
+
+    /**
+     *
+     * @param count_white_queen - количество белых дамок
+     * @param count_black_queen - количество черных дамок
+     * @param count_white_simple - количество белых обычных шашек
+     * @param count_black_simple - количество черных обычных шашек
+     * @param count_success_next_move_white - количество возможных ходов (опасных и безопасных) для белых шашек (для дамок и обычных вместе)
+     * @param count_success_next_move_black - количество возможных ходов (опасных и безопасных) для черных шашек (для дамок и обычных вместе)
+     * @param isDanger - опасен ли ход
+     * @returns {number} - оценка текущего состояния
+     */
+    function markFunction(count_white_queen, count_black_queen, count_white_simple, count_black_simple, count_success_next_move_white, count_success_next_move_black, isDanger) {
+        return (parseInt(count_white_queen) - parseInt(count_black_queen)) + (parseInt(count_white_simple) - parseInt(count_black_simple)) + (parseInt(count_success_next_move_white) - parseInt(count_success_next_move_black)) + parseInt(isDanger);
     }
+
+
+    /**
+     * MATRIX LOGIC
+     * begin
+     */
+
+    // получить матрицу текущего состояния доски
+    function getMatrixBoard() {
+        // 8 - not moviable cell
+        // 1 - white
+        // 2 - black
+        let matrix_board = [
+            [8,0,8,0,8,0,8,0],
+            [0,8,0,8,0,8,0,8],
+            [8,0,8,0,8,0,8,0],
+            [0,8,0,8,0,8,0,8],
+            [8,0,8,0,8,0,8,0],
+            [0,8,0,8,0,8,0,8],
+            [8,0,8,0,8,0,8,0],
+            [0,8,0,8,0,8,0,8]
+        ];
+
+        let temp_cell = null;
+
+        matrix_board.forEach(function (row_value, row_index) {
+            row_value.forEach(function (col_value, col_index) {
+                temp_cell = $(".rank__check[x=" + row_index + "][y=" + col_index + "]");
+
+                if(typeof temp_cell[0] !== "undefined") {
+                    if(temp_cell[0].firstElementChild !== null) {
+                        if(temp_cell[0].firstElementChild.classList.contains("white")) {
+                            matrix_board[row_index][col_index] = 1;
+                        }
+                        else if(temp_cell[0].firstElementChild.classList.contains("black")) {
+                            matrix_board[row_index][col_index] = 2;
+                        }
+                    }
+                }
+            });
+        });
+
+        return matrix_board;
+    }
+
+    /**
+     * MATRIX LOGIC
+     * end
+     */
+
 
     function stepComputer(new_piece) {
         append_count = 0; // for add history
+        let matrix_board = getMatrixBoard();
 
         if(COMPUTER_LEVEL === "low") {
-            let any = [0, 1];
-            let tax = getId(0, any.length - 1);
-            let choose = null;
 
-            let simples = getAllSimpleCells("black");
-            let queens = getAllQueenCells("black");
-
-            let arEmptySteps = [];
-            let arNeedStepFotAttack = [];
-            let needAttackSimple = false;
-            simples.forEach(function (value) {
-                // need attack
-
-                if (value[0].upright.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-                if (value[0].upleft.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-                if (value[0].bottomright.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-                if (value[0].bottomleft.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-
-                // empties
-
-                if (value[0].upright.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-
-                if (value[0].upleft.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-
-                if (value[0].bottomright.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-
-                if (value[0].bottomleft.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-            });
-
-            let arEmptyStepsQueen  = [];
-            let arNeedStepFotAttackQueen  = [];
-            let needAttackQueen = false;
-            queens.forEach(function (value) {
-                // need attack
-
-                if (value[0].upright.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-                if (value[0].upleft.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-                if (value[0].bottomright.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-                if (value[0].bottomleft.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-
-                // empties
-
-                if (value[0].upright.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-
-                if (value[0].upleft.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-
-                if (value[0].bottomright.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-
-                if (value[0].bottomleft.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-            });
-
-            if(needAttackQueen && !needAttackSimple) {
-                choose = any[1];
-            }
-            else if(!needAttackQueen && needAttackSimple){
-                choose = any[0];
-            }
-            else if(!needAttackQueen && !needAttackSimple) {
-                if(queens.length > 0 && simples.length > 0) {
-                    choose = any[tax];
-                }
-                else if(queens.length > 0 && simples.length <= 0) {
-                    choose = any[1];
-                }
-                else if(queens.length <= 0 && simples.length > 0) {
-                    choose = any[0];
-                }
-            }
-
-            if(choose === 1) {
-
-                if (needAttackQueen) {
-                    let arNeedStepUpRight = [];
-                    let arNeedStepUpLeft = [];
-                    let arNeedStepBottomRight = [];
-                    let arNeedStepBottomLeft = [];
-
-                    let arEnemyUpRight = [];
-                    let arEnemyUpLeft = [];
-                    let arEnemyBottomRight = [];
-                    let arEnemyBottomLeft = [];
-
-                    let targets = [];
-
-                    for (let i = 0; i < arNeedStepFotAttackQueen.length; i++) {
-                        let target = [];
-
-                        for (let prop in arNeedStepFotAttackQueen[i]) {
-                            if (prop === "upright") {
-                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
-                                    arNeedStepUpRight.push(arNeedStepFotAttackQueen[i][prop].needStep)
-                                }
-                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
-                                    arEnemyUpRight.push(arNeedStepFotAttackQueen[i][prop].enemy)
-                                }
-
-                                if (arNeedStepUpRight.length > 0 && arEnemyUpRight.length > 0) {
-                                    target = [{
-                                        upright: {
-                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
-                                            enemy: arEnemyUpRight,
-                                            next: arNeedStepUpRight
-                                        }
-                                    }]
-                                }
-                            }
-                            if (prop === "upleft") {
-
-                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
-                                    arNeedStepUpLeft.push(arNeedStepFotAttackQueen[i][prop].needStep)
-                                }
-
-                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
-                                    arEnemyUpLeft.push(arNeedStepFotAttackQueen[i][prop].enemy)
-                                }
-
-                                if (arNeedStepUpLeft.length > 0 && arEnemyUpLeft.length > 0) {
-                                    target = [{
-                                        upleft: {
-                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
-                                            enemy: arEnemyUpLeft,
-                                            next: arNeedStepUpLeft
-                                        }
-                                    }]
-                                }
-                            }
-                            if (prop === "bottomright") {
-
-                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
-                                    arNeedStepBottomRight.push(arNeedStepFotAttackQueen[i][prop].needStep)
-                                }
-
-                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
-                                    arEnemyBottomRight.push(arNeedStepFotAttackQueen[i][prop].enemy)
-                                }
-
-                                if (arNeedStepBottomRight.length > 0 && arEnemyBottomRight.length > 0) {
-                                    target = [{
-                                        bottomright: {
-                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
-                                            enemy: arEnemyBottomRight,
-                                            next: arNeedStepBottomRight
-                                        }
-                                    }]
-                                }
-                            }
-                            if (prop === "bottomleft") {
-
-                                if (arNeedStepFotAttackQueen[i][prop].needStep.length > 0) {
-                                    arNeedStepBottomLeft.push(arNeedStepFotAttackQueen[i][prop].needStep)
-                                }
-
-                                if (arNeedStepFotAttackQueen[i][prop].enemy.length > 0) {
-                                    arEnemyBottomLeft.push(arNeedStepFotAttackQueen[i][prop].enemy)
-                                }
-
-                                if (arNeedStepBottomLeft.length > 0 && arEnemyBottomLeft.length > 0) {
-                                    target = [{
-                                        bottomleft: {
-                                            current: arNeedStepFotAttackQueen[i]["currentpiece"],
-                                            enemy: arEnemyBottomLeft,
-                                            next: arNeedStepBottomLeft
-                                        }
-                                    }]
-                                }
-                            }
-
-                        }
-
-                        targets.push(target);
-                    }
-
-                    let ind = getId(0, targets.length - 1);
-                    targets[ind].forEach(function (value) {
-                        if (typeof value.upright !== "undefined") {
-
-                            simple_slow_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][getId(0, value.upright.next[0].length - 1)][0], "queen", true);
-
-                        }
-                        if (typeof value.upleft !== "undefined") {
-
-                            simple_slow_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][getId(0, value.upleft.next[0].length - 1)][0], "queen", true);
-
-                        }
-                        if (typeof value.bottomright !== "undefined") {
-
-                            simple_slow_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][getId(0, value.bottomright.next[0].length - 1)][0], "queen", true);
-                        }
-
-                        if (typeof value.bottomleft !== "undefined") {
-                            simple_slow_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][getId(0, value.bottomleft.next[0].length - 1)][0], "queen", true);
-                        }
-                    })
-
-                }
-                else {
-
-                    //step
-                    let ind = getId(0, arEmptyStepsQueen.length - 1);
-                    let current = arEmptyStepsQueen[ind].currentpiece;
-
-                    let next = [];
-
-                    if (arEmptyStepsQueen[ind].upright.empty.length > 0) {
-                        next.push(arEmptyStepsQueen[ind].upright.empty[getId(0, arEmptyStepsQueen[ind].upright.empty.length - 1)][0]);
-                    }
-                    if (arEmptyStepsQueen[ind].upleft.empty.length > 0) {
-                        next.push(arEmptyStepsQueen[ind].upleft.empty[getId(0, arEmptyStepsQueen[ind].upleft.empty.length - 1)][0]);
-                    }
-                    if (arEmptyStepsQueen[ind].bottomright.empty.length > 0) {
-                        next.push(arEmptyStepsQueen[ind].bottomright.empty[getId(0, arEmptyStepsQueen[ind].bottomright.empty.length - 1)][0]);
-                    }
-                    if (arEmptyStepsQueen[ind].bottomleft.empty.length > 0) {
-                        next.push(arEmptyStepsQueen[ind].bottomleft.empty[getId(0, arEmptyStepsQueen[ind].bottomleft.empty.length - 1)][0]);
-                    }
-
-                    next = next[getId(0, next.length - 1)];
-
-                    simple_slow_attack(current, null, next, "queen");
-                }
-            }
-            else {
-
-                if (needAttackSimple) {
-                    let arNeedStepUpRight = [];
-                    let arNeedStepUpLeft = [];
-                    let arNeedStepBottomRight = [];
-                    let arNeedStepBottomLeft = [];
-
-                    let arEnemyUpRight = [];
-                    let arEnemyUpLeft = [];
-                    let arEnemyBottomRight = [];
-                    let arEnemyBottomLeft = [];
-
-                    let targets = [];
-
-                    for (let i = 0; i < arNeedStepFotAttack.length; i++) {
-                        let target = [];
-
-                        for (let prop in arNeedStepFotAttack[i]) {
-                            if (prop === "upright") {
-                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
-                                    arNeedStepUpRight.push(arNeedStepFotAttack[i][prop].needStep)
-                                }
-                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
-                                    arEnemyUpRight.push(arNeedStepFotAttack[i][prop].enemy)
-                                }
-
-                                if (arNeedStepUpRight.length > 0 && arEnemyUpRight.length > 0) {
-                                    target = [{
-                                        upright: {
-                                            current: arNeedStepFotAttack[i]["currentpiece"],
-                                            enemy: arEnemyUpRight,
-                                            next: arNeedStepUpRight
-                                        }
-                                    }]
-                                }
-                            }
-                            if (prop === "upleft") {
-
-                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
-                                    arNeedStepUpLeft.push(arNeedStepFotAttack[i][prop].needStep)
-                                }
-
-                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
-                                    arEnemyUpLeft.push(arNeedStepFotAttack[i][prop].enemy)
-                                }
-
-                                if (arNeedStepUpLeft.length > 0 && arEnemyUpLeft.length > 0) {
-                                    target = [{
-                                        upleft: {
-                                            current: arNeedStepFotAttack[i]["currentpiece"],
-                                            enemy: arEnemyUpLeft,
-                                            next: arNeedStepUpLeft
-                                        }
-                                    }]
-                                }
-                            }
-                            if (prop === "bottomright") {
-
-                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
-                                    arNeedStepBottomRight.push(arNeedStepFotAttack[i][prop].needStep)
-                                }
-
-                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
-                                    arEnemyBottomRight.push(arNeedStepFotAttack[i][prop].enemy)
-                                }
-
-                                if (arNeedStepBottomRight.length > 0 && arEnemyBottomRight.length > 0) {
-                                    target = [{
-                                        bottomright: {
-                                            current: arNeedStepFotAttack[i]["currentpiece"],
-                                            enemy: arEnemyBottomRight,
-                                            next: arNeedStepBottomRight
-                                        }
-                                    }]
-                                }
-                            }
-                            if (prop === "bottomleft") {
-
-                                if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
-                                    arNeedStepBottomLeft.push(arNeedStepFotAttack[i][prop].needStep)
-                                }
-
-                                if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
-                                    arEnemyBottomLeft.push(arNeedStepFotAttack[i][prop].enemy)
-                                }
-
-                                if (arNeedStepBottomLeft.length > 0 && arEnemyBottomLeft.length > 0) {
-                                    target = [{
-                                        bottomleft: {
-                                            current: arNeedStepFotAttack[i]["currentpiece"],
-                                            enemy: arEnemyBottomLeft,
-                                            next: arNeedStepBottomLeft
-                                        }
-                                    }]
-                                }
-                            }
-                        }
-
-                        targets.push(target);
-                    }
-
-                    let next = null;
-
-                    let ind = getId(0, targets.length - 1);
-                    targets[ind].forEach(function (value) {
-                        if (typeof value.upright !== "undefined") {
-                            if(value.upright.next[0][0][0].getAttribute("queen") === "black"){
-                                simple_slow_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0], "queen", true);
-                            }
-                            else {
-                                simple_slow_attack(value.upright.current, value.upright.enemy[0][0][0], value.upright.next[0][0][0], null, true);
-                                next = getOneSimpleCells("black", value.upright.next[0][0][0], value.upright.current);
-                            }
-                        }
-                        if (typeof value.upleft !== "undefined") {
-                            if(value.upleft.next[0][0][0].getAttribute("queen") === "black") {
-                                simple_slow_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0], "queen", true);
-                            }
-                            else {
-                                simple_slow_attack(value.upleft.current, value.upleft.enemy[0][0][0], value.upleft.next[0][0][0], null, true);
-                                next= getOneSimpleCells("black", value.upleft.next[0][0][0], value.upleft.current);
-                            }
-                        }
-                        if (typeof value.bottomright !== "undefined") {
-                            if(value.bottomright.next[0][0][0].getAttribute("queen") === "black") {
-                                simple_slow_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0], "queen", true);
-                            }
-                            else {
-                                simple_slow_attack(value.bottomright.current, value.bottomright.enemy[0][0][0], value.bottomright.next[0][0][0], null, true);
-                                next = getOneSimpleCells("black", value.bottomright.next[0][0][0], value.bottomright.current);
-                            }
-                        }
-                        if (typeof value.bottomleft !== "undefined") {
-                            if(value.bottomleft.next[0][0][0].getAttribute("queen") === "black") {
-                                simple_slow_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0], "queen", true);
-                            }
-                            else {
-                                simple_slow_attack(value.bottomleft.current, value.bottomleft.enemy[0][0][0], value.bottomleft.next[0][0][0], null, true);
-                                next = getOneSimpleCells("black", value.bottomleft.next[0][0][0], value.bottomleft.current);
-                            }
-                        }
-                    });
-
-                    let isDanger = 0;
-                    let needNextAttack = false;
-
-                    let prev_target = null;
-                    let enemy_target = null;
-                    let next_target = null;
-
-                    try {
-                        next.forEach(function (value) {
-                            if (value[0].upright.danger.length > 0 && value[0].bottomleft.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-                            if (value[0].upleft.danger.length > 0 && value[0].bottomright.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-                            if (value[0].bottomright.danger.length > 0 && value[0].upleft.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-                            if (value[0].bottomleft.danger.length > 0 && value[0].upright.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-
-                            if (value[0].upright.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-                            if (value[0].upleft.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-                            if (value[0].bottomright.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-                            if (value[0].bottomleft.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-
-                        });
-
-                        prev_target = getPrev(next[0][0]);
-                        enemy_target = getEnemy(next[0][0]);
-                        next_target = getNext(next[0][0]);
-                    }
-                    catch(exp) {
-                        console.log(exp.message);
-                    }
-
-                    try {
-                        isNeedAttackCP2(next, enemy_target[0][0][0], prev_target[0], next_target[0][0][0]);
-                    }
-                    catch(exp) {
-                        console.log(exp.message);
-                    }
-
-                    // isNeedAttackCP(next, enemy_target[0][0][0], prev_target[0], next_target[0][0][0]);
-
-
-
-                }
-                else {
-
-                    //step
-                    try {
-                        
-                        let res = getNextLow(arEmptySteps);
-
-                        let ind = getId(0, arEmptySteps.length - 1);
-                        let current = arEmptySteps[ind].currentpiece;
-
-                        let next = [];
-
-                        if (arEmptySteps[ind].upright.empty.length > 0) {
-                            next.push(arEmptySteps[ind].upright.empty[0][0])
-                        }
-                        if (arEmptySteps[ind].upleft.empty.length > 0) {
-                            next.push(arEmptySteps[ind].upleft.empty[0][0])
-                        }
-                        if (arEmptySteps[ind].bottomright.empty.length > 0) {
-                            next.push(arEmptySteps[ind].bottomright.empty[0][0])
-                        }
-                        if (arEmptySteps[ind].bottomleft.empty.length > 0) {
-                            next.push(arEmptySteps[ind].bottomleft.empty[0][0])
-                        }
-
-                        next = next[getId(0, next.length - 1)];
-                        if (next.getAttribute("queen") === "black") {
-                            simple_slow_attack(current, null, next, "queen");
-                        }
-                        else {
-                            simple_slow_attack(current, null, next);
-                        }
-                    }
-                    catch (exp) {
-                        console.log(exp.message)
-                    }
-
-                }
-            }
         }
         else if(COMPUTER_LEVEL === "medium") {
-            let new_x = new_piece.getAttribute("x");
-            let new_y = new_piece.getAttribute("y");
 
-            new_piece = $('.rank__check[x=' + new_x + '][y=' + new_y + ']')[0];
-
-            let simples_enemy = getAllSimpleCells("white");
-            let queens_enemy = getAllQueenCells("white");
-
-            let count_white_queen = 0, count_black_queen = 0,
-                count_white_simple = 0, count_black_simple = 0,
-                count_success_next_move_white = 0, count_success_next_move_black = 0,
-                distance_to_last_line = 0;
-
-
-            let any = [0, 1];
-            let tax = getId(0, any.length - 1);
-            let choose = null;
-
-            let simples = getAllSimpleCells("black");
-            let queens = getAllQueenCells("black");
-
-            let arEmptySteps = [];
-            let arNeedStepFotAttack = [];
-            let needAttackSimple = false;
-            simples.forEach(function (value) {
-                // need attack
-
-                if (value[0].upright.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-                if (value[0].upleft.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-                if (value[0].bottomright.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-                if (value[0].bottomleft.needStep.length > 0) {
-                    needAttackSimple = true;
-                    arNeedStepFotAttack.push(value[0]);
-                }
-
-                // empties
-
-                if (value[0].upright.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-
-                if (value[0].upleft.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-
-                if (value[0].bottomright.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-
-                if (value[0].bottomleft.empty.length > 0) {
-                    arEmptySteps.push(value[0]);
-                }
-            });
-
-            let arEmptyStepsEnemy = [];
-            let arNeedStepFotAttackEnemy = [];
-            simples_enemy.forEach(function (value) {
-                // need attack
-
-                if (value[0].upright.needStep.length > 0) {
-                    arNeedStepFotAttackEnemy.push(value[0]);
-                }
-                if (value[0].upleft.needStep.length > 0) {
-                    arNeedStepFotAttackEnemy.push(value[0]);
-                }
-                if (value[0].bottomright.needStep.length > 0) {
-                    arNeedStepFotAttackEnemy.push(value[0]);
-                }
-                if (value[0].bottomleft.needStep.length > 0) {
-                    arNeedStepFotAttackEnemy.push(value[0]);
-                }
-
-                // empties
-
-                if (value[0].upright.empty.length > 0) {
-                    arEmptyStepsEnemy.push(value[0]);
-                }
-
-                if (value[0].upleft.empty.length > 0) {
-                    arEmptyStepsEnemy.push(value[0]);
-                }
-
-                if (value[0].bottomright.empty.length > 0) {
-                    arEmptyStepsEnemy.push(value[0]);
-                }
-
-                if (value[0].bottomleft.empty.length > 0) {
-                    arEmptyStepsEnemy.push(value[0]);
-                }
-            });
-
-            let arEmptyStepsQueen  = [];
-            let arNeedStepFotAttackQueen  = [];
-            let needAttackQueen = false;
-            queens.forEach(function (value) {
-                // need attack
-
-                if (value[0].upright.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-                if (value[0].upleft.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-                if (value[0].bottomright.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-                if (value[0].bottomleft.needStep.length > 0) {
-                    needAttackQueen = true;
-                    arNeedStepFotAttackQueen.push(value[0]);
-                }
-
-                // empties
-
-                if (value[0].upright.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-
-                if (value[0].upleft.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-
-                if (value[0].bottomright.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-
-                if (value[0].bottomleft.empty.length > 0) {
-                    arEmptyStepsQueen.push(value[0]);
-                }
-            });
-
-            count_white_queen = queens.length;
-            count_black_queen = queens_enemy.length;
-            count_white_simple = simples.length;
-            count_black_simple = simples_enemy.length;
-            count_success_next_move_white = arEmptyStepsEnemy.length;
-            count_success_next_move_black = arEmptySteps.length;
-
-            if(needAttackQueen && !needAttackSimple) {
-                choose = any[1];
-            }
-            else if(!needAttackQueen && needAttackSimple){
-                choose = any[0];
-            }
-            else if(!needAttackQueen && !needAttackSimple) {
-                if(queens.length > 0 && simples.length > 0) {
-                    choose = any[tax];
-                }
-                else if(queens.length > 0 && simples.length <= 0) {
-                    choose = any[1];
-                }
-                else if(queens.length <= 0 && simples.length > 0) {
-                    choose = any[0];
-                }
-            }
-
-            if (choose === 1) {
-                // но сначала глянь есть ли враги у простых шашек
-                //руби обычной
-                // ходи дамкой
-
-            }
-            else {
-                if (needAttackSimple) {
-                    console.log("computer need attack");
-                    let prev = []; // currentPiece
-                    let enemy = []; // enemy for currentPiece
-                    let next = []; //needStep
-
-                    for (let i = 0; i < arNeedStepFotAttack.length; i++) {
-                        prev = getPrev(arNeedStepFotAttack[i]);
-                        enemy = getEnemy(arNeedStepFotAttack[i]);
-                        next = getNext(arNeedStepFotAttack[i]);
-
-                        // for (let prop in arNeedStepFotAttack[i]) {
-                        //     if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
-                        //
-                        //         if (arNeedStepFotAttack[i][prop].needStep.length > 0) {
-                        //             next.push(arNeedStepFotAttack[i][prop].needStep);
-                        //         }
-                        //
-                        //         if (arNeedStepFotAttack[i][prop].enemy.length > 0) {
-                        //             enemy.push(arNeedStepFotAttack[i][prop].enemy);
-                        //         }
-                        //     }
-                        //     else if (prop === "currentpiece") {
-                        //         prev.push(arNeedStepFotAttack[i][prop]);
-                        //     }
-                        // }
-
-                        let current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
-
-                        let isDanger = 0;
-                        let needNextAttack = false;
-                        current_situation.forEach(function (value) {
-                            if (value[0].upright.danger.length > 0 && value[0].bottomleft.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-                            if (value[0].upleft.danger.length > 0 && value[0].bottomright.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-                            if (value[0].bottomright.danger.length > 0 && value[0].upleft.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-                            if (value[0].bottomleft.danger.length > 0 && value[0].upright.danger.length <= 0) {
-                                isDanger = 1;
-                            }
-
-                            if(value[0].upright.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-                            if(value[0].upleft.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-                            if(value[0].bottomright.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-                            if(value[0].bottomleft.enemy.length > 0) {
-                                needNextAttack = true;
-                            }
-
-                        });
-
-                        // isNeedAttackCP(current_situation, enemy[0][0][0]);
-
-                        if(needNextAttack) {
-
-                            // isNeedAttackCP(current_situation);
-
-                            // console.log(getPrev(current_situation[0][0])); // один 0
-                            // console.log(getEnemy(current_situation[0][0])); // три 0
-                            // console.log(getNext(current_situation[0][0])); // три 0
-
-                            // let nnn = getOneSimpleCells("black", $(next)[0][0][0], prev);
-                            // let test = isNeedAttackCP(nnn);
-
-                            isDanger--;
-                        }
-
-                        let mark = markFunction(count_white_queen, count_black_queen,
-                            count_white_simple, count_black_simple,
-                            count_success_next_move_white, count_success_next_move_black, isDanger);
-
-                        // console.log(count_white_queen + ", " + count_black_queen);
-                        // console.log(count_white_simple + ", " + count_black_simple);
-                        // console.log(count_success_next_move_white + ", " + count_success_next_move_black + ", " + isDanger);
-                        //
-                        // console.log(current_situation);
-                        // console.log(mark);
-                    }
-                }
-                else {
-                    console.log("computer step");
-
-                }
-            }
         }
         else if(COMPUTER_LEVEL === "high") {
 
         }
     }
-    
-    function getNextLow(potencialPieces) {
-        let isDanger = false;
 
-        potencialPieces.forEach(function (value) {
-            if(value.upright.enemy.length > 0) {
-
-            }
-        })
+    function getRankCheck(x, y) {
+        return $(".rank__check[x=" + x + "][y=" + y + "]")[0];
     }
 
+    // получить ходы, которые могут привести к потере шашки
+    function getDangerPieces(array) {
+        let arResult = [];
+        let isDanger = false;
+
+        array.forEach(function (value, index, array) {
+
+            if(value.upright.empty.length > 0) {
+                value.upright.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "upright");
+                    if(isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "upright",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+            if(value.upleft.empty.length > 0) {
+                value.upleft.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "upleft");
+                    if(isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "upleft",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+            if(value.bottomright.empty.length > 0) {
+                value.bottomright.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "bottomright");
+                    if(isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "bottomright",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+            if(value.bottomleft.empty.length > 0) {
+                value.bottomleft.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "bottomleft");
+                    if(isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "bottomleft",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+        });
+
+        return arResult;
+    }
+
+    // получить безопасные ходы
+    function getNotDangerPieces(array) {
+        let arResult = [];
+        let isDanger = false;
+
+        array.forEach(function (value, index, array) {
+
+            if(value.upright.empty.length > 0) {
+                value.upright.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "upright");
+                    if(!isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "upright",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+            if(value.upleft.empty.length > 0) {
+                value.upleft.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "upleft");
+                    if(!isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "upleft",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+            if(value.bottomright.empty.length > 0) {
+                value.bottomright.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "bottomright");
+                    if(!isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "bottomright",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+            if(value.bottomleft.empty.length > 0) {
+                value.bottomleft.empty.forEach(function (val) {
+                    isDanger = getSituationNext(val[0], "bottomleft");
+                    if(!isDanger) {
+                        arResult.push({
+                            prev: value.currentpiece,
+                            side: "bottomleft",
+                            target: val[0]
+                        });
+                    }
+                });
+            }
+        });
+
+        return arResult;
+    }
+
+    function isDangerForCell(array, side = null) {
+        let isDanger = false;
+
+        if(side === "bottomright") {
+            if(typeof(array.bottomright) !== "undefined") {
+                if (array.bottomright.hasChildNodes()) {
+                    if (array.bottomright.firstElementChild.classList.contains("white")) {
+                        if (((typeof array.upleft === "undefined") || (array.upleft === null)) || (array.upleft.firstElementChild.classList.contains("black"))) {
+                            isDanger = true;
+                        }
+                    }
+                }
+            }
+        }
+        if(side === "bottomleft") {
+            if(typeof(array.bottomleft) !== "undefined") {
+                if (array.bottomleft.hasChildNodes()) {
+                    if (array.bottomleft.firstElementChild.classList.contains("white")) {
+                        if (((typeof array.upright === "undefined") || (array.upright === null)) || (array.upright.firstElementChild.classList.contains("black"))) {
+                            isDanger = true;
+                        }
+                    }
+                }
+            }
+        }
+        if(side === "upright") {
+            if(typeof(array.upright) !== "undefined") {
+                if (array.upright.hasChildNodes()) {
+                    if (array.upright.firstElementChild.classList.contains("white")) {
+                        if (((typeof array.bottomleft === "undefined") || (array.bottomleft === null)) || (array.bottomleft.firstElementChild.classList.contains("black"))) {
+                            isDanger = true;
+                        }
+                    }
+                }
+            }
+        }
+        if(side === "upleft") {
+            if(typeof(array.upleft) !== "undefined") {
+                if (array.upleft.hasChildNodes()) {
+                    if (array.upleft.firstElementChild.classList.contains("white")) {
+                        if (((typeof array.bottomright === "undefined") || (array.bottomright === null)) || (array.bottomright.firstElementChild.classList.contains("black"))) {
+                            isDanger = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return isDanger;
+    }
+
+    // получить соседние (четыре) клетки
+    function getAround(piece) {
+        let x = parseInt(piece.getAttribute("x"));
+        let y = parseInt(piece.getAttribute("y"));
+
+        let arResult = [{
+            current: piece,
+            upright:  getRankCheck(x + 1, y - 1),
+            upleft: getRankCheck(x - 1, y - 1),
+            bottomright: getRankCheck(x + 1, y + 1),
+            bottomleft: getRankCheck(x - 1, y + 1)
+        }];
+
+        return arResult;
+    }
+
+    function getSituationNext(piece, side) {
+        let ghost_pieces = getAround(piece);
+
+        return isDangerForCell(ghost_pieces[0], side);
+    }
+
+
     let slow_count = 0;
+    // атака ИИ
     function simple_slow_attack(prev, enemy = null, next, type = null, isAttack = null) {
         player = null;
 
         sleep(1000).then(() => {
             let color = prev.firstElementChild.classList.contains("black");
-
 
             $(prev.firstElementChild).remove();
 
@@ -3874,183 +3265,7 @@ $(document).ready(function(){
         });
     }
 
-    function simple_attack(prev, enemy = null, next, type = null) {
-        let color = prev.firstElementChild.classList.contains("black");
-
-            $(prev.firstElementChild).remove();
-
-            if(enemy !== null) {
-                $(enemy.firstElementChild).remove();
-            }
-
-            if(color) {
-                if(type !== null) {
-                    $(next).append('<div class="piece black queen">&#9819;</div>');
-                }
-                else {
-                    $(next).append('<div class="piece black">&#9820;</div>');
-                }
-            }
-            else {
-                if(type !== null) {
-                    $(next).append('<div class="piece white queen">&#9813;</div>');
-                }
-                else {
-                    $(next).append('<div class="piece white">&#9814;</div>');
-                }
-            }
-
-
-
-    }
-
-    function gameOver() {
-        let who_is_win = null;
-
-        let queens_white = getAllQueenCells("white");
-        let queens_black = getAllQueenCells("black");
-
-        let simples_white = getAllSimpleCells("white");
-        let simples_black = getAllSimpleCells("black");
-
-        let isSimples_white = false;
-        simples_white.forEach(function (value) {
-            if(value[0].upright.empty.length > 0) {
-                isSimples_white = true;
-            }
-            if(value[0].upleft.empty.length > 0) {
-                isSimples_white = true;
-            }
-            if(value[0].bottomright.empty.length > 0) {
-                isSimples_white = true;
-            }
-            if(value[0].bottomleft.empty.length > 0) {
-                isSimples_white = true;
-            }
-        });
-        let isSimples_black = false;
-        simples_black.forEach(function (value) {
-            if(value[0].upright.empty.length > 0) {
-                isSimples_black = true;
-            }
-            if(value[0].upleft.empty.length > 0) {
-                isSimples_black = true;
-            }
-            if(value[0].bottomright.empty.length > 0) {
-                isSimples_black = true;
-            }
-            if(value[0].bottomleft.empty.length > 0) {
-                isSimples_black = true;
-            }
-        });
-
-        let isQueens_white = false;
-        queens_white.forEach(function (value) {
-            if(value[0].upright.empty.length > 0) {
-                isQueens_white = true;
-            }
-            if(value[0].upleft.empty.length > 0) {
-                isQueens_white = true;
-            }
-            if(value[0].bottomright.empty.length > 0) {
-                isQueens_white = true;
-            }
-            if(value[0].bottomleft.empty.length > 0) {
-                isQueens_white = true;
-            }
-        });
-        let isQueens_black = false;
-        queens_black.forEach(function (value) {
-            if(value[0].upright.empty.length > 0) {
-                isQueens_black = true;
-            }
-            if(value[0].upleft.empty.length > 0) {
-                isQueens_black = true;
-            }
-            if(value[0].bottomright.empty.length > 0) {
-                isQueens_black = true;
-            }
-            if(value[0].bottomleft.empty.length > 0) {
-                isQueens_black = true;
-            }
-        });
-
-        if((isSimples_white || isQueens_white) && (!isSimples_black && !isQueens_black)) {
-            who_is_win = "white";
-            alert("Белые выиграли");
-        }
-        if((isSimples_black || isQueens_black) && (!isSimples_white && !isQueens_white)) {
-            who_is_win = "black";
-            alert("Черные выиграли");
-        }
-
-        return who_is_win;
-    }
-
-    let prev_temp = [];
-    let next_temp = [];
-
-    function isNeedAttackCP(current_situation, enemy = null, prev_target = null, next_target = null) {
-        let needNextAttack = false;
-
-        if (enemy !== null) {
-            $(enemy.firstElementChild).remove();
-        }
-
-        if (prev_target !== null) {
-            $(prev_target.firstElementChild).remove();
-        }
-
-        prev_temp.push(prev_target);
-        next_temp.push(next_target);
-
-        current_situation.forEach(function (value) {
-            if (value[0].upright.enemy.length > 0) {
-                needNextAttack = true;
-            }
-            if (value[0].upleft.enemy.length > 0) {
-                needNextAttack = true;
-            }
-            if (value[0].bottomright.enemy.length > 0) {
-                needNextAttack = true;
-            }
-            if (value[0].bottomleft.enemy.length > 0) {
-                needNextAttack = true;
-            }
-
-        });
-
-        let prev = getPrev(current_situation[0][0]);
-        let new_enemy = getEnemy(current_situation[0][0]);
-        let next = getNext(current_situation[0][0]);
-
-        if (needNextAttack) {
-
-            current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
-            isNeedAttackCP(current_situation, new_enemy[0][0][0], prev[0], next[0][0][0]);
-
-            // isNeedAttackCP(current_situation, new_enemy[0][0][0], prev[0], next[0][0][0]);
-        }
-        else {
-
-            if (next_target !== null) {
-                $(next_target).append('<div class="piece black">&#9820;</div>');
-            }
-
-            if (prev_temp[prev_temp.length - 1] === next_temp[next_temp.length - 2]) {
-                $(next_temp[next_temp.length - 2]).append('<div class="piece black">&#9820;</div>');
-            }
-            if (prev_temp[prev_temp.length - 2] === next_temp[next_temp.length - 1]) {
-                $(prev_temp[prev_temp.length - 2].firstElementChild).remove();
-            }
-
-            prev_temp = [];
-            next_temp = [];
-
-            return false;
-        }
-    }
-
+    // многоходовочка для ИИ (сырая версия функции)
     function isNeedAttackCP2(current_situation, enemy = null, prev_target = null, next_target = null) {
         let needNextAttack = false;
 
@@ -4088,77 +3303,229 @@ $(document).ready(function(){
         }
     }
 
-    function getNext(arNeedStepFotAttack) {
+    function getNext(array) {
         let next = [];
 
-        for (let prop in arNeedStepFotAttack) {
+        for (let prop in array) {
             if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
 
-                if (arNeedStepFotAttack[prop].needStep.length > 0) {
-                    next.push(arNeedStepFotAttack[prop].needStep);
+                if (array[prop].needStep.length > 0) {
+                    next.push(array[prop].needStep);
                 }
             }
         }
 
         return next;
     }
-    function getEnemy(arNeedStepFotAttack) {
+    function getEnemy(array) {
         let enemy = [];
 
-        for (let prop in arNeedStepFotAttack) {
+        for (let prop in array) {
             if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
 
-                if (arNeedStepFotAttack[prop].enemy.length > 0) {
-                    enemy.push(arNeedStepFotAttack[prop].enemy);
+                if (array[prop].enemy.length > 0) {
+                    enemy.push(array[prop].enemy);
                 }
             }
         }
 
         return enemy;
     }
-    function getPrev(arNeedStepFotAttack) {
+    function getPrev(array) {
         let prev = [];
 
-        for (let prop in arNeedStepFotAttack) {
+        for (let prop in array) {
             if (prop === "currentpiece") {
-                prev.push(arNeedStepFotAttack[prop]);
+                prev.push(array[prop]);
             }
         }
 
         return prev;
     }
 
+
+    /**
+     * Others methods
+     * sleep - пауза
+     * md5 - получить хэш строки
+     */
     function sleep (time) {
         return new Promise((resolve) => setTimeout(resolve, time));
     }
+    function md5 ( str ) {	// Calculate the md5 hash of a string
+        //
+        // +   original by: Webtoolkit.info (http://www.webtoolkit.info/)
+        // + namespaced by: Michael White (http://crestidg.com)
 
-    function getMatrixBoard() {
-        let matrix_board = [
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0]
-        ];
+        var RotateLeft = function(lValue, iShiftBits) {
+            return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
+        };
 
-        let temp_cell = null;
-
-        matrix_board.forEach(function (row_value, row_index) {
-            row_value.forEach(function (col_value, col_index) {
-                temp_cell = $(".rank__check[x=" + col_index + "][y=" + row_index + "]");
-
-                if(typeof temp_cell[0] !== "undefined") {
-                    if(temp_cell[0].firstElementChild !== null) {
-                        matrix_board[row_index][col_index] = 1;
-                    }
+        var AddUnsigned = function(lX,lY) {
+            var lX4,lY4,lX8,lY8,lResult;
+            lX8 = (lX & 0x80000000);
+            lY8 = (lY & 0x80000000);
+            lX4 = (lX & 0x40000000);
+            lY4 = (lY & 0x40000000);
+            lResult = (lX & 0x3FFFFFFF)+(lY & 0x3FFFFFFF);
+            if (lX4 & lY4) {
+                return (lResult ^ 0x80000000 ^ lX8 ^ lY8);
+            }
+            if (lX4 | lY4) {
+                if (lResult & 0x40000000) {
+                    return (lResult ^ 0xC0000000 ^ lX8 ^ lY8);
+                } else {
+                    return (lResult ^ 0x40000000 ^ lX8 ^ lY8);
                 }
-            });
-        });
+            } else {
+                return (lResult ^ lX8 ^ lY8);
+            }
+        };
 
-        return matrix_board;
+        var F = function(x,y,z) { return (x & y) | ((~x) & z); };
+        var G = function(x,y,z) { return (x & z) | (y & (~z)); };
+        var H = function(x,y,z) { return (x ^ y ^ z); };
+        var I = function(x,y,z) { return (y ^ (x | (~z))); };
+
+        var FF = function(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(F(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+
+        var GG = function(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(G(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+
+        var HH = function(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(H(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+
+        var II = function(a,b,c,d,x,s,ac) {
+            a = AddUnsigned(a, AddUnsigned(AddUnsigned(I(b, c, d), x), ac));
+            return AddUnsigned(RotateLeft(a, s), b);
+        };
+
+        var ConvertToWordArray = function(str) {
+            var lWordCount;
+            var lMessageLength = str.length;
+            var lNumberOfWords_temp1=lMessageLength + 8;
+            var lNumberOfWords_temp2=(lNumberOfWords_temp1-(lNumberOfWords_temp1 % 64))/64;
+            var lNumberOfWords = (lNumberOfWords_temp2+1)*16;
+            var lWordArray=Array(lNumberOfWords-1);
+            var lBytePosition = 0;
+            var lByteCount = 0;
+            while ( lByteCount < lMessageLength ) {
+                lWordCount = (lByteCount-(lByteCount % 4))/4;
+                lBytePosition = (lByteCount % 4)*8;
+                lWordArray[lWordCount] = (lWordArray[lWordCount] | (str.charCodeAt(lByteCount)<<lBytePosition));
+                lByteCount++;
+            }
+            lWordCount = (lByteCount-(lByteCount % 4))/4;
+            lBytePosition = (lByteCount % 4)*8;
+            lWordArray[lWordCount] = lWordArray[lWordCount] | (0x80<<lBytePosition);
+            lWordArray[lNumberOfWords-2] = lMessageLength<<3;
+            lWordArray[lNumberOfWords-1] = lMessageLength>>>29;
+            return lWordArray;
+        };
+
+        var WordToHex = function(lValue) {
+            var WordToHexValue="",WordToHexValue_temp="",lByte,lCount;
+            for (lCount = 0;lCount<=3;lCount++) {
+                lByte = (lValue>>>(lCount*8)) & 255;
+                WordToHexValue_temp = "0" + lByte.toString(16);
+                WordToHexValue = WordToHexValue + WordToHexValue_temp.substr(WordToHexValue_temp.length-2,2);
+            }
+            return WordToHexValue;
+        };
+
+        var x=Array();
+        var k,AA,BB,CC,DD,a,b,c,d;
+        var S11=7, S12=12, S13=17, S14=22;
+        var S21=5, S22=9 , S23=14, S24=20;
+        var S31=4, S32=11, S33=16, S34=23;
+        var S41=6, S42=10, S43=15, S44=21;
+
+        // str = this.utf8_encode(str);
+        x = ConvertToWordArray(str);
+        a = 0x67452301; b = 0xEFCDAB89; c = 0x98BADCFE; d = 0x10325476;
+
+        for (k=0;k<x.length;k+=16) {
+            AA=a; BB=b; CC=c; DD=d;
+            a=FF(a,b,c,d,x[k+0], S11,0xD76AA478);
+            d=FF(d,a,b,c,x[k+1], S12,0xE8C7B756);
+            c=FF(c,d,a,b,x[k+2], S13,0x242070DB);
+            b=FF(b,c,d,a,x[k+3], S14,0xC1BDCEEE);
+            a=FF(a,b,c,d,x[k+4], S11,0xF57C0FAF);
+            d=FF(d,a,b,c,x[k+5], S12,0x4787C62A);
+            c=FF(c,d,a,b,x[k+6], S13,0xA8304613);
+            b=FF(b,c,d,a,x[k+7], S14,0xFD469501);
+            a=FF(a,b,c,d,x[k+8], S11,0x698098D8);
+            d=FF(d,a,b,c,x[k+9], S12,0x8B44F7AF);
+            c=FF(c,d,a,b,x[k+10],S13,0xFFFF5BB1);
+            b=FF(b,c,d,a,x[k+11],S14,0x895CD7BE);
+            a=FF(a,b,c,d,x[k+12],S11,0x6B901122);
+            d=FF(d,a,b,c,x[k+13],S12,0xFD987193);
+            c=FF(c,d,a,b,x[k+14],S13,0xA679438E);
+            b=FF(b,c,d,a,x[k+15],S14,0x49B40821);
+            a=GG(a,b,c,d,x[k+1], S21,0xF61E2562);
+            d=GG(d,a,b,c,x[k+6], S22,0xC040B340);
+            c=GG(c,d,a,b,x[k+11],S23,0x265E5A51);
+            b=GG(b,c,d,a,x[k+0], S24,0xE9B6C7AA);
+            a=GG(a,b,c,d,x[k+5], S21,0xD62F105D);
+            d=GG(d,a,b,c,x[k+10],S22,0x2441453);
+            c=GG(c,d,a,b,x[k+15],S23,0xD8A1E681);
+            b=GG(b,c,d,a,x[k+4], S24,0xE7D3FBC8);
+            a=GG(a,b,c,d,x[k+9], S21,0x21E1CDE6);
+            d=GG(d,a,b,c,x[k+14],S22,0xC33707D6);
+            c=GG(c,d,a,b,x[k+3], S23,0xF4D50D87);
+            b=GG(b,c,d,a,x[k+8], S24,0x455A14ED);
+            a=GG(a,b,c,d,x[k+13],S21,0xA9E3E905);
+            d=GG(d,a,b,c,x[k+2], S22,0xFCEFA3F8);
+            c=GG(c,d,a,b,x[k+7], S23,0x676F02D9);
+            b=GG(b,c,d,a,x[k+12],S24,0x8D2A4C8A);
+            a=HH(a,b,c,d,x[k+5], S31,0xFFFA3942);
+            d=HH(d,a,b,c,x[k+8], S32,0x8771F681);
+            c=HH(c,d,a,b,x[k+11],S33,0x6D9D6122);
+            b=HH(b,c,d,a,x[k+14],S34,0xFDE5380C);
+            a=HH(a,b,c,d,x[k+1], S31,0xA4BEEA44);
+            d=HH(d,a,b,c,x[k+4], S32,0x4BDECFA9);
+            c=HH(c,d,a,b,x[k+7], S33,0xF6BB4B60);
+            b=HH(b,c,d,a,x[k+10],S34,0xBEBFBC70);
+            a=HH(a,b,c,d,x[k+13],S31,0x289B7EC6);
+            d=HH(d,a,b,c,x[k+0], S32,0xEAA127FA);
+            c=HH(c,d,a,b,x[k+3], S33,0xD4EF3085);
+            b=HH(b,c,d,a,x[k+6], S34,0x4881D05);
+            a=HH(a,b,c,d,x[k+9], S31,0xD9D4D039);
+            d=HH(d,a,b,c,x[k+12],S32,0xE6DB99E5);
+            c=HH(c,d,a,b,x[k+15],S33,0x1FA27CF8);
+            b=HH(b,c,d,a,x[k+2], S34,0xC4AC5665);
+            a=II(a,b,c,d,x[k+0], S41,0xF4292244);
+            d=II(d,a,b,c,x[k+7], S42,0x432AFF97);
+            c=II(c,d,a,b,x[k+14],S43,0xAB9423A7);
+            b=II(b,c,d,a,x[k+5], S44,0xFC93A039);
+            a=II(a,b,c,d,x[k+12],S41,0x655B59C3);
+            d=II(d,a,b,c,x[k+3], S42,0x8F0CCC92);
+            c=II(c,d,a,b,x[k+10],S43,0xFFEFF47D);
+            b=II(b,c,d,a,x[k+1], S44,0x85845DD1);
+            a=II(a,b,c,d,x[k+8], S41,0x6FA87E4F);
+            d=II(d,a,b,c,x[k+15],S42,0xFE2CE6E0);
+            c=II(c,d,a,b,x[k+6], S43,0xA3014314);
+            b=II(b,c,d,a,x[k+13],S44,0x4E0811A1);
+            a=II(a,b,c,d,x[k+4], S41,0xF7537E82);
+            d=II(d,a,b,c,x[k+11],S42,0xBD3AF235);
+            c=II(c,d,a,b,x[k+2], S43,0x2AD7D2BB);
+            b=II(b,c,d,a,x[k+9], S44,0xEB86D391);
+            a=AddUnsigned(a,AA);
+            b=AddUnsigned(b,BB);
+            c=AddUnsigned(c,CC);
+            d=AddUnsigned(d,DD);
+        }
+
+        var temp = WordToHex(a)+WordToHex(b)+WordToHex(c)+WordToHex(d);
+
+        return temp.toLowerCase();
     }
 
 });

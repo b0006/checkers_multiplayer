@@ -25,4 +25,10 @@ router.post('/ai', function(req, res, next) {
     });
 });
 
+router.get('/good', function(req, res, next) {
+    res.render('good.jade', {
+        title: 'Шашки',
+    });
+});
+
 module.exports = router;

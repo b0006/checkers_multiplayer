@@ -1,0 +1,24 @@
+extends layout
+
+block content
+    h1= title
+    h2= example
+
+    if packet === "N"
+        form(action='/parser/id' method='post' id='form')
+            input(type='text' name='url' id='url')
+            input(type='submit' value='Send')
+    else if packet === "Y"
+        form(action='/parser/packet' method='post' id='form')
+            input(type='text' name='url' id='url')
+            input(type='submit' value='Send')
+
+    p= status
+
+    div
+        pre#answer= textFile
+
+
+
+        script.
+            //document.write('<a href="data:text/plain;charset=utf-8,%EF%BB%BF' + (text) + '" download="#{txt_name}.txt">Скачать #{txt_name}</a>')
