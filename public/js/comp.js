@@ -28,10 +28,93 @@ $(document).ready(function(){
 
     let count_history = 0;
 
+
+    let arBackHistory = [];
     let player = "white"; //the first player
     let current_piece = null; // текущая шашка
     let potencialStepsQueenGlobal = []; // возможные шаги для дамок
     let potencialStepsSimpleGlobal = []; // возможные шаги для обычных шашек
+
+    // ход назад
+    function back_history(current, enemy = null, next = null, color, isqueen = false) {
+
+        let enemy_is_queen = false;
+        if(enemy !== null){
+            if(enemy.firstElementChild.classList.contains("queen")) {
+                enemy_is_queen = true;
+            }
+        }
+
+        arBackHistory.push({
+            current: current,
+            enemy: enemy,
+            next: next,
+            color: color,
+            isqueen: isqueen,
+            enemy_is_queen : enemy_is_queen
+        });
+    }
+    addDynamicEventListener(document.body, 'click', '#step-back', function (e) {
+        if(arBackHistory.length > 0) {
+            let index_last_element = arBackHistory.length - 1;
+
+            let prev = arBackHistory[index_last_element].current;
+            let enemy = arBackHistory[index_last_element].enemy;
+            let next = arBackHistory[index_last_element].next;
+
+            let color = arBackHistory[index_last_element].color;
+            let isQueen = arBackHistory[index_last_element].isqueen;
+            let enemyIsQueen = arBackHistory[index_last_element].enemy_is_queen;
+
+            try {
+                if (next !== null) {
+                    $(next.firstElementChild).remove();
+                }
+
+                if (color === "black") {
+                    if (enemy !== null) {
+                        if (enemyIsQueen) {
+                            $(enemy).append('<div class="piece white queen">&#9813;</div>');
+                        }
+                        else {
+                            $(enemy).append('<div class="piece white">&#9814;</div>');
+                        }
+                    }
+
+                    if (isQueen) {
+                        $(prev).append('<div class="piece black queen">&#9819;</div>');
+                    }
+                    else {
+                        $(prev).append('<div class="piece black">&#9820;</div>');
+                    }
+                }
+                else if (color === "white") {
+                    if (enemy !== null) {
+                        if (enemyIsQueen) {
+                            $(enemy).append('<div class="piece black queen">&#9819;</div>');
+                        }
+                        else {
+                            $(enemy).append('<div class="piece black">&#9820;</div>');
+                        }
+                    }
+
+                    if (isQueen) {
+                        $(prev).append('<div class="piece white queen">&#9813;</div>');
+                    }
+                    else {
+                        $(prev).append('<div class="piece white">&#9814;</div>');
+                    }
+                }
+            }
+            catch (e) {
+            }
+
+
+            $("#hys_" + count_history).remove();
+            arBackHistory.pop();
+            count_history--;
+        }
+    });
 
     // формируем доску
     function initBoard() {
@@ -98,10 +181,10 @@ $(document).ready(function(){
                 if(i <= 2) { // первые три поля
                     if (i % 2 === 0) {
                         if ((t % 2 !== 0)) {
-                            piece = document.createElement("div");
-                            piece.className = "piece black";
-                            piece.innerHTML = "&#9820;";
-                            rank__check.append(piece);
+                            // piece = document.createElement("div");
+                            // piece.className = "piece black";
+                            // piece.innerHTML = "&#9820;";
+                            // rank__check.append(piece);
                         }
                     }
                     else {
@@ -294,13 +377,19 @@ $(document).ready(function(){
     
     let append_count = 0;
     // создание шашки в новом месте
-    function appendPiece(target, currentColor, isAttack = null) {
+    function appendPiece(target, currentColor, isAttack = null, current_is_queen) {
+
         if (currentColor === "white") {
             if(target.getAttribute("queen") === "white") {
                 $(target).append('<div class="piece white queen">&#9813;</div>');
             }
             else {
-                $(target).append('<div class="piece white">&#9814;</div>');
+                if(current_is_queen) {
+                    $(target).append('<div class="piece white queen">&#9813;</div>');
+                }
+                else {
+                    $(target).append('<div class="piece white">&#9814;</div>');
+                }
             }
         }
         else if (currentColor === "black") {
@@ -308,7 +397,12 @@ $(document).ready(function(){
                 $(target).append('<div class="piece black queen">&#9819;</div>');
             }
             else {
-                $(target).append('<div class="piece black">&#9820;</div>');
+                if(current_is_queen) {
+                    $(target).append('<div class="piece black queen">&#9819;</div>');
+                }
+                else {
+                    $(target).append('<div class="piece black">&#9820;</div>');
+                }
             }
         }
 
@@ -321,7 +415,7 @@ $(document).ready(function(){
         }
     }
     // шаг игрока
-    function stepPlayer(potencialSteps, target, current_x, current_y, currentColor) {
+    function stepPlayer(potencialSteps, target, current_x, current_y, currentColor, isQueen = false) {
         let wasStep = false;
 
         potencialSteps.forEach(function (value) {
@@ -330,7 +424,9 @@ $(document).ready(function(){
 
                     value[0].upright.empty.forEach(function (val_up) {
                         if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                            appendPiece(target, currentColor);
+                            back_history(current_piece.parentElement, null, target, currentColor, isQueen);
+
+                            appendPiece(target, currentColor, null, isQueen);
                             removeCurrentPiece();
                             wasStep = true;
                         }
@@ -338,7 +434,9 @@ $(document).ready(function(){
 
                     value[0].upleft.empty.forEach(function (val_up) {
                         if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
-                            appendPiece(target, currentColor);
+                            back_history(current_piece.parentElement, null, target, currentColor, isQueen);
+
+                            appendPiece(target, currentColor, null, isQueen);
                             removeCurrentPiece();
                             wasStep = true;
                         }
@@ -346,7 +444,9 @@ $(document).ready(function(){
 
                     value[0].bottomright.empty.forEach(function (val_bot) {
                         if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                            appendPiece(target, currentColor);
+                            back_history(current_piece.parentElement, null, target, currentColor, isQueen);
+
+                            appendPiece(target, currentColor, null, isQueen);
                             removeCurrentPiece();
                             wasStep = true;
                         }
@@ -354,7 +454,9 @@ $(document).ready(function(){
 
                     value[0].bottomleft.empty.forEach(function (val_bot) {
                         if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
-                            appendPiece(target, currentColor);
+                            back_history(current_piece.parentElement, null, target, currentColor, isQueen);
+
+                            appendPiece(target, currentColor, null, isQueen);
                             removeCurrentPiece();
                             wasStep = true;
                         }
@@ -367,8 +469,11 @@ $(document).ready(function(){
     }
     // атака игрока
     function attackPlayer(potencialSteps, target, current_x, current_y, currentColor, but_x, but_y, isQueen) {
+
         let isAttackSucces = false;
         let resultAttack = [];
+
+        let enemy_for_history = null
 
         potencialSteps.forEach(function (value) {
 
@@ -378,6 +483,7 @@ $(document).ready(function(){
                         if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
 
                             let kill_target = $(".rank__check[x=" + value[0].upright.enemy[0][0].getAttribute("x") + "][y=" + value[0].upright.enemy[0][0].getAttribute("y") + "]");
+                            enemy_for_history = kill_target[0];
 
                             if (currentColor === "white") {
                                 if(isQueen) {
@@ -477,6 +583,7 @@ $(document).ready(function(){
                         if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
 
                             let kill_target = $(".rank__check[x=" + value[0].upleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].upleft.enemy[0][0].getAttribute("y") + "]");
+                            enemy_for_history = kill_target[0];
 
                             if (currentColor === "white") {
                                 if (isQueen) {
@@ -577,6 +684,7 @@ $(document).ready(function(){
                         if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
 
                             let kill_target = $(".rank__check[x=" + value[0].bottomright.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomright.enemy[0][0].getAttribute("y") + "]");
+                            enemy_for_history = kill_target[0];
 
                             if (currentColor === "white") {
                                 if(isQueen) {
@@ -676,6 +784,7 @@ $(document).ready(function(){
                         if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
 
                             let kill_target = $(".rank__check[x=" + value[0].bottomleft.enemy[0][0].getAttribute("x") + "][y=" + value[0].bottomleft.enemy[0][0].getAttribute("y") + "]");
+                            enemy_for_history = kill_target[0];
 
                             if (currentColor === "white") {
                                 if(isQueen) {
@@ -771,6 +880,10 @@ $(document).ready(function(){
                 }
             }
         });
+
+        if(resultAttack){
+            back_history(current_piece.parentElement, enemy_for_history, target, currentColor, isQueen);
+        }
 
         return resultAttack;
     }
@@ -2720,7 +2833,7 @@ $(document).ready(function(){
                                 }
                             });
 
-                            wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor);
+                            wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor, true);
 
                             if(wasStep) {
                                 stepComputer(event.target);
@@ -2729,7 +2842,7 @@ $(document).ready(function(){
                         }
                         //шаг без фука
                         else if(!needEat && FUCHS !== "on") {
-                            wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor);
+                            wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor, true);
 
                             if(wasStep) {
                                 stepComputer(event.target);
@@ -2742,7 +2855,7 @@ $(document).ready(function(){
                             // если атака прошла успешно
                             if(!$.isEmptyObject(resultAttack)) {
 
-                                appendPiece(resultAttack.target_place, resultAttack.local_color, true);
+                                appendPiece(resultAttack.target_place, resultAttack.local_color, true, true);
                                 removeCurrentPiece();
 
                                 $(resultAttack.kill_target)[0].firstElementChild.remove();
@@ -2781,7 +2894,7 @@ $(document).ready(function(){
                     // queen step
                     else {
 
-                        wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor);
+                        wasStep = stepPlayer(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor, true);
 
                         if(wasStep) {
                             stepComputer(event.target);
@@ -2869,7 +2982,7 @@ $(document).ready(function(){
 
                                 current_piece = $(".rank__check[x=" + current_x + "][y=" + current_y + "]")[0].firstElementChild;
 
-                                next = nextSimpleAttack(current_piece);
+                                let next = nextSimpleAttack(current_piece);
 
                                 if (next) {
                                     $(current_piece).addClass("next");
