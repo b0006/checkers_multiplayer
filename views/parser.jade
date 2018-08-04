@@ -1,8 +1,21 @@
 extends layout
 
 block content
-    h1= title
+    br
+    br
+    a(href="/parser/packet") Пакетный режим
+    br
+    a(href="/parser/id") Одиночный режим
+    br
+
+    if packet === "Y"
+        h1 Пакетный режим
+    else if packet === "N"
+        h1 Одиночный режим
+    else
+        h1= title
     h2= example
+
 
     if packet === "N"
         form(action='/parser/id' method='post' id='form')

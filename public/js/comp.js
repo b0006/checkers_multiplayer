@@ -3128,8 +3128,7 @@ $(document).ready(function(){
         let simulated_board = simulate_board();
 
         // Run algorithm to select next move
-        let selected_move = alpha_beta_search(simulated_board, 8);
-        console.log(selected_move);
+        let selected_move = alpha_beta_search(simulated_board, 12);
         console.log("best move: " + selected_move.from.col + ":" + selected_move.from.row + " to " + selected_move.to.col + ":" + selected_move.to.row);
 
         let from = getRankCheck(selected_move.from.col, selected_move.from.row);
