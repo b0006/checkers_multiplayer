@@ -36,7 +36,22 @@ html
                     }
                 });
 
+                addDynamicEventListener(document.body, 'click', '#cp_play', function (e) {
+                    let fields = $("#cpu_level").serializeArray();
 
+                    let isChooseLevel = false;
+
+                    fields.forEach(function (value, index) {
+                       if(value.name === "level") {
+                           isChooseLevel = true;
+                       }
+                    });
+
+                    if(!isChooseLevel) {
+                        alert("Выберите сложность");
+                        e.preventDefault();
+                    }
+                });
             });
 
         script.
