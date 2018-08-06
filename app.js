@@ -110,7 +110,8 @@ io.on('connection', function(socket) {
 
     socket.on('log', function (msg) {
         let id_game = msg.id_game;
-        fs.appendFileSync("./log/CP/low/" + id_game + ".txt", msg.text);
+        let level_game = msg.level_game;
+        fs.appendFileSync("./log/CP/"+ level_game +"/" + id_game + ".txt", msg.text);
     });
 
     socket.on('fuch', function (msg) {

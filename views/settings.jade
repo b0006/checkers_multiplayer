@@ -2,13 +2,13 @@ div(class'page setting' id='page-setting' style="display: none")
     form(id="settings")
         h3 Вид игры
         div#big_settings
-            input(type='checkbox' name='english')
+            input(type='radio' name='type_game' value="english" checked)
             | Английские шашки
             br
-            input(type='checkbox' name='russian')
+            input(type='radio' name='type_game' value="russian")
             | Русские шашки
             br
-            input(type='checkbox' name='giveaway')
+            input(type='radio' name='type_game' value="giveaway")
             | Поддавки
             br
 

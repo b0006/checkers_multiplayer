@@ -18,10 +18,11 @@ router.post('/ai', function(req, res, next) {
         color_potencial_step: req.body.color_potencial_step,
         time_check_checkbox: req.body.time_check_checkbox,
         time_check_text: req.body.time_check_text,
-        // multiattack: req.body.multiattack,
+        multiattack: req.body.multiattack,
         fuchs: req.body.fuchs,
         simple_back_attack: req.body.simple_back_attack,
-        color_potencial_fuchs: req.body.color_potencial_fuchs
+        color_potencial_fuchs: req.body.color_potencial_fuchs,
+        type_game: req.body.type_game,
     });
 });
 

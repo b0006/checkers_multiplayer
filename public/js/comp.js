@@ -4,15 +4,15 @@ $(document).ready(function(){
     // medium
     // hard
     const COMPUTER_LEVEL = current_script.getAttribute("level");
-    let DEPTH = 0;
+    let DEPTH = null;
     if(COMPUTER_LEVEL === "low") {
-        DEPTH = 3;
+        DEPTH = 4;
     }
     else if(COMPUTER_LEVEL === "medium") {
-        DEPTH = 5;
+        DEPTH = 6;
     }
     else if(COMPUTER_LEVEL === "high") {
-        DEPTH = 10;
+        DEPTH = 9;
     }
 
     // подсвечивать шаги
@@ -28,6 +28,7 @@ $(document).ready(function(){
     const COLOR_FUCHS = current_script.getAttribute("color_potencial_fuchs");
     //можно обычным шашка аттаковать назад
     const SIMPLE_BACK_ATTACK = current_script.getAttribute("simple_back_attack");
+    const TYPE_GAME = current_script.getAttribute("type_game");
 
     let socket = io();
     let id_game = new Date;
@@ -257,12 +258,6 @@ $(document).ready(function(){
 
             if (isAttack === true) {
                 current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + ":" + next.getAttribute("not"));
-                // if(count_enemy === 0) {
-                //     current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + ":" + next.getAttribute("not"));
-                // }
-                // else {
-                //     current_hys.text(current_hys.text() + ":" + next.getAttribute("not"));
-                // }
             }
             else {
                 current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + "-" + next.getAttribute("not"));
@@ -289,7 +284,8 @@ $(document).ready(function(){
     function writeLog(text) {
         socket.emit('log', {
             id_game: id_game,
-            text: text
+            text: text,
+            level_game: COMPUTER_LEVEL
         });
     }
     // убрать все подсвеченные возможные фуки
@@ -3065,33 +3061,19 @@ $(document).ready(function(){
         slow_count = 0;
     });
 
+
     /**
      * COMPUTER LOGIC
      */
-
-    /**
-     *
-     * @param count_white_queen - количество белых дамок
-     * @param count_black_queen - количество черных дамок
-     * @param count_white_simple - количество белых обычных шашек
-     * @param count_black_simple - количество черных обычных шашек
-     * @param count_success_next_move_white - количество возможных ходов (опасных и безопасных) для белых шашек (для дамок и обычных вместе)
-     * @param count_success_next_move_black - количество возможных ходов (опасных и безопасных) для черных шашек (для дамок и обычных вместе)
-     * @param isDanger - опасен ли ход
-     * @returns {number} - оценка текущего состояния
-     */
-    function markFunction(count_white_queen, count_black_queen, count_white_simple, count_black_simple, count_success_next_move_white, count_success_next_move_black, isDanger) {
-        return (parseInt(count_white_queen) - parseInt(count_black_queen)) + (parseInt(count_white_simple) - parseInt(count_black_simple)) + (parseInt(count_success_next_move_white) - parseInt(count_success_next_move_black)) + parseInt(isDanger);
-    }
-
-
-    function stepComputer() {
+    function stepComputer(needNextAttack = null, from = null) {
         // симуляция текущего состояния доски
         let simulated_board = simulate_board();
 
         // запуск алгоритма для вычисления следующего хода
         let selected_move = alpha_beta_search(simulated_board, DEPTH);
         console.log("best move: " + selected_move.from.col + ":" + selected_move.from.row + " to " + selected_move.to.col + ":" + selected_move.to.row);
+
+        let wasAttack = false;
 
         try {
             let from = getRankCheck(selected_move.from.col, selected_move.from.row);
@@ -3102,11 +3084,45 @@ $(document).ready(function(){
 
             if(selected_move.enemy) {
                 let enemy = getRankCheck(selected_move.enemy.col, selected_move.enemy.row);
+                back_history(from, enemy, to, "black", false);
+
                 $(enemy.firstElementChild).remove();
+                wasAttack = true;
+            }
+            else {
+                back_history(from, null, to, "black", false);
             }
 
         }
         catch(e){}
+
+        if(wasAttack) {
+
+            simulated_board = simulate_board();
+            let available_moves = get_available_moves(computer, simulated_board);
+
+            let arJump = [];
+
+            let isNeedAttackMore = false;
+            available_moves.forEach(function (value) {
+                if (value.move_type === "jump") {
+                    isNeedAttackMore = true;
+                    arJump = value.from;
+                }
+            });
+
+            //**
+            if(from !== null) {
+                if (selected_move.from.row === from.row && selected_move.from.col === from.col) {
+                    isNeedAttackMore = false;
+                }
+            }
+            //**
+
+            if (isNeedAttackMore) {
+                stepComputer(isNeedAttackMore, arJump);
+            }
+        }
 
 
         // append_count = 0; // for add history
@@ -3309,7 +3325,6 @@ $(document).ready(function(){
         return isDangerForCell(ghost_pieces[0], side);
     }
 
-
     let slow_count = 0;
     // атака ИИ
     function simple_slow_attack(prev, enemy = null, next, type = null, isAttack = null) {
@@ -3430,16 +3445,9 @@ $(document).ready(function(){
         return prev;
     }
 
-
-    /**
-     * Others methods
-     * sleep - пауза
-     * md5 - получить хэш строки
-     */
     function sleep (time) {
         return new Promise((resolve) => setTimeout(resolve, time));
     }
-
     function md5 ( str ) {	// Calculate the md5 hash of a string
         let RotateLeft = function(lValue, iShiftBits) {
             return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
@@ -3612,6 +3620,7 @@ $(document).ready(function(){
         return temp.toLowerCase();
     }
 
+
     function simulate_board() {
 
         let cells = [];
@@ -3704,188 +3713,14 @@ $(document).ready(function(){
     }
 
     let red = 1;
-    let redKing = 1.1
+    let redKing = 1.1;
     let black = -1;
-    let blackKing = -1.1
+    let blackKing = -1.1;
     let empty = 0;
     let player = black;
     let computer = red;
-    let currentBoard = {};
     let INFINITY = 10000;
     let NEG_INFINITY = -10000;
-    let cell_width = 0;
-    let board_origin = 0;
-
-    function initializeBoard() {
-        let initialBoard = [[red, empty, red, empty, red, empty, red, empty],
-            [empty, red, empty, red, empty, red, empty, red],
-            [red, empty, red, empty, red, empty, red, empty],
-            [empty, empty, empty, empty, empty, empty, empty, empty],
-            [empty, empty, empty, empty, empty, empty, empty, empty],
-            [empty, black, empty, black, empty, black, empty, black],
-            [black, empty, black, empty, black, empty, black, empty],
-            [empty, black, empty, black, empty, black, empty, black]
-        ];
-
-        let cells = new Array();
-        let pieces = new Array();
-        for (let i=0;i<initialBoard.length;i++){
-            let row = initialBoard[i];
-            for (let j=0;j<row.length;j++) {
-                let colValue=row[j];
-                if (colValue != empty) {
-                    let piece = {row: i, col: j, state: colValue};
-                    pieces.push(piece);
-                }
-                let cell = {row: i, col: j, state: colValue};
-                cells.push(cell);
-            }
-        }
-
-        return {cells: cells, pieces: pieces, turn: red};
-    }
-
-    function mapCellToCoordinates(origin, width, cell) {
-        let key = "" + cell.row + ":" + cell.col;
-        if (!mapCellToCoordinates.answers) mapCellToCoordinates.answers = {};
-        if (mapCellToCoordinates.answers[key] != null){
-            return mapCellToCoordinates.answers[key];
-        }
-        let x = origin.x + (cell.col * width);
-        let y = origin.y + (cell.row * width);
-        return mapCellToCoordinates.answers[key] = {x: x , y: y};
-    }
-
-    function mapCoordinatesToCell(origin, width, cells, x, y){
-        let numSquares = 8;
-        let boardLength = numSquares * width;
-        if (x > (origin.x + boardLength)) return null;
-        if (y > (origin.y + boardLength)) return null;
-        let col = Math.ceil((x - origin.x) / width) - 1;
-        let row = Math.ceil((y - origin.y) / width) - 1;
-        let index = ((row * numSquares) + col);
-        let cell = cells[index];
-
-        return cell;
-    }
-
-    function startGame(origin, cellWidth, boardCanvas) {
-        movePiece.moves = [];
-        d3.select("#btnReplay").style("display", "none");
-        cell_width = cellWidth;
-        board_origin = origin;
-        currentBoard = drawBoard(origin, cellWidth, boardCanvas);
-        currentBoard.ui = true;
-        showBoardState();
-    }
-
-    function replayAll(origin, cellWidth, boardCanvas) {
-        let allMoves = movePiece.moves;
-        startGame(origin, cellWidth, boardCanvas);
-        currentBoard.turn = 0; // can't really play
-        for (let i=0; i<allMoves.length; i++) {
-            let moveNum = i+1;
-            let nextMove = allMoves[i];
-            if (nextMove.to.row > -1){
-                let cellCoordinates = mapCellToCoordinates(board_origin, cell_width, nextMove.to);
-                d3.selectAll("circle").each(function(d,i) {
-                    if (d.col === nextMove.from.col && d.row === nextMove.from.row){
-                        d3.select(this)
-                            .transition()
-                            .delay(500 * moveNum)
-                            .attr("cx", d.x = cellCoordinates.x + cell_width/2)
-                            .attr("cy", d.y = cellCoordinates.y + cell_width/2);
-
-                        d.col = nextMove.to.col;
-                        d.row = nextMove.to.row;
-                    }
-                });
-            }
-            else {
-                d3.selectAll("circle").each(function(d,i) {
-                    if (d.row === nextMove.from.row && d.col === nextMove.from.col){
-                        d3.select(this).transition().delay(500 * moveNum)
-                            .style("display", "none");
-                        d.col = -1;
-                        d.row = -1;
-                    }
-                });
-            }
-        }
-    }
-
-    function undoMove(move, moveNum) {
-        if (move.to.row > -1){
-            let cellCoordinates = mapCellToCoordinates(board_origin, cell_width, move.from);
-            d3.selectAll("circle").each(function(d,i) {
-                if (d.col === move.to.col && d.row === move.to.row){
-                    d3.select(this)
-                        .transition()
-                        .delay(500 * moveNum)
-                        .attr("cx", d.x = cellCoordinates.x + cell_width/2)
-                        .attr("cy", d.y = cellCoordinates.y + cell_width/2);
-
-                    d.col = move.from.col;
-                    d.row = move.from.row;
-                }
-            });
-            let toIndex = getCellIndex(move.to.row, move.to.col);
-            let cell = currentBoard.cells[toIndex];
-            cell.state = 0;
-            let fromIndex = getCellIndex(move.from.row, move.from.col);
-            cell = currentBoard.cells[fromIndex];
-            cell.state = move.piece.state;
-            //let pieceIndex = getPieceIndex(currentBoard.pieces, move.to.row, move.to.col);
-            //let piece = currentBoard.pieces[pieceIndex];
-            //piece.col = move.from.col;
-            //piece.row = move.from.row;
-
-        }
-        else {
-            d3.selectAll("circle").each(function(d,i) {
-                if (d.lastRow === move.from.row && d.lastCol === move.from.col){
-                    d3.select(this).transition().delay(500 * moveNum)
-                        .style("display", "block");
-                    d.col = move.from.col;
-                    d.row = move.from.row;
-
-                    let fromIndex = getCellIndex(move.from.row, move.from.col);
-                    let cell = currentBoard.cells[fromIndex];
-                    cell.state = move.piece.state;
-                    let pieceIndex = getPieceIndex(currentBoard.pieces, move.from.row, move.from.col);
-                    let piece = currentBoard.pieces[pieceIndex];
-                    piece.col = move.from.col;
-                    piece.row = move.from.row;
-                    piece.state = move.piece.state;
-                }
-            });
-        }
-
-    }
-
-    function undo(numBack) {
-        let computerUndo = 0;
-        let lastTurn = player;
-        let moveNum = 0;
-        while (true) {
-            moveNum += 1;
-            let lastMove = movePiece.moves.pop();
-            if (lastMove == null) {
-                break;
-            }
-            if (lastTurn === player && lastMove.piece.state === computer) {
-                computerUndo += 1
-                if (computerUndo > numBack) {
-                    break;
-                }
-            }
-            if (lastMove.to.col > -1) {
-                lastTurn = lastMove.piece.state;
-            }
-            undoMove(lastMove, moveNum);
-            showBoardState();
-        }
-    }
 
     function movePiece(boardState, piece, fromCell, toCell, moveNum) {
         if (boardState.ui) {
@@ -3983,42 +3818,6 @@ $(document).ready(function(){
         return index;
     }
 
-    function getPieceCount(boardState) {
-        let numRed = 0;
-        let numBlack = 0;
-        let pieces = boardState.pieces;
-        for (let i=0;i<pieces.length;i++) {
-            let piece = pieces[i];
-            if (piece.col >=0 && piece.row >=0){
-                if (piece.state === red || piece.state === redKing) {
-                    numRed += 1;
-                }
-                else if (piece.state === black || piece.state === blackKing) {
-                    numBlack += 1;
-                }
-            }
-        }
-
-        return {red: numRed, black: numBlack};
-    }
-
-    function getScore(boardState) {
-        let pieceCount = getPieceCount(boardState);
-        let score = pieceCount.red - pieceCount.black;
-        return score;
-    }
-
-    function getWinner(boardState) {
-        let pieceCount = getPieceCount(boardState);
-        if (pieceCount.red > 0  && pieceCount.black === 0) {
-            return red;
-        }
-        else if (pieceCount.black > 0 && pieceCount.red === 0) {
-            return black;
-        }
-        else return 0;
-    }
-
     function getJumpedPiece(cells, pieces, from, to) {
         let distance = {x: to.col-from.col,y: to.row-from.row};
         if (abs(distance.x) == 2) {
@@ -4080,102 +3879,6 @@ $(document).ready(function(){
         return true;
     }
 
-    function drawBoard(origin, cellWidth, boardCanvas) {
-        let boardState = initializeBoard();
-        let cells = boardState.cells;
-        let pieces = boardState.pieces;
-
-        //Draw cell rects
-        boardCanvas.append("g")
-            .selectAll("rect")
-            .data(cells)
-            .enter().append("rect")
-            .attr("x", function(d) { return mapCellToCoordinates(origin, cellWidth, d).x})
-            .attr("y", function(d) { return mapCellToCoordinates(origin, cellWidth, d).y})
-            .attr("height", cellWidth)
-            .attr("width", cellWidth)
-            .style("fill", "white")
-            .style("stroke", "black")
-            .style("stroke-width", "1px");
-
-        //Draw pieces
-        let dragEndedDimensions = function(d) {
-            node = d3.select(this);
-            dragEnded(origin, cellWidth, node, d);
-        }
-
-        let drag = d3.drag()
-            .on("start", dragStarted)
-            .on("drag", dragged)
-            .on("end", dragEndedDimensions);
-
-        boardCanvas.append("g")
-            .selectAll("circle")
-            .data(pieces)
-            .enter().append("circle")
-            .attr("r", cellWidth/2)
-            .attr("cx", function(d) { let x = mapCellToCoordinates(origin, cellWidth, d).x; return x+cellWidth/2;})
-            .attr("cy", function(d) { let y = mapCellToCoordinates(origin, cellWidth, d).y; return y+cellWidth/2;})
-            .style("fill", function(d) { if (d.state == red) return "red"; else return "black";})
-            .call(drag)
-        ;
-
-        //Draw scoreboard
-        d3.select("#divScoreboard").remove();
-        d3.select("body").append("div")
-            .attr("id", "divScoreboard")
-            .style("font-size", "36")
-            .html("SCOREBOARD")
-
-        d3.select("#divScoreboard")
-            .append("div")
-            .style("font-size", "24")
-            .attr("id", "winner");
-
-        d3.select("#divScoreboard")
-            .append("div")
-            .attr("id", "redScore")
-            .style("font-size", "18")
-            .html("Red: 12")
-
-        d3.select("#divScoreboard")
-            .append("div")
-            .attr("id", "blackScore")
-            .style("font-size", "18")
-            .html("Black: 12")
-        ;
-
-        return boardState;
-    }
-
-    function updateScoreboard() {
-        let pieceCount = getPieceCount(currentBoard);
-        let redLabel = "Red: " + pieceCount.red;
-        let blackLabel = "Black: " + pieceCount.black;
-
-        d3.select("#redScore")
-            .html(redLabel);
-        d3.select("#blackScore")
-            .html(blackLabel);
-
-        let winner = getWinner(currentBoard);
-        let winnerLabel = "";
-        if (winner === player) {
-            winnerLabel = "Red Wins!!";
-        }
-        else if (winner === computer) {
-            winnerLabel = "Black Wins!!";
-        }
-
-        if (winner != 0) {
-            d3.select("#btnReplay")
-                .style("display", "inline");
-        }
-
-        d3.select("#winner")
-            .html(winnerLabel);
-    }
-
     function integ(num) {
         if (num != null)
             return Math.round(num);
@@ -4192,49 +3895,25 @@ $(document).ready(function(){
         else return 1;
     }
 
-    function drawText(data) {
-        boardCanvas.append("g")
-            .selectAll("text")
-            .data(data)
-            .enter().append("text")
-            .attr("x", function(d) { let x = mapCellToCoordinates(board_origin, cell_width, d).x; return x+cell_width/2;})
-            .attr("y", function(d) { let y = mapCellToCoordinates(board_origin, cell_width, d).y; return y+cell_width/2;})
-            .style("fill", function(d) { if (d.state === red) return "black"; else return "white";})
-            .text(function(d) { /*if (d.state === red) return "R";
-									else if (d.state === black) return "B";
-									else*/ if (d.state === redKing || d.state === blackKing) return "K";
-            else return "";})
-        ;
-    }
-
-    function showBoardState() {
-        d3.selectAll("text").each(function(d,i) {
-            d3.select(this)
-                .style("display", "none");
-        });
-
-        let cells = currentBoard.cells;
-        let pieces = currentBoard.pieces;
-        //drawText(cells);
-        drawText(pieces);
-    }
-
-    /* COMPUTER AI FUNCTIONS */
     function copy_board(board) {
-        let newBoard = {};
-        newBoard.ui = false;
+        // let newBoard = {};
+        // newBoard.ui = false;
         let cells = [];
         let pieces = [];
 
-        for (let i=0;i<board.cells.length;i++) {
+        for (let i = 0;i < board.cells.length; i++) {
             let cell = board.cells[i];
-            let newCell = {row: cell.row, col: cell.col, state: cell.state};
-            cells.push(newCell);
+            if(cell.row !== -1 || cell.col !== -1) {
+                let newCell = {row: cell.row, col: cell.col, state: cell.state};
+                cells.push(newCell);
+            }
         }
-        for (let i=0;i<board.pieces.length;i++){
+        for (let i = 0; i < board.pieces.length; i++){
             let piece = board.pieces[i];
-            let newPiece = {row: piece.row, col: piece.col, state: piece.state};
-            pieces.push(newPiece);
+            if(piece.row !== -1 || piece.col !== -1) {
+                let newPiece = {row: piece.row, col: piece.col, state: piece.state};
+                pieces.push(newPiece);
+            }
         }
 
         return {cells: cells, pieces: pieces, turn: board.turn};
@@ -4280,33 +3959,66 @@ $(document).ready(function(){
             }
         });
 
-        // tt++;
-        // if(tt > 8 ) {
-        //     return false;
-        // }
-
-
         // check for jumps
-        x = [-2, 2];
-        x.forEach(function(entry) {
-            let cell_index = get_cell_index(target_board, from.col + entry, from.row + (player*2));
-            if (cell_index >= 0) {
-                let to = target_board.cells[cell_index];
-                if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
+        if(SIMPLE_BACK_ATTACK === "on") {
 
-                    let col_enemy = 0;
-                    if(entry === -2) {
-                        col_enemy = from.col + (entry + 1);
-                    }
-                    else {
-                        col_enemy = from.col + (entry - 1);
-                    }
+            x = [-2, 2];
+            let y = [-2, 2];
+            x.forEach(function(xmove) {
+                y.forEach(function(ymove){
+                    let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
+                    if (cell_index >= 0){
+                        let to = target_board.cells[cell_index];
+                        if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
 
-                    let move = {enemy: { col: col_enemy, row: from.row  + (player*1)}, move_type: 'jump', piece: player, from: {col: from.col, row: from.row}, to: {col: to.col, row: to.row}};
-                    moves[moves.length] = move;
+                            let col_enemy = 0;
+                            if (xmove === -2 && ymove === 2) {
+                                col_enemy = from.col + (xmove + 1);
+                            }
+                            else {
+                                col_enemy = from.col + (xmove - 1);
+                            }
+
+                            let move = {
+                                enemy: {col: col_enemy, row: from.row + (player * 1)},
+                                move_type: 'jump',
+                                piece: player,
+                                from: {col: from.col, row: from.row},
+                                to: {col: to.col, row: to.row}};
+                            moves[moves.length] = move;
+                        }
+                    }
+                });
+            });
+        }
+        else {
+            x = [-2, 2];
+            x.forEach(function (entry) {
+                let cell_index = get_cell_index(target_board, from.col + entry, from.row + (player * 2));
+                if (cell_index >= 0) {
+                    let to = target_board.cells[cell_index];
+                    if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
+
+                        let col_enemy = 0;
+                        if (entry === -2) {
+                            col_enemy = from.col + (entry + 1);
+                        }
+                        else {
+                            col_enemy = from.col + (entry - 1);
+                        }
+
+                        let move = {
+                            enemy: {col: col_enemy, row: from.row + (player * 1)},
+                            move_type: 'jump',
+                            piece: player,
+                            from: {col: from.col, row: from.row},
+                            to: {col: to.col, row: to.row}
+                        };
+                        moves[moves.length] = move;
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // kings
         if (Math.abs(from.state) === 1.1) {
@@ -4390,17 +4102,30 @@ $(document).ready(function(){
         let available_moves = get_available_moves(computer, calc_board);
 
         //get max value for each available move
-        let max = max_value(calc_board,available_moves,limit,alpha,beta);
+        let max = max_value(calc_board, available_moves, limit, alpha, beta);
+
+        console.log(max);
+        console.log(available_moves);
+        
+        let min = available_moves[0].score;
+        for(let i=0;i<available_moves.length;i++){
+            if(available_moves[i].score < min)
+            {
+                min = available_moves[i].score;
+            }
+        }
 
         //find all moves that have max-value
         let best_moves = [];
         let max_move = null;
+
         for(let i=0;i<available_moves.length;i++){
             let next_move = available_moves[i];
-            if (next_move.score == max){
+            if (next_move.score == min) {
                 max_move = next_move;
                 best_moves.push(next_move);
             }
+
         }
 
         //randomize selection, if multiple moves have same max-value
@@ -4409,32 +4134,6 @@ $(document).ready(function(){
         }
 
         return max_move;
-    }
-
-    function computerMove() {
-        // Copy board into simulated board
-        let simulated_board = copy_board(currentBoard);
-
-        // Run algorithm to select next move
-        let selected_move = alpha_beta_search(simulated_board, DEPTH);
-        console.log("best move: " + selected_move.from.col + ":" + selected_move.from.row + " to " + selected_move.to.col + ":" + selected_move.to.row);
-
-        // Make computer's move
-        let pieceIndex = getPieceIndex(currentBoard.pieces, selected_move.from.row, selected_move.from.col);
-        let piece = currentBoard.pieces[pieceIndex];
-        currentBoard = movePiece(currentBoard, piece, selected_move.from, selected_move.to, 1);
-        moveCircle(selected_move.to, 1);
-        showBoardState();
-
-        let winner = getWinner(currentBoard);
-        if (winner != 0) {
-            currentBoard.gameOver = true;
-        }
-        else {
-            // Set turn back to human
-            currentBoard.turn = player;
-            currentBoard.delay = 0;
-        }
     }
 
     function jump_available(available_moves) {
@@ -4459,7 +4158,7 @@ $(document).ready(function(){
         //for each move, get min
         if (human_moves.length > 0){
             for (let i=0;i<human_moves.length;i++){
-                simulated_board = copy_board(calc_board);
+                let simulated_board = copy_board(calc_board);
 
                 //move human piece
                 let human_move = human_moves[i];
@@ -4502,7 +4201,7 @@ $(document).ready(function(){
         //for each move, get max
         if (computer_moves.length > 0){
             for (let i=0;i<computer_moves.length;i++){
-                simulated_board = copy_board(calc_board);
+                let simulated_board = copy_board(calc_board);
 
                 //move computer piece
                 let computer_move = computer_moves[i];
@@ -4547,7 +4246,7 @@ $(document).ready(function(){
     }
 
     function utility(target_board) {
-        let sum = 0;
+        // let sum = 0;
         let computer_pieces = 0;
         let computer_kings = 0;
         let human_pieces = 0;
@@ -4555,7 +4254,6 @@ $(document).ready(function(){
         let computer_pos_sum = 0;
         let human_pos_sum = 0;
 
-        //log("************* UTILITY *****************")
         for (let i=0; i<target_board.pieces.length; i++) {
             let piece = target_board.pieces[i];
             if (piece.row > -1) { // only count pieces still on the board
@@ -4595,13 +4293,10 @@ $(document).ready(function(){
 
         let board_utility = 0;
 
-        for (let f=0; f<features.length; f++){
+        for (let f = 0; f < features.length; f++){
             let fw = features[f] * weights[f];
             board_utility += fw;
         }
-
-        //log("utility=" + board_utility);
-        //log("************* END  UTILITY ************")
 
         return board_utility;
     }
