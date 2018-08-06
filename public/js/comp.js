@@ -4106,7 +4106,7 @@ $(document).ready(function(){
 
         console.log(max);
         console.log(available_moves);
-        
+
         let min = available_moves[0].score;
         for(let i=0;i<available_moves.length;i++){
             if(available_moves[i].score < min)
