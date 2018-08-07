@@ -6,13 +6,13 @@ $(document).ready(function(){
     const COMPUTER_LEVEL = current_script.getAttribute("level");
     let DEPTH = null;
     if(COMPUTER_LEVEL === "low") {
-        DEPTH = 4;
+        DEPTH = 2;
     }
     else if(COMPUTER_LEVEL === "medium") {
         DEPTH = 6;
     }
     else if(COMPUTER_LEVEL === "high") {
-        DEPTH = 9;
+        DEPTH = 8;
     }
 
     // подсвечивать шаги
@@ -42,7 +42,7 @@ $(document).ready(function(){
 
 
     let arBackHistory = [];
-    let player_play = "white"; //the first player_play
+    let player_play = "black"; //the first player_play
     let current_piece = null; // текущая шашка
     let potencialStepsQueenGlobal = []; // возможные шаги для дамок
     let potencialStepsSimpleGlobal = []; // возможные шаги для обычных шашек
@@ -128,12 +128,43 @@ $(document).ready(function(){
         }
     });
 
+    function initNotation(div_content) {
+        let div_notation = document.createElement("div");
+        div_notation.className = "notation";
+        div_content.append(div_notation);
+
+        let div_digits = document.createElement("div");
+        div_digits.className = "notation__digits";
+        div_notation.append(div_digits);
+
+        for(let i = 0; i < words.length; i++) {
+            let span_not_digit = document.createElement("span");
+            span_not_digit.className = "not_digits";
+            span_not_digit.innerHTML = digits[i];
+            div_digits.append(span_not_digit)
+        }
+
+        let div_words = document.createElement("div");
+        div_words.className = "notation__words";
+        div_notation.append(div_words);
+
+        // words notation
+        for(let i = 0; i < words.length; i++) {
+            let span_not_words = document.createElement("span");
+            span_not_words.className = "not_words";
+            span_not_words.innerHTML = words[i];
+            div_words.append(span_not_words)
+        }
+    }
+
     // формируем доску
     function initBoard() {
         let checkers_board = $("#game-board");
         let content = document.createElement("div");
         content.className = "content";
         checkers_board.append(content);
+
+        initNotation(content);
 
         let board = document.createElement("div");
         board.className = "board";
@@ -147,7 +178,6 @@ $(document).ready(function(){
         for(let i = 0; i < 8; i++) {
             rank = document.createElement("div");
             rank.className = "rank";
-            rank.innerHTML = digits[i];
             board.append(rank);
 
             for(let t = 0; t < 8; t++){
@@ -239,15 +269,8 @@ $(document).ready(function(){
 
         }
 
-        // words notation
-        for(let i = 0; i < words.length; i++) {
-            let span_not_words = document.createElement("span");
-            span_not_words.className = "not_words";
-            span_not_words.innerHTML = words[i];
-            board.append(span_not_words)
-        }
-
-
+        $('.board').toggleClass("rotate_board");
+        $('.rank__check').toggleClass("rotate_board");
     }
 
     // лог на клиенте
@@ -3061,71 +3084,45 @@ $(document).ready(function(){
         slow_count = 0;
     });
 
-
     /**
      * COMPUTER LOGIC
      */
-    function stepComputer(needNextAttack = null, from = null) {
+    function stepComputer() {
         // симуляция текущего состояния доски
         let simulated_board = simulate_board();
+
+        console.log(simulated_board);
 
         // запуск алгоритма для вычисления следующего хода
         let selected_move = alpha_beta_search(simulated_board, DEPTH);
         console.log("best move: " + selected_move.from.col + ":" + selected_move.from.row + " to " + selected_move.to.col + ":" + selected_move.to.row);
 
-        let wasAttack = false;
+        let from_cell = getRankCheck(selected_move.from.col, selected_move.from.row);
+        let to = getRankCheck(selected_move.to.col, selected_move.to.row);
 
-        try {
-            let from = getRankCheck(selected_move.from.col, selected_move.from.row);
-            let to = getRankCheck(selected_move.to.col, selected_move.to.row);
-
-            $(from.firstElementChild).remove();
-            $(to).append('<div class="piece black">&#9820;</div>');
-
-            if(selected_move.enemy) {
-                let enemy = getRankCheck(selected_move.enemy.col, selected_move.enemy.row);
-                back_history(from, enemy, to, "black", false);
-
-                $(enemy.firstElementChild).remove();
-                wasAttack = true;
+        if(to.getAttribute("queen") === "white") {
+            $(to).append('<div class="piece white queen">&#9813;</div>');
+        }
+        else {
+            if(from_cell.firstElementChild.classList.contains("queen")) {
+                $(to).append('<div class="piece white queen">&#9813;</div>');
             }
             else {
-                back_history(from, null, to, "black", false);
-            }
-
-        }
-        catch(e){}
-
-        if(wasAttack) {
-
-            simulated_board = simulate_board();
-            let available_moves = get_available_moves(computer, simulated_board);
-
-            let arJump = [];
-
-            let isNeedAttackMore = false;
-            available_moves.forEach(function (value) {
-                if (value.move_type === "jump") {
-                    isNeedAttackMore = true;
-                    arJump = value.from;
-                }
-            });
-
-            //**
-            if(from !== null) {
-                if (selected_move.from.row === from.row && selected_move.from.col === from.col) {
-                    isNeedAttackMore = false;
-                }
-            }
-            //**
-
-            if (isNeedAttackMore) {
-                stepComputer(isNeedAttackMore, arJump);
+                $(to).append('<div class="piece white">&#9814;</div>');
             }
         }
 
+        $(from_cell.firstElementChild).remove();
 
-        // append_count = 0; // for add history
+        if(selected_move.enemy) {
+            let enemy = getRankCheck(selected_move.enemy.col, selected_move.enemy.row);
+            back_history(from_cell, enemy, to, "white", false);
+            $(enemy.firstElementChild).remove();
+        }
+        else {
+            back_history(from_cell, null, to, "white", false);
+        }
+
     }
 
     function getRankCheck(x, y) {
@@ -3712,15 +3709,189 @@ $(document).ready(function(){
         return {cells: cells, pieces: pieces};
     }
 
-    let red = 1;
-    let redKing = 1.1;
-    let black = -1;
-    let blackKing = -1.1;
-    let empty = 0;
-    let player = black;
-    let computer = red;
-    let INFINITY = 10000;
-    let NEG_INFINITY = -10000;
+    var red = 1;
+    var redKing = 1.1
+    var black = -1;
+    var blackKing = -1.1
+    var empty = 0;
+    var player = red;
+    var computer = black;
+    var currentBoard = {};
+    var INFINITY = 10000;
+    var NEG_INFINITY = -10000;
+    var cell_width = 0;
+    var board_origin = 0;
+
+    function initializeBoard() {
+        var initialBoard = [[red, empty, red, empty, red, empty, red, empty],
+            [empty, red, empty, red, empty, red, empty, red],
+            [red, empty, red, empty, red, empty, red, empty],
+            [empty, empty, empty, empty, empty, empty, empty, empty],
+            [empty, empty, empty, empty, empty, empty, empty, empty],
+            [empty, black, empty, black, empty, black, empty, black],
+            [black, empty, black, empty, black, empty, black, empty],
+            [empty, black, empty, black, empty, black, empty, black]
+        ];
+
+        var cells = new Array();
+        var pieces = new Array();
+        for (var i=0;i<initialBoard.length;i++){
+            var row = initialBoard[i];
+            for (var j=0;j<row.length;j++) {
+                var colValue=row[j];
+                if (colValue != empty) {
+                    var piece = {row: i, col: j, state: colValue};
+                    pieces.push(piece);
+                }
+                var cell = {row: i, col: j, state: colValue};
+                cells.push(cell);
+            }
+        }
+
+        return {cells: cells, pieces: pieces, turn: red};
+    }
+
+    function mapCellToCoordinates(origin, width, cell) {
+        var key = "" + cell.row + ":" + cell.col;
+        if (!mapCellToCoordinates.answers) mapCellToCoordinates.answers = {};
+        if (mapCellToCoordinates.answers[key] != null){
+            return mapCellToCoordinates.answers[key];
+        }
+        var x = origin.x + (cell.col * width);
+        var y = origin.y + (cell.row * width);
+        return mapCellToCoordinates.answers[key] = {x: x , y: y};
+    }
+
+    function mapCoordinatesToCell(origin, width, cells, x, y){
+        var numSquares = 8;
+        var boardLength = numSquares * width;
+        if (x > (origin.x + boardLength)) return null;
+        if (y > (origin.y + boardLength)) return null;
+        var col = Math.ceil((x - origin.x) / width) - 1;
+        var row = Math.ceil((y - origin.y) / width) - 1;
+        var index = ((row * numSquares) + col);
+        var cell = cells[index];
+
+        return cell;
+    }
+
+    function startGame(origin, cellWidth, boardCanvas) {
+        movePiece.moves = [];
+        d3.select("#btnReplay").style("display", "none");
+        cell_width = cellWidth;
+        board_origin = origin;
+        currentBoard = drawBoard(origin, cellWidth, boardCanvas);
+        currentBoard.ui = true;
+        showBoardState();
+    }
+
+    function replayAll(origin, cellWidth, boardCanvas) {
+        var allMoves = movePiece.moves;
+        startGame(origin, cellWidth, boardCanvas);
+        currentBoard.turn = 0; // can't really play
+        for (var i=0; i<allMoves.length; i++) {
+            var moveNum = i+1;
+            var nextMove = allMoves[i];
+            if (nextMove.to.row > -1){
+                var cellCoordinates = mapCellToCoordinates(board_origin, cell_width, nextMove.to);
+                d3.selectAll("circle").each(function(d,i) {
+                    if (d.col === nextMove.from.col && d.row === nextMove.from.row){
+                        d3.select(this)
+                            .transition()
+                            .delay(500 * moveNum)
+                            .attr("cx", d.x = cellCoordinates.x + cell_width/2)
+                            .attr("cy", d.y = cellCoordinates.y + cell_width/2);
+
+                        d.col = nextMove.to.col;
+                        d.row = nextMove.to.row;
+                    }
+                });
+            }
+            else {
+                d3.selectAll("circle").each(function(d,i) {
+                    if (d.row === nextMove.from.row && d.col === nextMove.from.col){
+                        d3.select(this).transition().delay(500 * moveNum)
+                            .style("display", "none");
+                        d.col = -1;
+                        d.row = -1;
+                    }
+                });
+            }
+        }
+    }
+
+    function undoMove(move, moveNum) {
+        if (move.to.row > -1){
+            var cellCoordinates = mapCellToCoordinates(board_origin, cell_width, move.from);
+            d3.selectAll("circle").each(function(d,i) {
+                if (d.col === move.to.col && d.row === move.to.row){
+                    d3.select(this)
+                        .transition()
+                        .delay(500 * moveNum)
+                        .attr("cx", d.x = cellCoordinates.x + cell_width/2)
+                        .attr("cy", d.y = cellCoordinates.y + cell_width/2);
+
+                    d.col = move.from.col;
+                    d.row = move.from.row;
+                }
+            });
+            var toIndex = getCellIndex(move.to.row, move.to.col);
+            var cell = currentBoard.cells[toIndex];
+            cell.state = 0;
+            var fromIndex = getCellIndex(move.from.row, move.from.col);
+            cell = currentBoard.cells[fromIndex];
+            cell.state = move.piece.state;
+            //var pieceIndex = getPieceIndex(currentBoard.pieces, move.to.row, move.to.col);
+            //var piece = currentBoard.pieces[pieceIndex];
+            //piece.col = move.from.col;
+            //piece.row = move.from.row;
+
+        }
+        else {
+            d3.selectAll("circle").each(function(d,i) {
+                if (d.lastRow === move.from.row && d.lastCol === move.from.col){
+                    d3.select(this).transition().delay(500 * moveNum)
+                        .style("display", "block");
+                    d.col = move.from.col;
+                    d.row = move.from.row;
+
+                    var fromIndex = getCellIndex(move.from.row, move.from.col);
+                    var cell = currentBoard.cells[fromIndex];
+                    cell.state = move.piece.state;
+                    var pieceIndex = getPieceIndex(currentBoard.pieces, move.from.row, move.from.col);
+                    var piece = currentBoard.pieces[pieceIndex];
+                    piece.col = move.from.col;
+                    piece.row = move.from.row;
+                    piece.state = move.piece.state;
+                }
+            });
+        }
+
+    }
+
+    function undo(numBack) {
+        var computerUndo = 0;
+        var lastTurn = player;
+        var moveNum = 0;
+        while (true) {
+            moveNum += 1;
+            var lastMove = movePiece.moves.pop();
+            if (lastMove == null) {
+                break;
+            }
+            if (lastTurn === player && lastMove.piece.state === computer) {
+                computerUndo += 1
+                if (computerUndo > numBack) {
+                    break;
+                }
+            }
+            if (lastMove.to.col > -1) {
+                lastTurn = lastMove.piece.state;
+            }
+            undoMove(lastMove, moveNum);
+            showBoardState();
+        }
+    }
 
     function movePiece(boardState, piece, fromCell, toCell, moveNum) {
         if (boardState.ui) {
@@ -3733,11 +3904,11 @@ $(document).ready(function(){
         }
 
         // Get jumped piece
-        let jumpedPiece = getJumpedPiece(boardState.cells, boardState.pieces, fromCell, toCell);
+        var jumpedPiece = getJumpedPiece(boardState.cells, boardState.pieces, fromCell, toCell);
 
         // Update states
-        let fromIndex = getCellIndex(fromCell.row, fromCell.col);
-        let toIndex = getCellIndex(toCell.row, toCell.col);
+        var fromIndex = getCellIndex(fromCell.row, fromCell.col);
+        var toIndex = getCellIndex(toCell.row, toCell.col);
         if ((toCell.row === 0 || toCell.row === 8) && Math.abs(piece.state) === 1) {
             boardState.cells[toIndex].state = piece.state * 1.1;
         }
@@ -3756,12 +3927,12 @@ $(document).ready(function(){
         }
 
         if (jumpedPiece != null) {
-            let jumpedIndex = getPieceIndex(boardState.pieces, jumpedPiece.row, jumpedPiece.col);
-            let originialJumpPieceState = jumpedPiece.state;
+            var jumpedIndex = getPieceIndex(boardState.pieces, jumpedPiece.row, jumpedPiece.col);
+            var originialJumpPieceState = jumpedPiece.state;
             jumpedPiece.state = 0;
 
-            let cellIndex = getCellIndex(jumpedPiece.row, jumpedPiece.col);
-            let jumpedCell = boardState.cells[cellIndex];
+            var cellIndex = getCellIndex(jumpedPiece.row, jumpedPiece.col);
+            var jumpedCell = boardState.cells[cellIndex];
             jumpedCell.state = empty;
             boardState.pieces[jumpedIndex].lastCol = boardState.pieces[jumpedIndex].col;
             boardState.pieces[jumpedIndex].lastRow = boardState.pieces[jumpedIndex].row;
@@ -3778,9 +3949,9 @@ $(document).ready(function(){
             }
 
             // Another jump?
-            let more_moves = get_available_piece_moves(boardState, piece, boardState.turn);
-            let another_move = null;
-            for (let i=0; i<more_moves.length; i++) {
+            var more_moves = get_available_piece_moves(boardState, piece, boardState.turn);
+            var another_move = null;
+            for (var i=0; i<more_moves.length; i++) {
                 more_move = more_moves[i];
                 if (more_move.move_type === "jump") {
                     another_move = more_move;
@@ -3801,15 +3972,15 @@ $(document).ready(function(){
     }
 
     function getCellIndex(row, col) {
-        let numSquares = 8;
-        let index = ((row * numSquares) + col);
+        var numSquares = 8;
+        var index = ((row * numSquares) + col);
         return index;
     }
 
     function getPieceIndex(pieces, row, col) {
-        let index = -1;
-        for (let i=0; i<pieces.length;i++){
-            let piece = pieces[i];
+        var index = -1;
+        for (var i=0; i<pieces.length;i++){
+            var piece = pieces[i];
             if (piece.row===row && piece.col===col){
                 index = i;
                 break;
@@ -3818,25 +3989,63 @@ $(document).ready(function(){
         return index;
     }
 
+    function getPieceCount(boardState) {
+        var numRed = 0;
+        var numBlack = 0;
+        var pieces = boardState.pieces;
+        for (var i=0;i<pieces.length;i++) {
+            var piece = pieces[i];
+            if (piece.col >=0 && piece.row >=0){
+                if (piece.state === red || piece.state === redKing) {
+                    numRed += 1;
+                }
+                else if (piece.state === black || piece.state === blackKing) {
+                    numBlack += 1;
+                }
+            }
+        }
+
+        return {red: numRed, black: numBlack};
+    }
+
+    function getScore(boardState) {
+        var pieceCount = getPieceCount(boardState);
+        var score = pieceCount.red - pieceCount.black;
+        return score;
+    }
+
+    function getWinner(boardState) {
+        var pieceCount = getPieceCount(boardState);
+        if (pieceCount.red > 0  && pieceCount.black === 0) {
+            return red;
+        }
+        else if (pieceCount.black > 0 && pieceCount.red === 0) {
+            return black;
+        }
+        else return 0;
+    }
+
     function getJumpedPiece(cells, pieces, from, to) {
-        let distance = {x: to.col-from.col,y: to.row-from.row};
+        var distance = {x: to.col-from.col,y: to.row-from.row};
         if (abs(distance.x) == 2) {
-            let jumpRow = from.row+sign(distance.y);
-            let jumpCol = from.col+sign(distance.x);
-            let index = getPieceIndex(pieces, jumpRow, jumpCol);
-            let jumpedPiece = pieces[index];
+            var jumpRow = from.row+sign(distance.y);
+            var jumpCol = from.col+sign(distance.x);
+            var index = getPieceIndex(pieces, jumpRow, jumpCol);
+            var jumpedPiece = pieces[index];
             return jumpedPiece;
         }
         else return null;
 
     }
 
+    let tt = 0;
+
     function isMoveLegal(cells, pieces, piece, from, to) {
         if ((to.col < 0) || (to.row < 0) || (to.col > 7) || (to.row > 7)) {
             //console.log("ILLEGAL MOVE: piece going off board");
             return false;
         }
-        let distance = {x: to.col-from.col,y: to.row-from.row};
+        var distance = {x: to.col-from.col,y: to.row-from.row};
         if ((distance.x == 0) || (distance.y == 0)) {
             //console.log("ILLEGAL MOVE: horizontal or vertical move");
             return false;
@@ -3859,13 +4068,13 @@ $(document).ready(function(){
             return false;
         }
         if (abs(distance.x) == 2) {
-            let jumpedPiece = getJumpedPiece(cells, pieces, from, to);
+            var jumpedPiece = getJumpedPiece(cells, pieces, from, to);
             if (jumpedPiece == null) {
                 //console.log("ILLEGAL MOVE: no piece to jump");
                 return false;
             }
-            let pieceState = integ(piece.state);
-            let jumpedState = integ(jumpedPiece.state);
+            var pieceState = integ(piece.state);
+            var jumpedState = integ(jumpedPiece.state);
             if (pieceState != -jumpedState) {
                 //console.log("ILLEGAL MOVE: can't jump own piece");
                 return false;
@@ -3873,10 +4082,108 @@ $(document).ready(function(){
         }
         if ((integ(piece.state) === piece.state) && (sign(piece.state) != sign(distance.y))) {
             //console.log("ILLEGAL MOVE: wrong direction");
-            return false;
+            if(SIMPLE_BACK_ATTACK !== "on") {
+                return false;
+            }
         }
 
         return true;
+    }
+
+    function drawBoard(origin, cellWidth, boardCanvas) {
+        var boardState = initializeBoard();
+        var cells = boardState.cells;
+        var pieces = boardState.pieces;
+
+        //Draw cell rects
+        boardCanvas.append("g")
+            .selectAll("rect")
+            .data(cells)
+            .enter().append("rect")
+            .attr("x", function(d) { return mapCellToCoordinates(origin, cellWidth, d).x})
+            .attr("y", function(d) { return mapCellToCoordinates(origin, cellWidth, d).y})
+            .attr("height", cellWidth)
+            .attr("width", cellWidth)
+            .style("fill", "white")
+            .style("stroke", "black")
+            .style("stroke-width", "1px");
+
+        //Draw pieces
+        var dragEndedDimensions = function(d) {
+            node = d3.select(this);
+            dragEnded(origin, cellWidth, node, d);
+        }
+
+        var drag = d3.drag()
+            .on("start", dragStarted)
+            .on("drag", dragged)
+            .on("end", dragEndedDimensions);
+
+        boardCanvas.append("g")
+            .selectAll("circle")
+            .data(pieces)
+            .enter().append("circle")
+            .attr("r", cellWidth/2)
+            .attr("cx", function(d) { var x = mapCellToCoordinates(origin, cellWidth, d).x; return x+cellWidth/2;})
+            .attr("cy", function(d) { var y = mapCellToCoordinates(origin, cellWidth, d).y; return y+cellWidth/2;})
+            .style("fill", function(d) { if (d.state == red) return "red"; else return "black";})
+            .call(drag)
+        ;
+
+        //Draw scoreboard
+        d3.select("#divScoreboard").remove();
+        d3.select("body").append("div")
+            .attr("id", "divScoreboard")
+            .style("font-size", "36")
+            .html("SCOREBOARD")
+
+        d3.select("#divScoreboard")
+            .append("div")
+            .style("font-size", "24")
+            .attr("id", "winner");
+
+        d3.select("#divScoreboard")
+            .append("div")
+            .attr("id", "redScore")
+            .style("font-size", "18")
+            .html("Red: 12")
+
+        d3.select("#divScoreboard")
+            .append("div")
+            .attr("id", "blackScore")
+            .style("font-size", "18")
+            .html("Black: 12")
+        ;
+
+        return boardState;
+    }
+
+    function updateScoreboard() {
+        var pieceCount = getPieceCount(currentBoard);
+        var redLabel = "Red: " + pieceCount.red;
+        var blackLabel = "Black: " + pieceCount.black;
+
+        d3.select("#redScore")
+            .html(redLabel);
+        d3.select("#blackScore")
+            .html(blackLabel);
+
+        var winner = getWinner(currentBoard);
+        var winnerLabel = "";
+        if (winner === player) {
+            winnerLabel = "Red Wins!!";
+        }
+        else if (winner === computer) {
+            winnerLabel = "Black Wins!!";
+        }
+
+        if (winner != 0) {
+            d3.select("#btnReplay")
+                .style("display", "inline");
+        }
+
+        d3.select("#winner")
+            .html(winnerLabel);
     }
 
     function integ(num) {
@@ -3895,34 +4202,58 @@ $(document).ready(function(){
         else return 1;
     }
 
-    function copy_board(board) {
-        // let newBoard = {};
-        // newBoard.ui = false;
-        let cells = [];
-        let pieces = [];
+    function drawText(data) {
+        boardCanvas.append("g")
+            .selectAll("text")
+            .data(data)
+            .enter().append("text")
+            .attr("x", function(d) { var x = mapCellToCoordinates(board_origin, cell_width, d).x; return x+cell_width/2;})
+            .attr("y", function(d) { var y = mapCellToCoordinates(board_origin, cell_width, d).y; return y+cell_width/2;})
+            .style("fill", function(d) { if (d.state === red) return "black"; else return "white";})
+            .text(function(d) { /*if (d.state === red) return "R";
+									else if (d.state === black) return "B";
+									else*/ if (d.state === redKing || d.state === blackKing) return "K";
+            else return "";})
+        ;
+    }
 
-        for (let i = 0;i < board.cells.length; i++) {
-            let cell = board.cells[i];
-            if(cell.row !== -1 || cell.col !== -1) {
-                let newCell = {row: cell.row, col: cell.col, state: cell.state};
-                cells.push(newCell);
-            }
+    function showBoardState() {
+        d3.selectAll("text").each(function(d,i) {
+            d3.select(this)
+                .style("display", "none");
+        });
+
+        var cells = currentBoard.cells;
+        var pieces = currentBoard.pieces;
+        //drawText(cells);
+        drawText(pieces);
+    }
+
+    /* COMPUTER AI FUNCTIONS */
+    function copy_board(board) {
+        var newBoard = {};
+        newBoard.ui = false;
+        var cells = new Array();
+        var pieces = new Array();
+
+        for (var i=0;i<board.cells.length;i++) {
+            var cell = board.cells[i];
+            var newCell = {row: cell.row, col: cell.col, state: cell.state};
+            cells.push(newCell);
         }
-        for (let i = 0; i < board.pieces.length; i++){
-            let piece = board.pieces[i];
-            if(piece.row !== -1 || piece.col !== -1) {
-                let newPiece = {row: piece.row, col: piece.col, state: piece.state};
-                pieces.push(newPiece);
-            }
+        for (var i=0;i<board.pieces.length;i++){
+            var piece = board.pieces[i];
+            var newPiece = {row: piece.row, col: piece.col, state: piece.state};
+            pieces.push(newPiece);
         }
 
         return {cells: cells, pieces: pieces, turn: board.turn};
     }
 
     function get_player_pieces(player, target_board) {
-        let player_pieces = [];
-        for (let i=0;i<target_board.pieces.length;i++){
-            let piece = target_board.pieces[i];
+        player_pieces = new Array();
+        for (var i=0;i<target_board.pieces.length;i++){
+            var piece = target_board.pieces[i];
             if (piece.state === player || piece.state === (player+.1) || piece.state === (player-.1) ) {
                 player_pieces.push(piece);
             }
@@ -3931,9 +4262,9 @@ $(document).ready(function(){
     }
 
     function get_cell_index(target_board, col, row) {
-        let index = -1;
-        for (let i = 0; i < target_board.cells.length; i++) {
-            let cell = target_board.cells[i];
+        var index = -1;
+        for (var i=0;i<target_board.cells.length;i++) {
+            var cell = target_board.cells[i];
             if (cell.col === col && cell.row ===row) {
                 index = i;
                 break;
@@ -3943,72 +4274,55 @@ $(document).ready(function(){
     }
 
     function get_available_piece_moves(target_board, target_piece, player) {
-        let moves = [];
-        let from = target_piece;
+        var moves = [];
+        var from = target_piece;
 
         // check for slides
-        let x = [-1, 1];
+        var x = [-1, 1];
         x.forEach(function(entry) {
-            let cell_index = get_cell_index(target_board, from.col + entry, from.row + (player * 1));
+            var cell_index = get_cell_index(target_board, from.col+entry, from.row+(player*1));
             if (cell_index >= 0){
-                let to = target_board.cells[cell_index];
+                var to = target_board.cells[cell_index];
                 if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                    let move = {move_type: 'slide', piece: player, from: {col: from.col, row: from.row}, to: {col: to.col, row: to.row}};
+                    move = {
+                        move_type: 'slide',
+                        piece: player,
+                        from: {col: from.col, row: from.row},
+                        to: {col: to.col, row: to.row}
+                    };
                     moves[moves.length] = move;
                 }
             }
         });
 
         // check for jumps
-        if(SIMPLE_BACK_ATTACK === "on") {
+        x = [-2, 2];
+        y = [-2, 2];
+        x.forEach(function(xmove) {
+            y.forEach(function(ymove){
+                var cell_index = get_cell_index(target_board, from.col+xmove, from.row+ymove);
+                if (cell_index >= 0){
+                    var to = target_board.cells[cell_index];
 
-            x = [-2, 2];
-            let y = [-2, 2];
-            x.forEach(function(xmove) {
-                y.forEach(function(ymove){
-                    let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                    if (cell_index >= 0){
-                        let to = target_board.cells[cell_index];
-                        if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-
-                            let col_enemy = 0;
-                            if (xmove === -2 && ymove === 2) {
-                                col_enemy = from.col + (xmove + 1);
-                            }
-                            else {
-                                col_enemy = from.col + (xmove - 1);
-                            }
-
-                            let move = {
-                                enemy: {col: col_enemy, row: from.row + (player * 1)},
-                                move_type: 'jump',
-                                piece: player,
-                                from: {col: from.col, row: from.row},
-                                to: {col: to.col, row: to.row}};
-                            moves[moves.length] = move;
-                        }
+                    var col_enemy = 0;
+                    var row_enemy = 0;
+                    if(xmove === -2) {
+                        col_enemy = from.col + (xmove + 1);
                     }
-                });
-            });
-        }
-        else {
-            x = [-2, 2];
-            x.forEach(function (entry) {
-                let cell_index = get_cell_index(target_board, from.col + entry, from.row + (player * 2));
-                if (cell_index >= 0) {
-                    let to = target_board.cells[cell_index];
+                    else {
+                        col_enemy = from.col + (xmove - 1);
+                    }
+
+                    if(ymove === -2) {
+                        row_enemy = from.row + (ymove + 1);
+                    }
+                    else {
+                        row_enemy = from.row + (ymove - 1);
+                    }
+
                     if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-
-                        let col_enemy = 0;
-                        if (entry === -2) {
-                            col_enemy = from.col + (entry + 1);
-                        }
-                        else {
-                            col_enemy = from.col + (entry - 1);
-                        }
-
-                        let move = {
-                            enemy: {col: col_enemy, row: from.row + (player * 1)},
+                        move = {
+                            enemy: {col: col_enemy, row: row_enemy},
                             move_type: 'jump',
                             piece: player,
                             from: {col: from.col, row: from.row},
@@ -4018,20 +4332,48 @@ $(document).ready(function(){
                     }
                 }
             });
-        }
+        });
+
+        // check for jumps
+        // x = [-2, 2];
+        // x.forEach(function(entry) {
+        //     var cell_index = get_cell_index(target_board, from.col+entry, from.row+(player*2));
+        //     if (cell_index >= 0) {
+        //         var to = target_board.cells[cell_index];
+        //
+        //         var col_enemy = 0;
+        //         if(entry === -2) {
+        //             col_enemy = from.col + (entry + 1);
+        //         }
+        //         else {
+        //             col_enemy = from.col + (entry - 1);
+        //         }
+        //
+        //         if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
+        //             move = {
+        //                 enemy: {col: col_enemy, row: from.row+(player*1)},
+        //                 move_type: 'jump',
+        //                 piece: player,
+        //                 from: {col: from.col, row: from.row},
+        //                 to: {col: to.col, row: to.row}
+        //             };
+        //             moves[moves.length] = move;
+        //         }
+        //     }
+        // });
 
         // kings
         if (Math.abs(from.state) === 1.1) {
             // check for slides
-            let x = [-1, 1];
-            let y = [-1, 1];
+            var x = [-1, 1];
+            var y = [-1, 1];
             x.forEach(function(xmove) {
                 y.forEach(function(ymove){
-                    let cell_index = get_cell_index(target_board, from.col+xmove, from.row+ymove);
+                    var cell_index = get_cell_index(target_board, from.col+xmove, from.row+ymove);
                     if (cell_index >= 0){
-                        let to = target_board.cells[cell_index];
+                        var to = target_board.cells[cell_index];
                         if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                            let move = {move_type: 'slide', piece: player, from: {col: from.col, row: from.row}, to: {col: to.col, row: to.row}};
+                            move = {move_type: 'slide', piece: player, from: {col: from.col, row: from.row}, to: {col: to.col, row: to.row}};
                             moves[moves.length] = move;
                         }
                     }
@@ -4043,11 +4385,11 @@ $(document).ready(function(){
             y = [-2, 2];
             x.forEach(function(xmove) {
                 y.forEach(function(ymove){
-                    let cell_index = get_cell_index(target_board, from.col+xmove, from.row+ymove);
+                    var cell_index = get_cell_index(target_board, from.col+xmove, from.row+ymove);
                     if (cell_index >= 0){
-                        let to = target_board.cells[cell_index];
+                        var to = target_board.cells[cell_index];
                         if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                            let move = {move_type: 'jump', piece: player, from: {col: from.col, row: from.row}, to: {col: to.col, row: to.row}};
+                            move = {move_type: 'jump', piece: player, from: {col: from.col, row: from.row}, to: {col: to.col, row: to.row}};
                             moves[moves.length] = move;
                         }
                     }
@@ -4057,24 +4399,21 @@ $(document).ready(function(){
 
         return moves;
     }
-
-    let tt = 0;
-
     function get_available_moves(player, target_board) {
-        let moves = [];
-        let move = null;
-        let player_pieces = get_player_pieces(player, target_board);
+        var moves = [];
+        var move = null;
+        var player_pieces = get_player_pieces(player, target_board);
 
-        for (let i=0;i<player_pieces.length;i++) {
-            let from = player_pieces[i];
-            let piece_moves = get_available_piece_moves(target_board, from, player);
+        for (var i=0;i<player_pieces.length;i++) {
+            var from = player_pieces[i];
+            var piece_moves = get_available_piece_moves(target_board, from, player);
             moves.push.apply(moves, piece_moves);
         }
 
         //prune non-jumps, if applicable
-        let jump_moves = [];
-        for (let i=0; i<moves.length;i++) {
-            let move = moves[i];
+        var jump_moves = [];
+        for (var i=0; i<moves.length;i++) {
+            var move = moves[i];
             if (move.move_type == "jump") {
                 jump_moves.push(move);
             }
@@ -4088,44 +4427,33 @@ $(document).ready(function(){
 
     function select_random_move(moves){
         // Randomly select move
-        let index = Math.floor(Math.random() * (moves.length - 1));
-        let selected_move = moves[index];
+        var index = Math.floor(Math.random() * (moves.length - 1));
+        var selected_move = moves[index];
 
         return selected_move;
     }
 
     function alpha_beta_search(calc_board, limit) {
-        let alpha = NEG_INFINITY;
-        let beta = INFINITY;
+        var alpha = NEG_INFINITY;
+        var beta = INFINITY;
 
         //get available moves for computer
-        let available_moves = get_available_moves(computer, calc_board);
+        var available_moves = get_available_moves(computer, calc_board);
 
         //get max value for each available move
-        let max = max_value(calc_board, available_moves, limit, alpha, beta);
+        var max = max_value(calc_board,available_moves,limit,alpha,beta);
 
-        console.log(max);
-        console.log(available_moves);
-
-        let min = available_moves[0].score;
-        for(let i=0;i<available_moves.length;i++){
-            if(available_moves[i].score < min)
-            {
-                min = available_moves[i].score;
-            }
-        }
+        // console.log(available_moves);
 
         //find all moves that have max-value
-        let best_moves = [];
-        let max_move = null;
-
-        for(let i=0;i<available_moves.length;i++){
-            let next_move = available_moves[i];
-            if (next_move.score == min) {
+        var best_moves = [];
+        var max_move = null;
+        for(var i=0;i<available_moves.length;i++){
+            var next_move = available_moves[i];
+            if (next_move.score == max){
                 max_move = next_move;
                 best_moves.push(next_move);
             }
-
         }
 
         //randomize selection, if multiple moves have same max-value
@@ -4136,10 +4464,37 @@ $(document).ready(function(){
         return max_move;
     }
 
+    function computerMove() {
+        // Copy board into simulated board
+        var simulated_board = copy_board(currentBoard);
+        console.log(simulated_board)
+
+        // Run algorithm to select next move
+        var selected_move = alpha_beta_search(simulated_board, 8);
+        console.log("best move: " + selected_move.from.col + ":" + selected_move.from.row + " to " + selected_move.to.col + ":" + selected_move.to.row);
+
+        // Make computer's move
+        var pieceIndex = getPieceIndex(currentBoard.pieces, selected_move.from.row, selected_move.from.col);
+        var piece = currentBoard.pieces[pieceIndex];
+        currentBoard = movePiece(currentBoard, piece, selected_move.from, selected_move.to, 1);
+        moveCircle(selected_move.to, 1);
+        showBoardState();
+
+        var winner = getWinner(currentBoard);
+        if (winner != 0) {
+            currentBoard.gameOver = true;
+        }
+        else {
+            // Set turn back to human
+            currentBoard.turn = player;
+            currentBoard.delay = 0;
+        }
+    }
+
     function jump_available(available_moves) {
-        let jump = false;
-        for (let i=0;i<available_moves.length;i++){
-            let move = available_moves[i];
+        var jump = false;
+        for (var i=0;i<available_moves.length;i++){
+            var move = available_moves[i];
             if (move.move_type == "jump") {
                 jump = true;
                 break;
@@ -4153,24 +4508,24 @@ $(document).ready(function(){
         if (limit <=0 && !jump_available(human_moves)) {
             return utility(calc_board);
         }
-        let min = INFINITY;
+        var min = INFINITY;
 
         //for each move, get min
         if (human_moves.length > 0){
-            for (let i=0;i<human_moves.length;i++){
-                let simulated_board = copy_board(calc_board);
+            for (var i=0;i<human_moves.length;i++){
+                simulated_board = copy_board(calc_board);
 
                 //move human piece
-                let human_move = human_moves[i];
-                let pieceIndex = getPieceIndex(simulated_board.pieces, human_move.from.row, human_move.from.col);
-                let piece = simulated_board.pieces[pieceIndex];
+                var human_move = human_moves[i];
+                var pieceIndex = getPieceIndex(simulated_board.pieces, human_move.from.row, human_move.from.col);
+                var piece = simulated_board.pieces[pieceIndex];
                 simulated_board = movePiece(simulated_board, piece, human_move.from, human_move.to);
 
                 //get available moves for computer
-                let computer_moves = get_available_moves(computer, simulated_board);
+                var computer_moves = get_available_moves(computer, simulated_board);
 
                 //get max value for this move
-                let max_score = max_value(simulated_board, computer_moves, limit-1, alpha, beta);
+                var max_score = max_value(simulated_board, computer_moves, limit-1, alpha, beta);
 
                 //compare to min and update, if necessary
                 if (max_score < min) {
@@ -4196,24 +4551,24 @@ $(document).ready(function(){
         if (limit <= 0 && !jump_available(computer_moves)) {
             return utility(calc_board);
         }
-        let max = NEG_INFINITY;
+        var max = NEG_INFINITY;
 
         //for each move, get max
         if (computer_moves.length > 0){
-            for (let i=0;i<computer_moves.length;i++){
-                let simulated_board = copy_board(calc_board);
+            for (var i=0;i<computer_moves.length;i++){
+                simulated_board = copy_board(calc_board);
 
                 //move computer piece
-                let computer_move = computer_moves[i];
-                let pieceIndex = getPieceIndex(simulated_board.pieces, computer_move.from.row, computer_move.from.col);
-                let piece = simulated_board.pieces[pieceIndex];
+                var computer_move = computer_moves[i];
+                var pieceIndex = getPieceIndex(simulated_board.pieces, computer_move.from.row, computer_move.from.col);
+                var piece = simulated_board.pieces[pieceIndex];
                 simulated_board = movePiece(simulated_board, piece, computer_move.from, computer_move.to);
 
                 //get available moves for human
-                let human_moves = get_available_moves(player, simulated_board);
+                var human_moves = get_available_moves(player, simulated_board);
 
                 //get min value for this move
-                let min_score = min_value(simulated_board, human_moves, limit-1, alpha, beta);
+                var min_score = min_value(simulated_board, human_moves, limit-1, alpha, beta);
                 computer_moves[i].score = min_score;
 
                 //compare to min and update, if necessary
@@ -4246,23 +4601,24 @@ $(document).ready(function(){
     }
 
     function utility(target_board) {
-        // let sum = 0;
-        let computer_pieces = 0;
-        let computer_kings = 0;
-        let human_pieces = 0;
-        let human_kings = 0;
-        let computer_pos_sum = 0;
-        let human_pos_sum = 0;
+        var sum = 0;
+        var computer_pieces = 0;
+        var computer_kings = 0;
+        var human_pieces = 0;
+        var human_kings = 0;
+        var computer_pos_sum = 0;
+        var human_pos_sum = 0;
 
-        for (let i=0; i<target_board.pieces.length; i++) {
-            let piece = target_board.pieces[i];
+        //log("************* UTILITY *****************")
+        for (var i=0; i<target_board.pieces.length; i++) {
+            var piece = target_board.pieces[i];
             if (piece.row > -1) { // only count pieces still on the board
                 if (piece.state > 0) { // human
                     human_pieces += 1;
                     if (piece.state === 1.1){
                         human_kings += 1;
                     }
-                    let human_pos = evaluate_position(piece.col, piece.row);
+                    var human_pos = evaluate_position(piece.col, piece.row);
                     human_pos_sum += human_pos;
                 }
                 else { // computer
@@ -4270,33 +4626,36 @@ $(document).ready(function(){
                     if (piece.state === -1.1){
                         computer_kings += 1;
                     }
-                    let computer_pos = evaluate_position(piece.col, piece.row);
+                    var computer_pos = evaluate_position(piece.col, piece.row);
                     computer_pos_sum += computer_pos;
                 }
             }
         }
 
-        let piece_difference = computer_pieces - human_pieces;
-        let king_difference = computer_kings - human_kings;
+        var piece_difference = computer_pieces - human_pieces;
+        var king_difference = computer_kings - human_kings;
         if (human_pieces === 0){
             human_pieces = 0.00001;
         }
-        let avg_human_pos = human_pos_sum / human_pieces;
+        var avg_human_pos = human_pos_sum / human_pieces;
         if (computer_pieces === 0) {
             computer_pieces = 0.00001;
         }
-        let avg_computer_pos = computer_pos_sum / computer_pieces;
-        let avg_pos_diff = avg_computer_pos - avg_human_pos;
+        var avg_computer_pos = computer_pos_sum / computer_pieces;
+        var avg_pos_diff = avg_computer_pos - avg_human_pos;
 
-        let features = [piece_difference, king_difference, avg_pos_diff];
-        let weights = [100, 10, 1];
+        var features = [piece_difference, king_difference, avg_pos_diff];
+        var weights = [100, 10, 1];
 
-        let board_utility = 0;
+        var board_utility = 0;
 
-        for (let f = 0; f < features.length; f++){
-            let fw = features[f] * weights[f];
+        for (var f=0; f<features.length; f++){
+            var fw = features[f] * weights[f];
             board_utility += fw;
         }
+
+        //log("utility=" + board_utility);
+        //log("************* END  UTILITY ************")
 
         return board_utility;
     }
