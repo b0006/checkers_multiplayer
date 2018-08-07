@@ -276,8 +276,8 @@ $(document).ready(function(){
 
         }
 
-        $('.board').toggleClass("rotate_board");
-        $('.rank__check').toggleClass("rotate_board");
+        // $('.board').toggleClass("rotate_board");
+        // $('.rank__check').toggleClass("rotate_board");
     }
 
     let ttt = 0;
@@ -1003,8 +1003,13 @@ $(document).ready(function(){
             let hasQueenEnemy = false;
             let needStep = [];
 
+            let lenght_for_queen = 3;
+            if(TYPE_GAME === "russian") {
+                lenght_for_queen = 8;
+            }
+
             let count = 0;
-            for (let q = 1; q < 8; q++) {
+            for (let q = 1; q < lenght_for_queen; q++) {
 
                 potencial_up_right_x = parseInt(piece_x) + q;
                 potencial_up_right_y = parseInt(piece_y) - q;
@@ -1058,6 +1063,7 @@ $(document).ready(function(){
                                                 //get next target fot attack
                                                 potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
                                                 hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
                                             }
                                         }
                                         catch (exp) {
@@ -1079,7 +1085,9 @@ $(document).ready(function(){
                                 pieceForFuch.push(current_piece);
                             }
                             else {
-                                potencialStepsWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                if(TYPE_GAME !== "russian" && q < 2) {
+                                    potencialStepsWhiteQueenUpRigth.push(potencialWhiteQueenCell);
+                                }
                             }
                         }
                     }
@@ -1096,7 +1104,7 @@ $(document).ready(function(){
 
             hasQueenEnemy = false;
             count = 0;
-            for (let q = 1; q < 8; q++) {
+            for (let q = 1; q < lenght_for_queen; q++) {
 
                 potencial_up_left_x = parseInt(piece_x) - q;
                 potencial_up_left_y = parseInt(piece_y) - q;
@@ -1151,6 +1159,7 @@ $(document).ready(function(){
                                                 //get next target fot attack
                                                 potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
                                                 hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
                                             }
                                         }
                                         catch (exp) {
@@ -1172,7 +1181,9 @@ $(document).ready(function(){
                                 pieceForFuch.push(current_piece);
                             }
                             else {
-                                potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                if(TYPE_GAME !== "russian" && q < 2) {
+                                    potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
+                                }
                             }
                         }
                     }
@@ -1191,7 +1202,7 @@ $(document).ready(function(){
 
             hasQueenEnemy = false;
             count = 0;
-            for (let q = 1; q < 8; q++) {
+            for (let q = 1; q < lenght_for_queen; q++) {
 
                 potencial_bottom_right_x = parseInt(piece_x) + q;
                 potencial_bottom_right_y = parseInt(piece_y) + q;
@@ -1247,6 +1258,7 @@ $(document).ready(function(){
                                                 //get next target fot attack
                                                 potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
                                                 hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
                                             }
                                         }
                                         catch (exp) {
@@ -1269,7 +1281,9 @@ $(document).ready(function(){
                                 pieceForFuch.push(current_piece);
                             }
                             else {
-                                potencialStepsWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                if(TYPE_GAME !== "russian" && q < 2) {
+                                    potencialStepsWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
+                                }
                             }
                         }
                     }
@@ -1288,7 +1302,7 @@ $(document).ready(function(){
 
             hasQueenEnemy = false;
             count = 0;
-            for (let q = 1; q < 8; q++) {
+            for (let q = 1; q < lenght_for_queen; q++) {
 
                 potencial_bottom_left_x = parseInt(piece_x) - q;
                 potencial_bottom_left_y = parseInt(piece_y) + q;
@@ -1344,6 +1358,7 @@ $(document).ready(function(){
                                                 //get next target fot attack
                                                 potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
                                                 hasQueenEnemy = true;
+                                                needEat.push(currentPiece);
                                             }
                                         }
                                         catch (exp) {
@@ -1366,7 +1381,9 @@ $(document).ready(function(){
                                 pieceForFuch.push(current_piece);
                             }
                             else {
-                                potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                if(TYPE_GAME !== "russian" && q < 2) {
+                                    potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
+                                }
                             }
                         }
                     }
