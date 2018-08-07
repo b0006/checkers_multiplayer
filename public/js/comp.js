@@ -276,8 +276,8 @@ $(document).ready(function(){
 
         }
 
-        // $('.board').toggleClass("rotate_board");
-        // $('.rank__check').toggleClass("rotate_board");
+        $('.board').toggleClass("rotate_board");
+        $('.rank__check').toggleClass("rotate_board");
     }
 
     let ttt = 0;
