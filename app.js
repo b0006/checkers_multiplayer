@@ -3,6 +3,8 @@ let app = express();
 let path = require ('path');
 app.use(express.static('public'));
 let fs = require("fs");
+let cors = require('cors');
+// let database = require('./db/db');
 
 let http = require('http').Server(app);
 let io = require('socket.io')(http);
@@ -17,11 +19,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.use(express.json());
+app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 
 app.use('/', indexRouter);
 app.use('/', parserRouter);
-app.use('/users', usersRouter);
+app.use('/', usersRouter);
 
 let lobbyUsers = {};
 let users = {};

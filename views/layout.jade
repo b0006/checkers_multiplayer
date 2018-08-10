@@ -7,9 +7,10 @@ html
         a(href="/") На главную
         block content
 
+    script(src="/lib/jquery-1.11.1.js")
+
     if packet !== "N" || packet !== "Y"
         script(src="/lib/socket.io-1.2.0.js")
-        script(src="/lib/jquery-1.11.1.js")
         script(src="/lib/jquery.maskedinput.min.js")
         script(src="/lib/jquery.redirect.js")
         script(src="/lib/dynamicListener.js")

@@ -4,6 +4,7 @@ const fs = require('fs');
 const osmosis = require('osmosis');
 const request = require('request');
 const cheerio = require('cheerio');
+let database = require('../db/db');
 
 function sleep(milliseconds) {
     var start = new Date().getTime();
@@ -21,12 +22,68 @@ String.prototype.replaceAll = function(search, replacement) {
 
 /* GET home page. */
 router.get('/parser/id', function(req, res, next) {
-    res.render('parser', { title: 'Write your URL:', example: "http://chessproblem.ru/id13538", packet : "N" });
+
+    database.connection.query('SELECT * FROM themes', function (error, results, fields) {
+        if (error) {
+            console.log("Ошибка запроса к таблице themes", error);
+            res.send({
+                "code":400,
+                "failed":"Ошибка запроса к таблице themes"
+            })
+        }else{
+
+            let themes = [];
+            results.forEach(function (value) {
+                themes.push({
+                    id: value.id,
+                    theme: value.theme
+                });
+            });
+
+            res.render('parser', {
+                title: 'Write your URL:',
+                example: "http://chessproblem.ru/id13538",
+                packet : "N",
+                themes: themes
+            });
+
+            // database.connection.end();
+        }
+    });
+
+    // database.connection.end();
 });
 
 /* GET home page. */
 router.get('/parser/packet', function(req, res, next) {
-    res.render('parser', { title: 'Write your URL:', example: "http://chessproblem.ru/pages/1", packet : "Y" });
+
+    database.connection.query('SELECT * FROM themes', function (error, results, fields) {
+        if (error) {
+            console.log("Ошибка запроса к таблице themes", error);
+            res.send({
+                "code":400,
+                "failed":"Ошибка запроса к таблице themes"
+            })
+        }else{
+
+            let themes = [];
+            results.forEach(function (value) {
+                themes.push({
+                    id: value.id,
+                    theme: value.theme
+                });
+            });
+
+            res.render('parser', {
+                title: 'Write your URL:',
+                example: "http://chessproblem.ru/pages/1",
+                packet : "Y",
+                themes: themes
+            });
+
+            // database.connection.end();
+        }
+    });
 });
 
 router.post('/parser/packet', function (req, res, next) {
@@ -114,7 +171,29 @@ router.post('/parser/packet', function (req, res, next) {
                         console.log("Файл " + txt_name + ".html сохранён.");
                     });
 
-                })
+                    /**
+                     * ADD TO DataBase
+                     */
+
+                    let today = new Date();
+                    let new_data_parsing = {
+                        "id_task" : txt_name,
+                        "id_theme": req.body.theme,
+                        "txt_file": textFile,
+                        "original_text" : html,
+                        "success" : true,
+                        "active" : true,
+                        "created": today,
+                    };
+
+                    database.connection.query('INSERT INTO parsing SET ?', new_data_parsing, function (error, results, fields) {
+                        if (error) {
+                            console.log("Ошибка добавления данных в БД", error);
+                        }else{
+
+                        }
+                    });
+                });
         })
 
     });
@@ -194,16 +273,48 @@ router.post('/parser/id', function(req, res, next) {
                 console.log("Файл " + txt_name + ".html сохранён.");
             });
 
+            /**
+             * ADD TO DataBase
+             */
 
-            res.render("parser", {
-                title: req.body.url,
-                name : data.title,
-                white: white,
-                black: black,
-                result: answer,
-                textFile : textFile,
-                txt_name : txt_name
+            let today = new Date();
+            let new_data_parsing = {
+                "id_task" : txt_name,
+                "id_theme": req.body.theme,
+                "txt_file": textFile,
+                "original_text" : html,
+                "success" : true,
+                "active" : true,
+                "created": today,
+            };
+
+            database.connection.query('INSERT INTO parsing SET ?', new_data_parsing, function (error, results, fields) {
+                if (error) {
+                    console.log("Ошибка добавления данных в БД", error);
+                    res.send({
+                        "code":400,
+                        "failed":"Ошибка добавления данных в БД"
+                    })
+                }else{
+                    res.render("parser", {
+                        title: req.body.url,
+                        name : data.title,
+                        white: white,
+                        black: black,
+                        result: answer,
+                        textFile : textFile,
+                        txt_name : txt_name
+                    });
+                }
             });
+
+            // database.connection.end();
+
+
+            /**
+             * CLOSE CONNECTION TO DB
+             */
+
         })
 });
 

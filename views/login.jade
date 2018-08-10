@@ -1,0 +1,17 @@
+extends layout
+
+block content
+    h2= title
+
+    if failed_text
+        h3= failed_text
+
+    form(id="register" method="post" action="/register")
+        input(name="loginEmail" id="loginEmail" placeholder="email" type="text")
+        input(name="loginPass" id="loginPass" placeholder="пароль" type="password")
+        input(name="submit" value="Войти" type="submit")
+
+    br
+    br
+    a(href="/guest")
+        button Войти, как гость
