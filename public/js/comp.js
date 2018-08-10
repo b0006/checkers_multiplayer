@@ -38,6 +38,9 @@ $(document).ready(function(){
     let words = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
     let digits = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
+    let words_need = ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'];
+    let digits_need = ['1', '2', '3', '4', '5', '6', '7', '8'];
+
     let count_history = 0;
 
     let arBackHistory = [];
@@ -201,7 +204,7 @@ $(document).ready(function(){
 
                         rank__check.setAttribute("x", t);
                         rank__check.setAttribute("y", i);
-                        rank__check.setAttribute("not", words[t] + "" + digits[i]);
+                        rank__check.setAttribute("not", words_need[t] + "" + digits_need[i]);
                     }
                 }
 
@@ -217,7 +220,7 @@ $(document).ready(function(){
 
                         rank__check.setAttribute("x", t);
                         rank__check.setAttribute("y", i);
-                        rank__check.setAttribute("not", words[t] + "" + digits[i]);
+                        rank__check.setAttribute("not", words_need[t] + "" + digits_need[i]);
                     }
                 }
 
