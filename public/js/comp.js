@@ -70,6 +70,7 @@ $(document).ready(function(){
         });
     }
 
+    let pick = 0;
     addDynamicEventListener(document.body, 'click', '#step-back', function (e) {
 
         if(arBackHistory.length > 0) {
@@ -127,10 +128,16 @@ $(document).ready(function(){
             catch (e) {
             }
 
+            if(pick == 0) {
+                $("#hys_" + count_history).remove();
+                count_history--;
+                pick = 1;
+            }
+            else {
+                pick = 0;
+            }
 
-            $("#hys_" + count_history).remove();
             arBackHistory.pop();
-            count_history--;
 
         }
     });
