@@ -47,7 +47,7 @@ $(document).ready(function(){
     let potencialStepsSimpleGlobal = []; // возможные шаги для обычных шашек
 
     // ход назад
-    function back_history(current, enemy = null, next = null, color, isqueen = false) {
+    function back_history(current, enemy = null, next = null, color, isqueen = false, wasMultiAttack = true) {
 
         let enemy_is_queen = false;
         if(enemy !== null){
@@ -62,11 +62,15 @@ $(document).ready(function(){
             next: next,
             color: color,
             isqueen: isqueen,
-            enemy_is_queen : enemy_is_queen
+            enemy_is_queen : enemy_is_queen,
+            wasMultiAttack: wasMultiAttack
         });
     }
+
     addDynamicEventListener(document.body, 'click', '#step-back', function (e) {
+
         if(arBackHistory.length > 0) {
+
             let index_last_element = arBackHistory.length - 1;
 
             let prev = arBackHistory[index_last_element].current;
@@ -124,6 +128,7 @@ $(document).ready(function(){
             $("#hys_" + count_history).remove();
             arBackHistory.pop();
             count_history--;
+
         }
     });
 
@@ -253,6 +258,11 @@ $(document).ready(function(){
                             piece.innerHTML = "&#9814;";
                             rank__check.append(piece);
 
+                            // piece = document.createElement("div");
+                            // piece.className = "piece white queen";
+                            // piece.innerHTML = "&#9819;";
+                            // rank__check.append(piece);
+
                             // ttt++;
                             // if(ttt < 3) {
                             //     piece = document.createElement("div");
@@ -280,36 +290,41 @@ $(document).ready(function(){
         $('.rank__check').toggleClass("rotate_board");
     }
 
-    let ttt = 0;
-
-    // лог на клиенте
-    function add_history(prev, next, isAttack = null, isEnemy = null, isMine = null, count, count_enemy) {
+    // лог на клиенте (нотация)
+    function add_history(prev, next, isAttack = null, isEnemy = null, enemyMultiAttack = false, friendMultiAttack = false) {
 
         if(isEnemy === true) {
-            let current_hys = $("#hys_" + count_history);
-
-            if (isAttack === true) {
-                current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + ":" + next.getAttribute("not"));
+            if(enemyMultiAttack) {
+                let current_hys = $("#hys_" + count_history);
+                current_hys.text(current_hys.text() + ":" + next.getAttribute("not"));
             }
             else {
-                current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + "-" + next.getAttribute("not"));
+                let current_hys = $("#hys_" + count_history);
+                if (isAttack === true) {
+                    current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + ":" + next.getAttribute("not"));
+                }
+                else {
+                    current_hys.text(current_hys.text() + " " + prev.getAttribute("not") + "-" + next.getAttribute("not"));
+                }
             }
 
         }
         else {
-            count_history++;
             if (isAttack === true) {
-                if(count === 0) {
-                    $("#history").append("<p id='hys_" + count_history + "'>" + count_history + ". " + prev.getAttribute("not") + ":" + next.getAttribute("not") + "</p>");
+                if (appendAttack >= 1) {
+                    let current_hys = $("#hys_" + count_history);
+                    current_hys.text(current_hys.text() + ":" + next.getAttribute("not"));
                 }
                 else {
-                    let current_hys = $("#hys_" + (count_history - 1));
-                    current_hys.text(current_hys.text() + ":" + next.getAttribute("not"));
+                    count_history++;
+                    $("#history").append("<p id='hys_" + count_history + "'>" + count_history + ". " + prev.getAttribute("not") + ":" + next.getAttribute("not") + "</p>");
                 }
             }
             else {
+                count_history++;
                 $("#history").append("<p id='hys_" + count_history + "'>" + count_history + ". " + prev.getAttribute("not") + "-" + next.getAttribute("not") + "</p>");
             }
+
         }
     }
     // лог на сервер
@@ -413,8 +428,8 @@ $(document).ready(function(){
         $(current_piece).remove();
         current_piece = null;
     }
-    
-    let append_count = 0;
+
+    let appendAttack = 0;
     // создание шашки в новом месте
     function appendPiece(target, currentColor, isAttack = null, current_is_queen) {
 
@@ -446,8 +461,8 @@ $(document).ready(function(){
         }
 
         if(isAttack === true) {
-            add_history(current_piece.parentElement, target, true, null, true, append_count, 0);
-            append_count++;
+            add_history(current_piece.parentElement, target, true, false, false);
+            appendAttack++;
         }
         else {
             add_history(current_piece.parentElement, target);
@@ -2504,11 +2519,11 @@ $(document).ready(function(){
 
         if((isSimples_white || isQueens_white) && (!isSimples_black && !isQueens_black)) {
             who_is_win = "white";
-            alert("Белые выиграли");
+            // alert("ИИ выиграл");
         }
         if((isSimples_black || isQueens_black) && (!isSimples_white && !isQueens_white)) {
             who_is_win = "black";
-            alert("Черные выиграли");
+            // alert("Игрок выиграл");
         }
 
         return who_is_win;
@@ -3114,6 +3129,7 @@ $(document).ready(function(){
      * COMPUTER LOGIC
      */
     function stepComputer(prev_move_to = null) {
+        appendAttack = 0;
         sleep(1000).then(() => {
             let wasAttack = false;
 
@@ -3165,13 +3181,23 @@ $(document).ready(function(){
 
                 if (selected_move.enemy) {
                     let enemy = getRankCheck(selected_move.enemy.col, selected_move.enemy.row);
-                    back_history(from_cell, enemy, to, "white", current_player_isQueen);
+
+                    if(prev_move_to) { // записать в нотацию, как многоходовочку
+                        add_history(from_cell, to, true, true, true);
+                        back_history(from_cell, enemy, to, "white", current_player_isQueen);
+                    }
+                    else {
+                        add_history(from_cell, to, true, true);
+                        back_history(from_cell, enemy, to, "white", current_player_isQueen);
+                    }
                     $(enemy.firstElementChild).remove();
 
                     wasAttack = true;
                 }
                 else {
                     back_history(from_cell, null, to, "white", current_player_isQueen);
+
+                    add_history(from_cell, to, false, true);
                 }
 
                 if (wasAttack) {
@@ -3411,11 +3437,10 @@ $(document).ready(function(){
             player_play = "white";
 
             if(isAttack === true) {
-                add_history(prev, next, true, true, null, 0, slow_count);
-                slow_count++;
+                add_history(prev, next, true, true);
             }
             else {
-                add_history(prev, next, null, true, null);
+                add_history(prev, next, null, true);
             }
         });
     }
@@ -3765,9 +3790,9 @@ $(document).ready(function(){
     }
 
     let red = 1;
-    let redKing = 1.1
+    let redKing = 1.1;
     let black = -1;
-    let blackKing = -1.1
+    let blackKing = -1.1;
     let empty = 0;
     let player = red;
     let computer = black;
@@ -4095,6 +4120,55 @@ $(document).ready(function(){
 
     let tt = 0;
 
+    function isMoveLegalRussianQueen(cells, pieces, piece, from, to) {
+
+        if ((to.col < 0) || (to.row < 0) || (to.col > 7) || (to.row > 7)) {
+            //console.log("ILLEGAL MOVE: piece going off board");
+            return {
+                isMoveLegal: false
+            };
+        }
+        let distance = {x: to.col-from.col,y: to.row-from.row};
+        if ((distance.x == 0) || (distance.y == 0)) {
+            //console.log("ILLEGAL MOVE: horizontal or vertical move");
+            return {
+                isMoveLegal: false
+            };
+        }
+        if (abs(distance.x) != abs(distance.y)) {
+            //console.log("ILLEGAL MOVE: non-diagonal move");
+            return {
+                isMoveLegal: false
+            };
+        }
+
+        if (to.state != empty) {
+            //console.log("ILLEGAL MOVE: cell is not empty");
+
+
+            if(to.state == 1 || to.state == 1.1) {
+                return {
+                    to_piece: 1,
+                    to: to,
+                    from: from,
+                    isMoveLegal: false
+                };
+            }
+            else if(to.state == -1 || to.state == -1.1) {
+                return {
+                    to_piece: -1,
+                    to: to,
+                    from: from,
+                    isMoveLegal: false
+                };
+            }
+        }
+
+        return {
+            isMoveLegal: true
+        };
+    }
+
     function isMoveLegal(cells, pieces, piece, from, to) {
         if ((to.col < 0) || (to.row < 0) || (to.col > 7) || (to.row > 7)) {
             //console.log("ILLEGAL MOVE: piece going off board");
@@ -4110,13 +4184,6 @@ $(document).ready(function(){
             return false;
         }
 
-        if (abs(distance.x) > 2) {
-            //console.log("ILLEGAL MOVE: more than two diagonals");
-            if(TYPE_GAME !== "russian") {
-                return false;
-            }
-            //return false;
-        }
         /* TODO: handle double jump
         if ((abs(distance.x) == 1) && double_jump) {
             return false;
@@ -4125,6 +4192,21 @@ $(document).ready(function(){
         if (to.state != empty) {
             //console.log("ILLEGAL MOVE: cell is not empty");
             return false;
+        }
+
+        if ((integ(piece.state) === piece.state) && (sign(piece.state) != sign(distance.y))) {
+            //console.log("ILLEGAL MOVE: wrong direction");
+            if(SIMPLE_BACK_ATTACK !== "on") {
+                return false;
+            }
+        }
+
+        if (abs(distance.x) > 2) {
+            //console.log("ILLEGAL MOVE: more than two diagonals");
+            if(TYPE_GAME !== "russian") {
+                return false;
+            }
+            //return false;
         }
 
         if (abs(distance.x) == 2) {
@@ -4138,14 +4220,6 @@ $(document).ready(function(){
             let jumpedState = integ(jumpedPiece.state);
             if (pieceState != -jumpedState) {
                 //console.log("ILLEGAL MOVE: can't jump own piece");
-                return false;
-            }
-        }
-
-
-        if ((integ(piece.state) === piece.state) && (sign(piece.state) != sign(distance.y))) {
-            //console.log("ILLEGAL MOVE: wrong direction");
-            if(SIMPLE_BACK_ATTACK !== "on") {
                 return false;
             }
         }
@@ -4336,57 +4410,22 @@ $(document).ready(function(){
         return index;
     }
 
+    let potencial = [];
     function get_available_piece_moves(target_board, target_piece, player) {
+
         let moves = [];
         let from = target_piece;
 
-        // check for slides
-        let x = [-1, 1];
-        x.forEach(function(entry) {
-            let cell_index = get_cell_index(target_board, from.col+entry, from.row+(player*1));
-            if (cell_index >= 0){
-                let to = target_board.cells[cell_index];
-                if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                    move = {
-                        move_type: 'slide',
-                        piece: player,
-                        from: {col: from.col, row: from.row},
-                        to: {col: to.col, row: to.row}
-                    };
-                    moves[moves.length] = move;
-                }
-            }
-        });
-
-        // check for jumps
-        x = [-2, 2];
-        let y = [-2, 2];
-        x.forEach(function(xmove) {
-            y.forEach(function(ymove){
-                let cell_index = get_cell_index(target_board, from.col+xmove, from.row+ymove);
-                if (cell_index >= 0){
+        if(Math.abs(from.state) === 1) {
+            // check for slides
+            let x = [-1, 1];
+            x.forEach(function (entry) {
+                let cell_index = get_cell_index(target_board, from.col + entry, from.row + (player * 1));
+                if (cell_index >= 0) {
                     let to = target_board.cells[cell_index];
-
-                    let col_enemy = 0;
-                    let row_enemy = 0;
-                    if(xmove === -2) {
-                        col_enemy = from.col + (xmove + 1);
-                    }
-                    else {
-                        col_enemy = from.col + (xmove - 1);
-                    }
-
-                    if(ymove === -2) {
-                        row_enemy = from.row + (ymove + 1);
-                    }
-                    else {
-                        row_enemy = from.row + (ymove - 1);
-                    }
-
                     if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
                         move = {
-                            enemy: {col: col_enemy, row: row_enemy},
-                            move_type: 'jump',
+                            move_type: 'slide',
                             piece: player,
                             from: {col: from.col, row: from.row},
                             to: {col: to.col, row: to.row}
@@ -4395,161 +4434,198 @@ $(document).ready(function(){
                     }
                 }
             });
-        });
 
-        // check for jumps
-        // x = [-2, 2];
-        // x.forEach(function(entry) {
-        //     let cell_index = get_cell_index(target_board, from.col+entry, from.row+(player*2));
-        //     if (cell_index >= 0) {
-        //         let to = target_board.cells[cell_index];
-        //
-        //         let col_enemy = 0;
-        //         if(entry === -2) {
-        //             col_enemy = from.col + (entry + 1);
-        //         }
-        //         else {
-        //             col_enemy = from.col + (entry - 1);
-        //         }
-        //
-        //         if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-        //             move = {
-        //                 enemy: {col: col_enemy, row: from.row+(player*1)},
-        //                 move_type: 'jump',
-        //                 piece: player,
-        //                 from: {col: from.col, row: from.row},
-        //                 to: {col: to.col, row: to.row}
-        //             };
-        //             moves[moves.length] = move;
-        //         }
-        //     }
-        // });
+            // check for jumps
+            x = [-2, 2];
+            let y = [-2, 2];
+            x.forEach(function (xmove) {
+                y.forEach(function (ymove) {
+                    let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
+                    if (cell_index >= 0) {
+                        let to = target_board.cells[cell_index];
 
-        // kings
-        if (Math.abs(from.state) === 1.1) {
-            if (TYPE_GAME === "english") {
-                // check for slides
-                let x = [-1, 1];
-                y = [-1, 1];
-                x.forEach(function (xmove) {
-                    y.forEach(function (ymove) {
-                        let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                        if (cell_index >= 0) {
-                            let to = target_board.cells[cell_index];
-                            if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                                move = {
-                                    move_type: 'slide',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                };
-                                moves[moves.length] = move;
-                            }
+                        let col_enemy = 0;
+                        let row_enemy = 0;
+                        if (xmove === -2) {
+                            col_enemy = from.col + (xmove + 1);
                         }
-                    });
-                });
-
-                // check for jumps
-                x = [-2, 2];
-                y = [-2, 2];
-                x.forEach(function (xmove) {
-                    y.forEach(function (ymove) {
-                        let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                        if (cell_index >= 0) {
-                            let to = target_board.cells[cell_index];
-
-                            let col_enemy = 0;
-                            let row_enemy = 0;
-                            if(xmove === -2) {
-                                col_enemy = from.col + (xmove + 1);
-                            }
-                            else {
-                                col_enemy = from.col + (xmove - 1);
-                            }
-
-                            if(ymove === -2) {
-                                row_enemy = from.row + (ymove + 1);
-                            }
-                            else {
-                                row_enemy = from.row + (ymove - 1);
-                            }
-
-                            if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                                move = {
-                                    enemy: {col: col_enemy, row: row_enemy},
-                                    move_type: 'jump',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                };
-                                moves[moves.length] = move;
-                            }
+                        else {
+                            col_enemy = from.col + (xmove - 1);
                         }
-                    });
-                });
-            }
-            else if(TYPE_GAME === "russian") {
-                // check for slides
-                let x = [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7];
-                y = [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7];
-                x.forEach(function (xmove) {
-                    y.forEach(function (ymove) {
-                        let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                        if (cell_index >= 0) {
-                            let to = target_board.cells[cell_index];
-                            if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                                move = {
-                                    move_type: 'slide',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                };
-                                moves[moves.length] = move;
-                            }
+
+                        if (ymove === -2) {
+                            row_enemy = from.row + (ymove + 1);
                         }
-                    });
-                });
-
-                // check for jumps
-                x = [-2, 2];
-                y = [-2, 2];
-                x.forEach(function (xmove) {
-                    y.forEach(function (ymove) {
-                        let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                        if (cell_index >= 0) {
-                            let to = target_board.cells[cell_index];
-
-                            let col_enemy = 0;
-                            let row_enemy = 0;
-                            if(xmove === -2) {
-                                col_enemy = from.col + (xmove + 1);
-                            }
-                            else {
-                                col_enemy = from.col + (xmove - 1);
-                            }
-
-                            if(ymove === -2) {
-                                row_enemy = from.row + (ymove + 1);
-                            }
-                            else {
-                                row_enemy = from.row + (ymove - 1);
-                            }
-
-                            if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                                move = {
-                                    enemy: {col: col_enemy, row: row_enemy},
-                                    move_type: 'jump',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                };
-                                moves[moves.length] = move;
-                            }
+                        else {
+                            row_enemy = from.row + (ymove - 1);
                         }
-                    });
+
+                        if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
+                            move = {
+                                enemy: {col: col_enemy, row: row_enemy},
+                                move_type: 'jump',
+                                piece: player,
+                                from: {col: from.col, row: from.row},
+                                to: {col: to.col, row: to.row}
+                            };
+                            moves[moves.length] = move;
+                        }
+                    }
                 });
-            }
+            });
         }
+
+        // if(TYPE_GAME !== "russian") {
+            // kings
+            if (Math.abs(from.state) === 1.1) {
+                if (TYPE_GAME === "english") {
+                    // check for slides
+                    let x = [-1, 1];
+                    let y = [-1, 1];
+                    x.forEach(function (xmove) {
+                        y.forEach(function (ymove) {
+                            let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
+                            if (cell_index >= 0) {
+                                let to = target_board.cells[cell_index];
+                                if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
+                                    move = {
+                                        move_type: 'slide',
+                                        piece: player,
+                                        from: {col: from.col, row: from.row},
+                                        to: {col: to.col, row: to.row}
+                                    };
+                                    moves[moves.length] = move;
+                                }
+                            }
+                        });
+                    });
+
+                    // check for jumps
+                    x = [-2, 2];
+                    y = [-2, 2];
+                    x.forEach(function (xmove) {
+                        y.forEach(function (ymove) {
+                            let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
+                            if (cell_index >= 0) {
+                                let to = target_board.cells[cell_index];
+
+                                let col_enemy = 0;
+                                let row_enemy = 0;
+                                if (xmove === -2) {
+                                    col_enemy = from.col + (xmove + 1);
+                                }
+                                else {
+                                    col_enemy = from.col + (xmove - 1);
+                                }
+
+                                if (ymove === -2) {
+                                    row_enemy = from.row + (ymove + 1);
+                                }
+                                else {
+                                    row_enemy = from.row + (ymove - 1);
+                                }
+
+                                if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
+                                    move = {
+                                        enemy: {col: col_enemy, row: row_enemy},
+                                        move_type: 'jump',
+                                        piece: player,
+                                        from: {col: from.col, row: from.row},
+                                        to: {col: to.col, row: to.row}
+                                    };
+                                    moves[moves.length] = move;
+                                }
+                            }
+                        });
+                    });
+                }
+                else if(TYPE_GAME === "russian") {
+
+                    potencial = [];
+
+                    // check for slides
+                    let x = [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7];
+                    let y = [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7];
+                    x.forEach(function (xmove) {
+                        y.forEach(function (ymove) {
+                            let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
+                            if (cell_index >= 0) {
+                                let to = target_board.cells[cell_index];
+
+                                let result = isMoveLegalRussianQueen(target_board.cells, target_board.pieces, from, from, to);
+                                if(result.to) {
+                                    potencial.push(result);
+                                }
+
+                                if (result.isMoveLegal) {
+                                    let move = {
+                                        move_type: 'slide',
+                                        piece: player,
+                                        from: {col: from.col, row: from.row},
+                                        to: {col: to.col, row: to.row}
+                                    };
+
+                                    potencial.push({
+                                        move_type: 'slide',
+                                        piece: player,
+                                        from: {col: from.col, row: from.row},
+                                        to: {col: to.col, row: to.row}
+                                    });
+                                    moves[moves.length] = move;
+                                }
+                            }
+                        });
+                    });
+
+                    // let remember_index_for_pop = 0;
+                    // potencial.forEach(function (value, index) {
+                    //     if(index != (potencial.length - 1)) { // если это не последний элемент
+                    //         if(typeof value.isMoveLegal !== "undefined"){
+                    //             if(typeof potencial[index + 1].isMoveLegal !== "undefined"){
+                    //                 remember_index_for_pop = index;
+                    //
+                    //                 let count_delete = potencial.length - remember_index_for_pop;
+                    //                 potencial.splice(remember_index_for_pop, count_delete);
+                    //             }
+                    //             else if(typeof potencial[index + 1].isMoveLegal === "undefined"){ // значит следующая пустая клетка
+                    //                 if((value.to_piece === 1) || (value.to_piece === 1.1)){ // значит препятствие враг и его надо рубить
+                    //                     //надо проверить на верный jump (может произойти так, что реальный slide окажется jump
+                    //                     // potencial[index + 1].move_type = "jump";
+                    //
+                    //                     let p_from = potencial[index + 1].from;
+                    //                     let p_to = potencial[index + 1].to;
+                    //                     let current_side = "";
+                    //                 }
+                    //                 else if((value.to_piece === -1) || (value.to_piece === -1.1)){ // значит это друг и после него хода нет
+                    //                     remember_index_for_pop = index;
+                    //
+                    //                     let count_delete = potencial.length - remember_index_for_pop;
+                    //                     potencial.splice(remember_index_for_pop, count_delete);
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // });
+                    //
+                    // potencial.forEach(function (value, index) {
+                    //     if(typeof value.isMoveLegal !== "undefined"){
+                    //         potencial.splice(index, 1);
+                    //     }
+                    // });
+                    //
+                    // if(potencial.length > 0) {
+                    //     moves = potencial;
+                    // }
+
+                    console.log(potencial);
+                }
+            }
+
+
+        // }
+        // else {
+        //
+        // }
 
         return moves;
     }
@@ -4564,6 +4640,12 @@ $(document).ready(function(){
             let piece_moves = get_available_piece_moves(target_board, from, player);
             moves.push.apply(moves, piece_moves);
         }
+
+        // проверка на jump для русских дамок
+        if(TYPE_GAME === "russian"){
+
+        }
+
 
         //prune non-jumps, if applicable
         let jump_moves = [];
@@ -4595,6 +4677,8 @@ $(document).ready(function(){
 
         //get available moves for computer
         let available_moves = get_available_moves(computer, calc_board);
+
+        console.log(available_moves);
 
         let max = 0;
         if(isNeedMarkAlphaBeta) {
@@ -4721,7 +4805,7 @@ $(document).ready(function(){
         //for each move, get max
         if (computer_moves.length > 0){
             for (let i=0;i<computer_moves.length;i++){
-                simulated_board = copy_board(calc_board);
+                let simulated_board = copy_board(calc_board);
 
                 //move computer piece
                 let computer_move = computer_moves[i];
