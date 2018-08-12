@@ -5,7 +5,8 @@ html
         link(rel='stylesheet', href='/css/style.css')
     body
         a(href="/") На главную
-        block content
+
+    block content
 
     script(src="/lib/jquery-1.11.1.js")
 
@@ -75,7 +76,7 @@ html
                         data[value.name] = value.value;
                     });
 
-                    $.redirect("/ai", data, "POST");
+                    $.redirect("/game/ai", data, "POST");
 
                 });
 

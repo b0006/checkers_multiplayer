@@ -4,7 +4,7 @@ const fs = require('fs');
 const osmosis = require('osmosis');
 const request = require('request');
 const cheerio = require('cheerio');
-let database = require('../db/db');
+let connection = require('../db/db');
 
 function sleep(milliseconds) {
     var start = new Date().getTime();
@@ -23,7 +23,7 @@ String.prototype.replaceAll = function(search, replacement) {
 /* GET home page. */
 router.get('/parser/id', function(req, res, next) {
 
-    database.connection.query('SELECT * FROM themes', function (error, results, fields) {
+    connection.query('SELECT * FROM themes', function (error, results, fields) {
         if (error) {
             console.log("Ошибка запроса к таблице themes", error);
             res.send({
@@ -40,7 +40,7 @@ router.get('/parser/id', function(req, res, next) {
                 });
             });
 
-            res.render('parser', {
+            res.render('parser/parser', {
                 title: 'Write your URL:',
                 example: "http://chessproblem.ru/id13538",
                 packet : "N",
@@ -57,7 +57,7 @@ router.get('/parser/id', function(req, res, next) {
 /* GET home page. */
 router.get('/parser/packet', function(req, res, next) {
 
-    database.connection.query('SELECT * FROM themes', function (error, results, fields) {
+    connection.query('SELECT * FROM themes', function (error, results, fields) {
         if (error) {
             console.log("Ошибка запроса к таблице themes", error);
             res.send({
@@ -74,7 +74,7 @@ router.get('/parser/packet', function(req, res, next) {
                 });
             });
 
-            res.render('parser', {
+            res.render('parser/parser', {
                 title: 'Write your URL:',
                 example: "http://chessproblem.ru/pages/1",
                 packet : "Y",
@@ -186,7 +186,7 @@ router.post('/parser/packet', function (req, res, next) {
                         "created": today,
                     };
 
-                    database.connection.query('INSERT INTO parsing SET ?', new_data_parsing, function (error, results, fields) {
+                    connection.query('INSERT INTO parsing SET ?', new_data_parsing, function (error, results, fields) {
                         if (error) {
                             console.log("Ошибка добавления данных в БД", error);
                         }else{
@@ -198,7 +198,7 @@ router.post('/parser/packet', function (req, res, next) {
 
     });
 
-    res.render("parser", {
+    res.render("parser/parser", {
         title: "Packet answers",
         status : "ok"
     });
@@ -288,7 +288,7 @@ router.post('/parser/id', function(req, res, next) {
                 "created": today,
             };
 
-            database.connection.query('INSERT INTO parsing SET ?', new_data_parsing, function (error, results, fields) {
+            connection.query('INSERT INTO parsing SET ?', new_data_parsing, function (error, results, fields) {
                 if (error) {
                     console.log("Ошибка добавления данных в БД", error);
                     res.send({
@@ -296,7 +296,7 @@ router.post('/parser/id', function(req, res, next) {
                         "failed":"Ошибка добавления данных в БД"
                     })
                 }else{
-                    res.render("parser", {
+                    res.render("parser/parser", {
                         title: req.body.url,
                         name : data.title,
                         white: white,

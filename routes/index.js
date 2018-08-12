@@ -3,18 +3,29 @@ let router = express.Router();
 
 let date = new Date().getDate() + "." + (new Date().getMonth() + 1) + "." + new Date().getFullYear();
 
+let sess;
+
 /* GET start main page. */
 router.get('/', function(req, res, next) {
-    res.render('index.jade', {
+    res.render('pages/auth/main', {
         title: 'Шашки',
         current_date: date
     });
 });
 
-router.post('/ai', function(req, res, next) {
+
+/* GET start main page. */
+router.get('/game', isLoggedIn, function(req, res, next) {
+    res.render('pages/game/index', {
+        title: 'Шашки',
+        current_date: date
+    });
+});
+
+router.post('/game/ai', isLoggedIn, function(req, res, next) {
     console.log(req.body);
 
-    res.render('index.jade', {
+    res.render('pages/game/index', {
         title: 'Шашки',
         level: req.body.level,
         game_mode: req.body.game_mode,
@@ -30,11 +41,11 @@ router.post('/ai', function(req, res, next) {
     });
 });
 
-router.get('/good', function(req, res, next) {
-    res.render('good.jade', {
-        title: 'Шашки',
-        current_date: date
-    });
-});
+function isLoggedIn(req, res, next) {
+    if (req.isAuthenticated())
+        return next();
+
+    res.redirect('/signin');
+}
 
 module.exports = router;

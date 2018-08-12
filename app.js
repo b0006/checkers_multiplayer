@@ -1,30 +1,64 @@
 let express = require('express');
 let app = express();
 let path = require ('path');
-app.use(express.static('public'));
 let fs = require("fs");
-let cors = require('cors');
-// let database = require('./db/db');
-
+let passport   = require('passport');
+let session = require('express-session');
 let http = require('http').Server(app);
 let io = require('socket.io')(http);
 let port = process.env.PORT || 3015;
 
-let indexRouter = require('./routes/index.js');
+let env = require('dotenv').load();
+
+//Routes
+// let authRoute = require('./routes/auth.js')(app, passport);
+let authRoute = require('./routes/auth.js');
+
+//Models
+let models = require("./app/models");
+
+//Sync Database
+models.sequelize.sync().then(function() {
+    console.log('Nice! Database looks fine')
+}).catch(function(err) {
+    console.log(err, "Something went wrong with the Database Update!")
+});
+
+//load passport strategies
+require('./app/config/passport/passport.js')(passport, models.user);
+
+let indexRouter = require('./routes/index');
 let usersRouter = require('./routes/users');
 let parserRouter = require('./routes/parser');
+
+app.use(express.static('public'));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.use(express.json());
-app.use(cors());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
+
+// For Passport
+app.use(session({
+    secret: 'punks not dead',
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+        maxAge: 24*60*60*1000,
+        expires:  24*60*60*1000
+    }
+}));
+
+
+app.use(passport.initialize());
+app.use(passport.session()); // persistent login sessions
 
 app.use('/', indexRouter);
 app.use('/', parserRouter);
 app.use('/', usersRouter);
+app.use('/', authRoute);
 
 let lobbyUsers = {};
 let users = {};
@@ -158,7 +192,6 @@ io.on('connection', function(socket) {
     });
 
 });
-
 
 http.listen(port, function() {
     console.log('listening on *: ' + port);
