@@ -3,7 +3,7 @@
     "username": "64dbu",
     "password": "Unhj86*2",
     "database": "64db",
-    "host": "mastersv.ru",
+    "host": "localhost",
     "dialect": "mysql"
   },
   "test": {
