@@ -9,14 +9,7 @@ router.get('/signin', authController.signin);
 
 router.post('/signup', passport.authenticate('local-signup', {failureRedirect: '/signup'}),
     function(req, res) {
-        let isAuth = res.req.session.passport.user; //session user id
-        let nickname = res.req.user.nickname;
-
-        res.render('pages/game/index', {
-            title: "Выбор режима",
-            isAuth: isAuth,
-            nickname: nickname
-        });
+        res.redirect('/game');
     }
 );
 
@@ -24,14 +17,7 @@ router.get('/logout', authController.logout);
 
 router.post('/signin', passport.authenticate('local-signin', {failureRedirect: '/signin'}),
     function(req, res) {
-        let isAuth = res.req.session.passport.user; //session user id
-        let nickname = res.req.user.nickname;
-
-        res.render('pages/game/index', {
-            title: "Выбор режима",
-            isAuth: isAuth,
-            nickname: nickname
-        });
+        res.redirect('/game');
     }
 );
 
