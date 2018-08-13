@@ -150,12 +150,16 @@ module.exports = function(passport, user) {
         function(req, done) {
             let User = user;
 
-            User
-                .findOrCreate({where: {nickname: 'sdepold'}, defaults: {hash: 'Technical Lead JavaScript'}})
-                .spread((user, created) => {
-                    let new_id = user.dataValues.id;
-                    done(null, user);
-                })
+            let data = { nickname: "anonymus"};
+
+            User.create(data).then(function(newUser, created) {
+                if (!newUser) {
+                    return done(null, false);
+                }
+                if (newUser) {
+                    return done(null, newUser);
+                }
+            });
         }
     ));
 

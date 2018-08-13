@@ -3,15 +3,36 @@ html
     head
         title #{title} #{current_date}
         link(rel='stylesheet', href='/css/style.css')
+        script(src="/lib/jquery-1.11.1.js")
+        script(src="/lib/socket.io-1.2.0.js")
+
     body
         a(href="/") На главную
+        br
+        a(href="/game") Игра
+
+        if isAuth
+            script.
+                let socket = io();
+                let login = "";
+                if('#{nickname}' == 'anonymus') {
+                    login = '#{nickname + "_" + isAuth}';
+                }
+                else {
+                    login = '#{nickname}';
+                }
+                socket.emit('login', login);
+
+            br
+            if nickname == "anonymus"
+                p Здравствуйте, #{nickname + "_" + isAuth}
+            else
+                p Здравствуйте, #{nickname}
+            a(href="/logout") Выйти
 
     block content
 
-    script(src="/lib/jquery-1.11.1.js")
-
     if packet !== "N" || packet !== "Y"
-        script(src="/lib/socket.io-1.2.0.js")
         script(src="/lib/jquery.maskedinput.min.js")
         script(src="/lib/jquery.redirect.js")
         script(src="/lib/dynamicListener.js")
@@ -116,4 +137,6 @@ html
             multiattack='#{multiattack}'
             fuchs='#{fuchs}'
             simple_back_attack='#{simple_back_attack}'
+            nickname='#{nickname}'
+            id_nickname='#{isAuth}'
             )

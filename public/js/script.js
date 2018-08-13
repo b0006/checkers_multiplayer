@@ -30,10 +30,22 @@ $( document ).ready(function() {
     //можно обычным шашка аттаковать назад
     let SIMPLE_BACK_ATTACK = null;
 
+    let NICKNAME = null;
+    let ID_NICKNAME = null;
+
     // click on player vs player
     addDynamicEventListener(document.body, 'click', '#PP', function (e) {
+        if(NICKNAME == "anonymus") {
+            socket.emit('login', NICKNAME + "_" + ID_NICKNAME);
+        }
+        else {
+            socket.emit('login', NICKNAME);
+        }
+
+        // $('#page-start').hide();
+        // $('#page-login').show();
         $('#page-start').hide();
-        $('#page-login').show();
+        $('#page-lobby').show();
     });
 
     // click on player vs player
@@ -111,6 +123,7 @@ $( document ).ready(function() {
         playerColor = msg.color;
         initGame(msg.game);
 
+        $('#page-start').hide();
         $('#page-lobby').hide();
         $('#page-game').show();
     });
