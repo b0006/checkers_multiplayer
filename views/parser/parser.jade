@@ -1,12 +1,6 @@
 extends ../layout
 
 block content
-    br
-    br
-    a(href="/parser/packet") Пакетный режим
-    br
-    a(href="/parser/id") Одиночный режим
-    br
 
     if packet === "Y"
         h1 Пакетный режим
@@ -27,6 +21,36 @@ block content
             input(type='text' name='url' id='url' placeholder="URL задачи")
             br
             input(type='submit' value='Начать парсинг')
+
+        br
+        br
+        form(action='/parser/id_notation' method='post' id='form')
+            textarea(rows="30" cols="150" name='text' id='text' placeholder="text")
+            br
+            input(type='submit' value='В полную нотацию')
+
+
+        br
+        br
+        form(action='/parser/id_first_white_move' method='post' id='form')
+            textarea(rows="30" cols="150" name='text' id='text' placeholder="text")
+            br
+            input(type='submit' value='Первый ход белых')
+
+        br
+        br
+        form(action='/parser/id_kvad' method='post' id='form')
+            textarea(rows="30" cols="150" name='text' id='text' placeholder="text")
+            br
+            input(type='submit' value='Убрать квадратные скобки')
+
+        br
+        br
+        form(action='/parser/id_krug' method='post' id='form')
+            textarea(rows="30" cols="150" name='text' id='text' placeholder="text")
+            br
+            input(type='submit' value='Убрать круглые скобки')
+
     else if packet === "Y"
         form(action='/parser/packet' method='post' id='form')
             input(type='text' name='theme' id='theme' placeholder="ID темы")
@@ -38,9 +62,12 @@ block content
     p= status
 
     div
-        pre#answer= textFile
+        h2 ORIGIN
+        pre#origin= origin
+        h2 RESULT
+        pre#result= result
 
 
 
-        script.
+        //script.
             //document.write('<a href="data:text/plain;charset=utf-8,%EF%BB%BF' + (text) + '" download="#{txt_name}.txt">Скачать #{txt_name}</a>')
