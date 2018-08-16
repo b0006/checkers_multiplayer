@@ -5,6 +5,9 @@ html
         link(rel='stylesheet', href='/css/style.css')
         script(src="/lib/jquery-1.11.1.js")
         script(src="/lib/socket.io-1.2.0.js")
+        script(src="/lib/jquery.maskedinput.min.js")
+        script(src="/lib/jquery.redirect.js")
+        script(src="/lib/dynamicListener.js")
 
     body
         a(href="/") На главную
@@ -30,12 +33,12 @@ html
                 p Здравствуйте, #{nickname}
             a(href="/logout") Выйти
 
+
+
     block content
 
+    h4= activeMessage
     if packet !== "N" || packet !== "Y"
-        script(src="/lib/jquery.maskedinput.min.js")
-        script(src="/lib/jquery.redirect.js")
-        script(src="/lib/dynamicListener.js")
 
         script.
             $( document ).ready(function() {

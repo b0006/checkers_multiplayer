@@ -2,13 +2,13 @@ div(class'page setting' id='page-setting' style="display: none")
     form(id="settings")
         h3 Вид игры
         div#big_settings
-            input(type='radio' name='type_game' value="english" checked)
+            input(id='english' type='radio' name='type_game' value="english" checked)
             | Английские шашки
             br
-            input(type='radio' name='type_game' value="russian")
+            input(id='russian' type='radio' name='type_game' value="russian")
             | Русские шашки
             br
-            input(type='radio' name='type_game' value="giveaway")
+            input(id='giveaway' type='radio' name='type_game' value="giveaway")
             | Поддавки
             br
 
@@ -37,9 +37,23 @@ div(class'page setting' id='page-setting' style="display: none")
             br
         h3 Обычные шашки
         div
-            input(type='checkbox' name='simple_back_attack')
+            input(id='simple_back_attack' type='checkbox' name='simple_back_attack')
             | Рубить назад
         h3 Дамки
         div
-            input(type='checkbox' name='queen_awesome_step')
+            input(id='queen_awesome_step' type='checkbox' name='queen_awesome_step')
             | Возможность хода по всей диагонали
+
+    script.
+        addDynamicEventListener(document.body, 'click', '#english', function (event) {
+            if ($("#english").prop('checked')) {
+                $("#simple_back_attack").prop("checked", false);
+                $("#queen_awesome_step").prop("checked", false);
+            }
+        });
+        addDynamicEventListener(document.body, 'click', '#russian', function (event) {
+            if ($("#russian").prop('checked')) {
+                $("#simple_back_attack").prop("checked", true);
+                $("#queen_awesome_step").prop("checked", true);
+            }
+        });

@@ -30,20 +30,8 @@ $( document ).ready(function() {
     //можно обычным шашка аттаковать назад
     let SIMPLE_BACK_ATTACK = null;
 
-    let NICKNAME = null;
-    let ID_NICKNAME = null;
-
     // click on player vs player
     addDynamicEventListener(document.body, 'click', '#PP', function (e) {
-        if(NICKNAME == "anonymus") {
-            socket.emit('login', NICKNAME + "_" + ID_NICKNAME);
-        }
-        else {
-            socket.emit('login', NICKNAME);
-        }
-
-        // $('#page-start').hide();
-        // $('#page-login').show();
         $('#page-start').hide();
         $('#page-lobby').show();
     });
@@ -281,33 +269,43 @@ $( document ).ready(function() {
     };
 
     let updateGamesList = function() {
-        document.getElementById('gamesList').innerHTML = '';
-        myGames.forEach(function(game) {
-            $('#gamesList').append($('<button>')
-                .text('#'+ game)
-                .on('click', function() {
-                    socket.emit('resumegame',  game);
-            }));
-        });
+        try {
+            document.getElementById('gamesList').innerHTML = '';
+            myGames.forEach(function (game) {
+                $('#gamesList').append($('<button>')
+                    .text('#' + game)
+                    .on('click', function () {
+                        socket.emit('resumegame', game);
+                    }));
+            });
+        }
+        catch (e) {
+            
+        }
     };
 
     let updateUserList = function() {
 
-        document.getElementById('userList').innerHTML = '';
-        usersOnline.forEach(function(user) {
-            $('#userList').append($('<button>')
-                .attr("id", user)
-                .text(user)
-                .on('click', function() {
-                    //get settings of game
-                    let data_form_settings = $("#settings").serializeArray();
+        try {
+            document.getElementById('userList').innerHTML = '';
+            usersOnline.forEach(function (user) {
+                $('#userList').append($('<button>')
+                    .attr("id", user)
+                    .text(user)
+                    .on('click', function () {
+                        //get settings of game
+                        let data_form_settings = $("#settings").serializeArray();
 
-                    socket.emit('invite',  {
-                        user: user,
-                        settings_game: data_form_settings // передать настройки на сервер
-                    });
-            }));
-        });
+                        socket.emit('invite', {
+                            user: user,
+                            settings_game: data_form_settings // передать настройки на сервер
+                        });
+                    }));
+            });
+        }
+        catch (e) {
+            
+        }
     };
 
     //////////////////////////////

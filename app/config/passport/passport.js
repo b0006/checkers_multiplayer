@@ -3,8 +3,17 @@ let env = process.env.NODE_ENV || "development";
 let Sequelize = require("sequelize");
 let config = require(path.join(__dirname, '..', '', 'config.json'))[env];
 let sequelize = new Sequelize(config.database, config.username, config.password, config);
-
+let nodemailer = require("nodemailer");
 let bCrypt = require('bcrypt-nodejs');
+let md5 = require("../../../md5");
+
+let smtpTransport = nodemailer.createTransport({
+    service: "Gmail",
+    auth: {
+        user: "qsefthuken@gmail.com",
+        pass: "13820004"
+    }
+});
 
 module.exports = function(passport, user) {
 
@@ -47,6 +56,7 @@ module.exports = function(passport, user) {
                             email: email,
                             hash: userPassword,
                             nickname: req.body.nickname,
+                            active: 0
                         };
 
                     User.create(data).then(function(newUser, created) {
@@ -56,6 +66,30 @@ module.exports = function(passport, user) {
                         }
 
                         if (newUser) {
+
+                            //send to email for verify
+                            let new_user_id = newUser.dataValues.id;
+
+                            let rand = md5.getMD5fromString(email);
+                            console.log(rand);
+
+                            let host = req.get('host');
+                            let link="http://"+host+"/verify?id="+new_user_id+"&hash="+rand;
+                            let mailOptions={
+                                to : email,
+                                subject : "Здравствуйте! Пожалуйста, подтвержите ваш Email",
+                                html : "Здравствуйте, "+req.body.nickname+".<br> Пожалуйста, кликните по данной ссылке, чтобы подтвердить Ваш email.<br><a href="+link+">Подтвердить</a>"
+                            }
+
+                            smtpTransport.sendMail(mailOptions, function(error, response) {
+                                if (error) {
+                                    console.log("Message not send");
+                                    console.log(error);
+                                } else {
+                                    console.log("Message send");
+                                }
+                            });
+
                             return done(null, newUser);
                         }
                     });
@@ -116,7 +150,6 @@ module.exports = function(passport, user) {
                 }
 
                 if (!isValidPassword(user.hash, password)) {
-
                     console.log("Incorrect password")
                     return done(null, false, {
                         message: 'Incorrect password.'
@@ -124,10 +157,8 @@ module.exports = function(passport, user) {
 
                 }
 
-
-                var userinfo = user.get();
+                let userinfo = user.get();
                 return done(null, userinfo);
-
 
             }).catch(function(err) {
 
