@@ -35,12 +35,18 @@ module.exports.verify = function (req, res) {
             if(hash_from_email === hash_from_db) { //значит все ок
                 sequelize.query("UPDATE users SET active = 1 WHERE id = " + user_id).spread((results, metadata) => {
                     if(results.changedRows) {
-                        // пользователь активирован
-                        res.redirect("/game");
+                        // пользователь теперь активирован
+                        res.render('pages/game/index', {
+                            title: 'Шашки',
+                            successVerify: "Вы успешно зарегистрированы. На Ваш email отправлено сообщение с реквизитами"
+                        });
                     }
                     else {
                         // ошибка активации
-                        res.redirect("/");
+                        res.render('pages/auth/main', {
+                            title: 'Шашки',
+                            errorVerify: "Ой, при подтверждении верификации произошла неизвестная ошибка"
+                        });
                     }
                 })
             }

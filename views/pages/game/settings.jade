@@ -1,14 +1,20 @@
+include my_game_setting
+
+div(id='button_setting' style="display: none")
+    h3 Настройка игры
+    button(class="button-setting") Опции
+
 div(class'page setting' id='page-setting' style="display: none")
     form(id="settings")
         h3 Вид игры
         div#big_settings
-            input(id='english' type='radio' name='type_game' value="english" checked)
+            input(id='english' type='radio' name='type_game' value="Английские" checked)
             | Английские шашки
             br
-            input(id='russian' type='radio' name='type_game' value="russian")
+            input(id='russian' type='radio' name='type_game' value="Русские")
             | Русские шашки
             br
-            input(id='giveaway' type='radio' name='type_game' value="giveaway")
+            input(id='giveaway' type='radio' name='type_game' value="Поддавки")
             | Поддавки
             br
 
@@ -24,14 +30,14 @@ div(class'page setting' id='page-setting' style="display: none")
             input(type="text" id='time_check_text' name='time_value' placeholder="__:__")
             br
         div
-            input(type='checkbox' name='multiattack')
+            input(type='checkbox' name='multiattack' checked)
             | Возможность "рубить" несколько шашек за один ход
             br
         div
             input(type='checkbox' id="fuchs" name='fuchs' checked)
             | Играть с фуками
             br
-        div(id='color_potencial_fuchs' style='display: block;')
+        div(id='color_potencial_fuchs' name='color_potencial_fuchs' style='display: block;')
             input(type='checkbox' name='color_potencial_fuchs')
             | Подсвечивать фуки
             br
@@ -45,6 +51,8 @@ div(class'page setting' id='page-setting' style="display: none")
             | Возможность хода по всей диагонали
 
     script.
+        let socket = io();
+
         addDynamicEventListener(document.body, 'click', '#english', function (event) {
             if ($("#english").prop('checked')) {
                 $("#simple_back_attack").prop("checked", false);
@@ -56,4 +64,46 @@ div(class'page setting' id='page-setting' style="display: none")
                 $("#simple_back_attack").prop("checked", true);
                 $("#queen_awesome_step").prop("checked", true);
             }
+        });
+
+        $("#settings").change(function () {
+
+            let arFieldsValue = [];
+
+            $("#settings input").each(function () {
+                arFieldsValue[$(this).attr("name")] = "";
+            });
+
+            let form_fields = $(this).serializeArray();
+            form_fields.forEach(function (value) {
+                let value_field = value.value;
+                if(typeof value_field === 'undefined') {
+                    value_field = "off";
+                }
+                arFieldsValue[value.name] = value_field;
+            })
+
+
+            let nickname = "#{nickname}";
+            let id_nickname = "#{isAuth}";
+
+            if (nickname === "anonymus") {
+                nickname = nickname + "_" + id_nickname;
+            }
+
+            socket.emit("choose_game", {
+                choose_game: arFieldsValue.type_game,
+                nickname: nickname,
+                color_potencial_step: arFieldsValue.color_potencial_step,
+                time_check: arFieldsValue.time_check,
+                multiattack: arFieldsValue.multiattack,
+                fuchs: arFieldsValue.fuchs,
+                color_potencial_fuchs: arFieldsValue.color_potencial_fuchs,
+                simple_back_attack: arFieldsValue.simple_back_attack,
+                queen_awesome_step: arFieldsValue.queen_awesome_step
+            });
+        });
+
+        addDynamicEventListener(document.body, 'change', '#settings', function (event) {
+
         });

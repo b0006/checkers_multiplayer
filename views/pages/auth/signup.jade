@@ -2,11 +2,14 @@ extends ../../layout
 
 block content
 
+    div#error
+        h3= errorRegisterMessage
+
     form(id="signup" name="signup" method="post" action="/signup")
-        label(for="email") Email Address
+        label(for="email") Email
         input(class="text" name="email" type="email" )
-        label(for="nickname") Nickname
+        label(for="nickname") Логин
         input(name="nickname" type="text")
-        label(for="hash") Password
+        label(for="hash") Пароль
         input(name="hash" type="password")
-        input(class="btn" type="submit" value="Sign Up")
+        input(class="btn" type="submit" value="Регистрация")

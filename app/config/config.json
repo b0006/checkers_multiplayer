@@ -1,9 +1,9 @@
 {
   "development": {
-    "username": "64dbu",
-    "password": "Unhj86*2",
-    "database": "64db",
-    "host": "localhost",
+    "username": "pma",
+    "password": "13820003",
+    "database": "checkers",
+    "host": "195.2.77.70",
     "dialect": "mysql"
   },
   "test": {

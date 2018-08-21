@@ -2,9 +2,12 @@ extends ../../layout
 
 block content
 
+    div#error
+        h3= errorAuthMessage
+
     form(id="signin" name="signin" method="post" action="signin")
-        label(for="email") Email Address
+        label(for="email") Email
         input(class="text" name="email" type="email" )
-        label(for="password") Password
+        label(for="password") Пароль
         input(name="password" type="password")
-        input(class="btn" type="submit" value="Sign In")
+        input(class="btn" type="submit" value="Войти")

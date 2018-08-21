@@ -30,6 +30,7 @@ require('./app/config/passport/passport.js')(passport, models.user);
 let indexRouter = require('./routes/index');
 let usersRouter = require('./routes/users');
 let parserRouter = require('./routes/parser');
+let anotherRouter = require('./routes/another');
 
 app.use(express.static('public'));
 
@@ -58,6 +59,7 @@ app.use('/', indexRouter);
 app.use('/', parserRouter);
 app.use('/', usersRouter);
 app.use('/', authRoute);
+app.use('/', anotherRouter);
 
 let lobbyUsers = {};
 let users = {};
@@ -92,12 +94,18 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('joinlobby', socket.userId);
     }
 
+    socket.on('set_setting',  function (msg){
+        socket.broadcast.emit('set_setting', msg);
+    });
+
     socket.on('invite', function(msg) {
         console.log('got an invite from: ' + socket.userId + ' --> ' + msg.user);
 
         socket.broadcast.emit('leavelobby', socket.userId);
         socket.broadcast.emit('leavelobby', msg.user);
 
+
+        console.log(msg.settings_game);
 
         let game = {
             id: Math.floor((Math.random() * 100) + 1),
@@ -122,24 +130,24 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game, settings: msg.settings_game});
     });
 
-    socket.on('resumegame', function(gameId) {
-        console.log('ready to resume game: ' + gameId);
+    socket.on('resumegame', function(msg) {
+        console.log('ready to resume game: ' + msg.gameId);
 
-        socket.gameId = gameId;
-        let game = activeGames[gameId];
+        socket.gameId = msg.gameId;
+        let game = activeGames[msg.gameId];
 
         users[game.users.white].games[game.id] = game.id;
         users[game.users.black].games[game.id] = game.id;
 
         console.log('resuming game: ' + game.id);
         if (lobbyUsers[game.users.white]) {
-            lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white'});
+            lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white', settings: msg.settings_game});
             delete lobbyUsers[game.users.white];
         }
 
         if (lobbyUsers[game.users.black]) {
             lobbyUsers[game.users.black] &&
-            lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black'});
+            lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black', settings: msg.settings_game});
             delete lobbyUsers[game.users.black];
         }
     });
@@ -162,15 +170,28 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('attack', msg);
     });
 
-    // socket.on('resign', function(msg) {
-    //     console.log("resign: " + msg);
-    //
-    //     delete users[activeGames[msg.gameId].users.white].games[msg.gameId];
-    //     delete users[activeGames[msg.gameId].users.black].games[msg.gameId];
-    //     delete activeGames[msg.gameId];
-    //
-    //     socket.broadcast.emit('resign', msg);
-    // });
+    socket.on('gameover', function (msg) {
+        socket.broadcast.emit('gameover', msg);
+    });
+
+    socket.on('choose_game', function (msg) {
+        socket.broadcast.emit('choose_game', msg);
+    });
+
+    socket.on('chat', function (msg) {
+        socket.broadcast.emit('chat', msg);
+    });
+
+    socket.on('resign', function(msg) {
+        console.log("resign: " + msg);
+        console.log(msg);
+
+        delete users[activeGames[msg.gameId].users.white].games[msg.gameId];
+        delete users[activeGames[msg.gameId].users.black].games[msg.gameId];
+        delete activeGames[msg.gameId];
+
+        socket.broadcast.emit('resign', msg);
+    });
 
 
     socket.on('disconnect', function(msg) {

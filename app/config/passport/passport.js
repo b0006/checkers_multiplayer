@@ -7,6 +7,12 @@ let nodemailer = require("nodemailer");
 let bCrypt = require('bcrypt-nodejs');
 let md5 = require("../../../md5");
 
+const op = Sequelize.Op;
+const operatorsAliases = {
+    $eq: op.eq,
+    $or: op.or,
+}
+
 let smtpTransport = nodemailer.createTransport({
     service: "Gmail",
     auth: {
@@ -35,18 +41,18 @@ module.exports = function(passport, user) {
                 return bCrypt.hashSync(hash, bCrypt.genSaltSync(8), null);
             };
 
+            //проверим email И логин на уникальность
             User.findOne({
                 where: {
-                    email: email
+                    $or: [ { email: email }, { nickname: req.body.nickname } ]
                 }
             }).then(function(user) {
 
                 if (user)
                 {
                     return done(null, false, {
-                        message: 'That email is already taken'
+                        message: 'Введенные Вами Email или логин уже заняты'
                     });
-
                 }
                 else
                 {
@@ -71,7 +77,6 @@ module.exports = function(passport, user) {
                             let new_user_id = newUser.dataValues.id;
 
                             let rand = md5.getMD5fromString(email);
-                            console.log(rand);
 
                             let host = req.get('host');
                             let link="http://"+host+"/verify?id="+new_user_id+"&hash="+rand;
@@ -83,14 +88,19 @@ module.exports = function(passport, user) {
 
                             smtpTransport.sendMail(mailOptions, function(error, response) {
                                 if (error) {
-                                    console.log("Message not send");
-                                    console.log(error);
+                                    return done(null, false, {
+                                        message: 'Ошибка отправки сообщения на Вашу почту. Пожалуйста, повторите регистрацию'
+                                    });
                                 } else {
-                                    console.log("Message send");
+                                    return done(null, newUser, {
+                                        message: 'На Ваш email отправлено сообщение. Пожалуйста, прочтите его.'
+                                    });
                                 }
                             });
 
-                            return done(null, newUser);
+                            // return done(null, newUser, {
+                            //     message: 'На Ваш email отправлено сообщение. Пожалуйста, прочтите его'
+                            // });
                         }
                     });
                 }
@@ -141,18 +151,14 @@ module.exports = function(passport, user) {
             }).then(function(user) {
 
                 if (!user) {
-                    console.log("Email does not exist")
-
                     return done(null, false, {
-                        message: 'Email does not exist'
+                        message: 'Введенный Email не зарегистрирован'
                     });
-
                 }
 
                 if (!isValidPassword(user.hash, password)) {
-                    console.log("Incorrect password")
                     return done(null, false, {
-                        message: 'Incorrect password.'
+                        message: 'Неверный пароль'
                     });
 
                 }
@@ -165,7 +171,7 @@ module.exports = function(passport, user) {
                 console.log("Error:", err);
 
                 return done(null, false, {
-                    message: 'Something went wrong with your Signin'
+                    message: 'Ой. Неизвестная ошибка авторизации.'
                 });
 
             });

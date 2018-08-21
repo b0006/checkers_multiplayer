@@ -1,110 +1,45 @@
 doctype html
 html
     head
-        title #{title} #{current_date}
+        link(href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css", rel="stylesheet", integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO", crossorigin="anonymous")
+        script(src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js", integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy", crossorigin="anonymous")
+
+        title #{title}
         link(rel='stylesheet', href='/css/style.css')
+        script(src="/lib/vue.js")
         script(src="/lib/jquery-1.11.1.js")
         script(src="/lib/socket.io-1.2.0.js")
         script(src="/lib/jquery.maskedinput.min.js")
         script(src="/lib/jquery.redirect.js")
         script(src="/lib/dynamicListener.js")
+        script(src="/js/header.js")
 
     body
-        a(href="/") На главную
-        br
-        a(href="/game") Игра
-
-        if isAuth
-            script.
-                let socket = io();
-                let login = "";
-                if('#{nickname}' == 'anonymus') {
-                    login = '#{nickname + "_" + isAuth}';
-                }
-                else {
-                    login = '#{nickname}';
-                }
-                socket.emit('login', login);
-
+        //меню
+        div
+            a(href="/") На главную
+            if !isAuth
+                br
+                a(href="/signup") Регистрация
+                br
+                a(href="/signin") Авторизация
             br
-            if nickname == "anonymus"
+            a(href="/game") Игра
+            br
+            a(href="/rating_users") Рейтинг игроков
+
+        // Логин
+        if isAuth
+            br
+            if nickname === "anonymus"
                 p Здравствуйте, #{nickname + "_" + isAuth}
             else
                 p Здравствуйте, #{nickname}
             a(href="/logout") Выйти
 
+        block content
 
-
-    block content
-
-    h4= activeMessage
-    if packet !== "N" || packet !== "Y"
-
-        script.
-            $( document ).ready(function() {
-                $("#time_check_text").mask("99:99");
-
-                addDynamicEventListener(document.body, 'click', '#time_check_checkbox', function (e) {
-                    if ($("#time_check_checkbox").prop('checked')) {
-                        $("#time_check_text").show();
-                    }
-                    else {
-                        $("#time_check_text").hide();
-                    }
-                });
-
-                addDynamicEventListener(document.body, 'click', '#fuchs', function (e) {
-                    if ($("#fuchs").prop('checked')) {
-                        $("#color_potencial_fuchs").show();
-                    }
-                    else {
-                        $("#color_potencial_fuchs").hide();
-                    }
-                });
-
-                addDynamicEventListener(document.body, 'click', '#cp_play', function (e) {
-                    let fields = $("#cpu_level").serializeArray();
-
-                    let isChooseLevel = false;
-
-                    fields.forEach(function (value, index) {
-                       if(value.name === "level") {
-                           isChooseLevel = true;
-                       }
-                    });
-
-                    if(!isChooseLevel) {
-                        alert("Выберите сложность");
-                        e.preventDefault();
-                    }
-                });
-            });
-
-        script.
-            $(document).ready(function () {
-                addDynamicEventListener(document.body, 'submit', '#cpu_level', function (e) {
-                    e.preventDefault();
-
-                    // это ##### товарищи, но мне все-равно
-                    let data_form_settings = $("#settings").serializeArray();
-                    let comp_level = $("#cpu_level").serializeArray();
-                    let data = [];
-
-                    data_form_settings.forEach(function (value) {
-                        data[value.name] = [];
-                        data[value.name] = value.value;
-                    });
-
-                    comp_level.forEach(function (value) {
-                        data[value.name] = [];
-                        data[value.name] = value.value;
-                    });
-
-                    $.redirect("/game/ai", data, "POST");
-
-                });
-
-            });
+        h4= activeMessage
 
         if game_mode === "CP"
             script.
@@ -121,25 +56,21 @@ html
 
         if typeof level !== 'undefined'
             script(
-            src="/js/comp.js"
-            level='#{level}'
-            color_potencial_step='#{color_potencial_step}'
-            time_check_checkbox='#{time_check_checkbox}'
-            time_check_text='#{time_check_text}'
-            multiattack='#{multiattack}'
-            fuchs='#{fuchs}'
-            simple_back_attack='#{simple_back_attack}'
-            color_potencial_fuchs = '#{color_potencial_fuchs}'
-            type_game='#{type_game}'
+                src="/js/comp.js"
+                level='#{level}'
+                color_potencial_step='#{color_potencial_step}'
+                time_check_checkbox='#{time_check_checkbox}'
+                time_check_text='#{time_check_text}'
+                multiattack='#{multiattack}'
+                fuchs='#{fuchs}'
+                simple_back_attack='#{simple_back_attack}'
+                color_potencial_fuchs = '#{color_potencial_fuchs}'
+                type_game='#{type_game}'
             )
         else
-            script(src="/js/script.js"
-            color_potencial_step='#{color_potencial_step}'
-            time_check_checkbox='#{time_check_checkbox}'
-            time_check_text='#{time_check_text}'
-            multiattack='#{multiattack}'
-            fuchs='#{fuchs}'
-            simple_back_attack='#{simple_back_attack}'
-            nickname='#{nickname}'
-            id_nickname='#{isAuth}'
+            script(
+                src="/js/players_logic.js"
+                nickname='#{nickname}'
+                id_nickname='#{isAuth}'
             )
+

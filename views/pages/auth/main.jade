@@ -2,25 +2,13 @@ extends ../../layout
 
 block content
     h1= title
+    h4= errorVerify
 
     if !isAuth
         a(href="/signguest") Войти как гость
-
-        h2 Авторизация
-        form(id="signin" name="signin" method="post" action="signin")
-            input(class="text" name="email" type="email" placeholder="Email")
-            br
-            input(name="password" type="password" placeholder="Пароль")
-            br
-            input(class="btn" type="submit" value="Войти")
-
         br
-        h2 Регистрация
-        form(id="signup" name="signup" method="post" action="/signup")
-            input(class="text" name="email" type="email" placeholder="Email")
-            br
-            input(name="nickname" type="text" placeholder="Логин")
-            br
-            input(name="hash" type="password" placeholder="Пароль")
-            br
-            input(class="btn" type="submit" value="Зарегистрироваться")
+        br
+        a(href="/signup") Регистрация
+        br
+        br
+        a(href="/signin") Авторизация

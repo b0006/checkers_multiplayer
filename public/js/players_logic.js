@@ -1,38 +1,86 @@
+//БАГ - когда возможен фук. И игрок ходит той шашкой, которая должна же и фукнуться и именно ходит, а не атакует, то срабатывает фук
+// ход передается другому игроку и ход остается одновременно и для игрока, который фукнулся - РЕШЕНО
+
+//БАГ строка 1431, иногда при фуке срабатывает result_attack.prev is undefined
+
+//БАГ - если был фук, но ход был сделан не зафуканной шашкой, то надо на доске цветом сигнализировать, что был ход и фук
+
+//to do - надо передать настройки игры от игрока, которог позвали. А сейчас сделано наоборот
+
 $(document).ready(function(){
-    let current_script = document.querySelector('script[src*="comp.js"]');
-    // low
-    // medium
-    // hard
-    const COMPUTER_LEVEL = current_script.getAttribute("level");
-    let DEPTH = null;
-    if(COMPUTER_LEVEL === "low") {
-        DEPTH = 2;
-    }
-    else if(COMPUTER_LEVEL === "medium") {
-        DEPTH = 6;
-    }
-    else if(COMPUTER_LEVEL === "high") {
-        DEPTH = 8;
-    }
+    let current_script = document.querySelector('script[src*="players_logic.js"]');
+
+    //вид шашек
+    let TYPE_GAME = null;
 
     // подсвечивать шаги
-    const OVER_STEPS = current_script.getAttribute("color_potencial_step");
+    let OVER_STEPS = null;
+
     //учитывать время
-    const TIME_CHECK = current_script.getAttribute("time_check_checkbox");
+    let TIME_CHECK = null;
     //если учитывать, то сколько
-    const TIME_VALUE = current_script.getAttribute("time_check_text");
+    let TIME_VALUE = null;
+
     //возможность рубить несколько шашек за один ход
-    const MULTYATTACK = current_script.getAttribute("multiattack");
+    let MULTYATTACK = null;
+
     //фуки
-    const FUCHS = current_script.getAttribute("fuchs");
-    const COLOR_FUCHS = current_script.getAttribute("color_potencial_fuchs");
+    let FUCHS = null;
+    //подсвечивать возможные фуки
+    let COLOR_FUCHS = null;
+
     //можно обычным шашка аттаковать назад
-    const SIMPLE_BACK_ATTACK = current_script.getAttribute("simple_back_attack");
-    const TYPE_GAME = current_script.getAttribute("type_game");
+    let SIMPLE_BACK_ATTACK = null;
+
+    //логин текущего игрока
+    let NICKNAME = current_script.getAttribute("nickname");
+    let ID_NICKNAME = current_script.getAttribute("id_nickname");
+    if(NICKNAME === "anonymus") {
+        NICKNAME = NICKNAME + "_" + ID_NICKNAME;
+    }
 
     let socket = io();
-    let id_game = new Date;
-    id_game = md5(id_game.toString());
+    let serverGame;
+    let playerColor;
+    let usersOnline = [];
+    let myGames = [];
+
+    let choosen_type_game_by_another_player = "Английские";
+
+    // click on player_play vs player
+    addDynamicEventListener(document.body, 'click', '#PP', function (e) {
+        socket.emit('login', NICKNAME);
+
+        //первоначальное положение choose_type_game (можно указать, только on. Off указывать изначально не имеет смысла)
+        socket.emit('choose_game', {
+            choose_game: "Английские",
+            nickname: NICKNAME,
+            color_potencial_step: 'on',
+            multiattack: "on",
+            fuchs: "on",
+            color_potencial_fuchs: "off",
+            simple_back_attack: "off",
+            queen_awesome_step: "off"
+        });
+
+        $('#page-start').hide();
+        $('#page-lobby').show();
+        $('#button_setting').show();
+    });
+
+    // click on player_play vs player
+    addDynamicEventListener(document.body, 'click', '#CP', function (e) {
+        $('#page-start').hide();
+        $('#page-computer').show();
+        $('#button_setting').show();
+    });
+
+    // click on setting
+    let flip = 0;
+    addDynamicEventListener(document.body, 'click', '.button-setting', function (e) {
+        $( "#page-setting" ).toggle( flip++ % 2 === 0 );
+    });
+
 
     // нотация
     let words = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -44,10 +92,609 @@ $(document).ready(function(){
     let count_history = 0;
 
     let arBackHistory = [];
-    let player_play = "black"; //the first player_play
+    let player_play = "white"; //the first player_play
     let current_piece = null; // текущая шашка
     let potencialStepsQueenGlobal = []; // возможные шаги для дамок
     let potencialStepsSimpleGlobal = []; // возможные шаги для обычных шашек
+
+    socket.on('login', function(msg) {
+        usersOnline = msg.users;
+        // updateUserList();
+
+        myGames = msg.games;
+        // updateGamesList();
+    });
+
+    socket.on('joinlobby', function (msg) {
+        addUser(msg);
+    });
+
+    socket.on('leavelobby', function (msg) {
+        removeUser(msg);
+    });
+
+    socket.on('gameadd', function(msg) {
+        // console.log("Игры: "+ msg.gameId + ")\tBlack: " + msg.gameState.users.black + " - White: " + msg.gameState.users.white);
+    });
+
+    socket.on('resign', function(msg) {
+        if (msg.gameId === serverGame.id) {
+            socket.emit('login', NICKNAME);
+
+            $('#page-lobby').show();
+            $('#page-game').hide();
+        }
+    });
+
+    socket.on('joingame', function(msg) {
+        //get setting games
+        try {
+            // msg.settings.forEach(function (value) {
+            //     settings_game[value.name] = value.value;
+            // });
+
+            OVER_STEPS = msg.settings.color_potencial_step;
+            TIME_CHECK = msg.settings.time_check_checkbox;
+            TIME_VALUE = msg.settings.time_check_text;
+            FUCHS = msg.settings.fuchs;
+            SIMPLE_BACK_ATTACK = msg.settings.simple_back_attack;
+            COLOR_FUCHS = msg.settings.color_potencial_fuchs;
+            TYPE_GAME = msg.settings.choose;
+        }
+        catch (e) {
+            console.log(e.message);
+        }
+
+        console.log(msg.settings);
+
+        console.log("joined as game id: " + msg.game.id );
+        playerColor = msg.color;
+        initGame(msg.game);
+
+        $('#chat').show();
+        $('#page-setting').hide();
+        $('#button_setting').hide();
+        $('#page-start').hide();
+        $('#page-lobby').hide();
+        $('#page-game').show();
+    });
+
+    // фук
+    socket.on('fuch', function (msg) {
+        if (serverGame && msg.gameId === serverGame.id) {
+
+            colorSteps(msg.target_x, msg.target_y);
+
+            let target = $(".rank__check[x="+ msg.target_x +"][y="+ msg.target_y +"]"); // кого нужно "фукнуть"
+            target[0].firstElementChild.remove();
+
+            // меняем игрока
+            if (msg.currentPlayer === "black") {
+                player_play = "white";
+            }
+            else if (msg.currentPlayer === "white") {
+                player_play = "black";
+            }
+        }
+    });
+
+    function colorSteps(prev_x, prev_y, next_x = null, next_y = null, enemy_x = null, enemy_y = null){
+        resetColorLastStep();
+
+        let prev = getRankCheck(prev_x, prev_y);
+        let next = null;
+        if(next_x !== null && next_y !== null) {
+            next = getRankCheck(next_x, next_y);
+        }
+        let enemy = null;
+        if(enemy_x !== null && enemy_y != null) {
+            enemy = getRankCheck(enemy_x, enemy_y);
+        }
+
+        colorLastStep(prev, next, enemy);
+    }
+
+    // шаг
+    socket.on('step', function (msg) {
+        if (serverGame && msg.gameId === serverGame.id) {
+
+            colorSteps(msg.next.x, msg.next.y, msg.prev.x, msg.prev.y);
+
+            let next = $(".rank__check[x="+ msg.next.x +"][y="+ msg.next.y +"]"); // куда был сделан ход
+            let prev = $(".rank__check[x="+ msg.prev.x +"][y="+ msg.prev.y +"]"); // предыдущее место, которое нужно "очистить"
+
+            if(msg.isQueen) {
+                if (msg.currentPlayer === "white") {
+                    next.append('<div class="piece white queen">&#9813;</div>');
+                    prev[0].firstElementChild.remove();
+                }
+                else if (msg.currentPlayer === "black") {
+                    next.append('<div class="piece black queen">&#9819;</div>');
+                    prev[0].firstElementChild.remove();
+                }
+            }
+            else {
+                let setQueen = false;
+                if(next[0].getAttribute("queen")) {
+                    setQueen = true;
+                }
+
+                if (playerColor === "black") {
+                    if(!setQueen) {
+                        next.append('<div class="piece white">&#9814;</div>');
+                    }
+                    else {
+                        next.append('<div class="piece white queen">&#9813;</div>');
+                    }
+                    prev[0].firstElementChild.remove();
+                }
+                else if (playerColor === "white") {
+                    if(!setQueen) {
+                        next.append('<div class="piece black">&#9820;</div>');
+                    }
+                    else {
+                        next.append('<div class="piece black queen">&#9819;</div>');
+                    }
+                    prev[0].firstElementChild.remove();
+                }
+            }
+
+            // меняем игрока
+            if (msg.currentPlayer === "black") {
+                player_play = "white";
+            }
+            else if (msg.currentPlayer === "white") {
+                player_play = "black";
+            }
+        }
+    });
+
+    //рубить
+    socket.on('attack', function (msg) {
+        if (serverGame && msg.gameId === serverGame.id) {
+
+            colorSteps(msg.next.x, msg.next.y, msg.prev.x, msg.prev.y, msg.target.x, msg.target.y);
+
+            let next = $(".rank__check[x="+ msg.next.x +"][y="+ msg.next.y +"]"); // куда был сделан ход
+            let prev = $(".rank__check[x="+ msg.prev.x +"][y="+ msg.prev.y +"]"); // предыдущее место, которое нужно "очистить"
+            let target = $(".rank__check[x="+ msg.target.x +"][y="+ msg.target.y +"]"); // цель, которую нужно "очистить"
+
+            if(msg.isQueen) {
+                if (msg.currentPlayer === "white") {
+                    next.append('<div class="piece white queen">&#9813;</div>');
+                    prev[0].firstElementChild.remove();
+                    target[0].firstElementChild.remove();
+                }
+                else if (msg.currentPlayer === "black") {
+                    next.append('<div class="piece black queen">&#9819;</div>');
+                    prev[0].firstElementChild.remove();
+                    target[0].firstElementChild.remove();
+                }
+            }
+            else {
+                let setQueen = false;
+                if(next[0].getAttribute("queen")) {
+                    setQueen = true;
+                }
+
+                if (playerColor === "black") {
+                    if(!setQueen) {
+                        next.append('<div class="piece white">&#9814;</div>');
+                    }
+                    else {
+                        next.append('<div class="piece white queen">&#9813;</div>');
+                    }
+                    prev[0].firstElementChild.remove();
+                    target[0].firstElementChild.remove();
+                }
+                else if (playerColor === "white") {
+                    if(!setQueen) {
+                        next.append('<div class="piece black">&#9820;</div>');
+                    }
+                    else {
+                        next.append('<div class="piece black queen">&#9819;</div>');
+                    }
+                    prev[0].firstElementChild.remove();
+                    target[0].firstElementChild.remove();
+                }
+            }
+
+            if(!msg.hasEnemy) {
+                // меняем игрока
+                if (msg.currentPlayer === "black") {
+                    player_play = "white";
+                }
+                else if (msg.currentPlayer === "white") {
+                    player_play = "black";
+                }
+            }
+        }
+    });
+
+    socket.on('logout', function (msg) {
+        removeUser(msg.username);
+    });
+
+    socket.on('gameover', function (msg) {
+        if (serverGame && msg.gameId === serverGame.id) {
+            alert("Победил: " + msg.winner);
+        }
+    });
+
+    /**
+     * CHAT
+     */
+
+    socket.on('chat', function (msg) {
+        if (serverGame && msg.gameId === serverGame.id) {
+            let new_message = document.createElement("p");
+            new_message.textContent = msg.from + ": " + msg.message;
+
+            let chat = document.getElementById("chat");
+            chat.appendChild(new_message);
+        }
+    });
+
+    $("#chat_button").on('click', function (e) {
+
+        let check_length = $("#chat_input").val().replace(new RegExp('\\s+'), "");
+
+        if(check_length.length <= 0){
+            $("#chat_input").val("");
+            return false;
+        }
+
+        let new_message = document.createElement("p");
+        new_message.textContent = NICKNAME + ": " + $("#chat_input").val();
+
+        let chat = document.getElementById("chat");
+        chat.appendChild(new_message);
+
+
+        socket.emit('chat', {
+            gameId: serverGame.id,
+            message: $("#chat_input").val(),
+            from: NICKNAME
+        });
+
+        $("#chat_input").val("");
+    });
+
+    /**
+     * END CHAT
+     */
+
+    //////////////////////////////
+    // Menus
+    //////////////////////////////
+    // $('#login').on('click', function() {
+    //     username = $('#username').val();
+    //
+    //     if (username.length > 0) {
+    //         $('#userLabel').text(username);
+    //         socket.emit('login', username);
+    //
+    //         $('#page-login').hide();
+    //         $('#page-lobby').show();
+    //     }
+    // });
+
+    // $('#game-back').on('click', function() {
+    //     socket.emit('login', NICKNAME);
+    //
+    //     $('#page-game').hide();
+    //     $('#page-lobby').show();
+    // });
+
+    $('#updateUserList').on("click", function (e) {
+        updateUserList();
+    });
+
+    $('#updateGamesList').on("click", function (e) {
+        updateGamesList();
+    });
+
+    $('#game-resign').on('click', function() {
+        socket.emit('resign', {userId: NICKNAME, gameId: serverGame.id});
+
+        socket.emit('login', NICKNAME);
+        $('#page-game').hide();
+        $('#page-lobby').show();
+    });
+
+    let addUser = function(userId) {
+        usersOnline.push(userId);
+        // updateUserList();
+    };
+
+    let removeUser = function(userId) {
+        for (let i=0; i<usersOnline.length; i++) {
+            if (usersOnline[i] === userId) {
+                usersOnline.splice(i, 1);
+            }
+        }
+        // updateUserList();
+    };
+
+    let updateGamesList = function() {
+        try {
+
+            document.getElementById('gamesList').innerHTML = '';
+            myGames.forEach(function (game) {
+                $("#gamesList").append($('<button>')
+                    .text('#' + game)
+                    .on('click', function () {
+                        socket.emit('resumegame', {
+                            gameId: game,
+                            settings_game: choosen_type_game_by_another_player // передать настройки на сервер
+                        });
+                    }));
+            });
+        }
+        catch (e) {
+
+        }
+    };
+
+    //информация об игре
+    socket.on('choose_game', function (msg) {
+        choosen_type_game_by_another_player = {
+            choose: msg.choose_game,
+            nickname: msg.nickname,
+            color_potencial_step: msg.color_potencial_step,
+            time_check: msg.time_check,
+            multiattack: msg.multiattack,
+            fuchs: msg.fuchs,
+            color_potencial_fuchs: msg.color_potencial_fuchs,
+            simple_back_attack: msg.simple_back_attack,
+            queen_awesome_step: msg.queen_awesome_step
+        };
+
+        let user = $("#" + msg.nickname + "_type_game");
+        let user_color_potencial_step = $("#" + msg.nickname + "_color_potencial_step");
+        let user_time_check = $("#" + msg.nickname + "_time_check");
+        let user_multiattack = $("#" + msg.nickname + "_multiattack");
+        let user_fuchs = $("#" + msg.nickname + "_fuchs");
+        let user_color_potencial_fuchs = $("#" + msg.nickname + "_color_potencial_fuchs");
+        let user_simple_back_attack = $("#" + msg.nickname + "_simple_back_attack");
+        let user_queen_awesome_step = $("#" + msg.nickname + "_queen_awesome_step");
+
+        user.text(msg.choose_game);
+        user_color_potencial_step.text(msg.color_potencial_step);
+        user_time_check.text(msg.time_check);
+        user_multiattack.text(msg.multiattack);
+        user_fuchs.text(msg.fuchs);
+        user_color_potencial_fuchs.text(msg.color_potencial_fuchs);
+        user_simple_back_attack.text(msg.simple_back_attack);
+        user_queen_awesome_step.text(msg.queen_awesome_step);
+    });
+
+    let updateUserList = function() {
+
+        try {
+            document.getElementById('userList').innerHTML = '';
+
+            let new_div = document.createElement("div");
+            new_div.className = "row";
+
+            usersOnline.forEach(function (user) {
+                let userListDiv = document.getElementById("userList");
+                let new_div = document.createElement("div");
+                new_div.className = "row";
+                userListDiv.append(new_div);
+
+                let new_user = document.createElement("button");
+                new_user.setAttribute("id", user);
+
+                //проверить на существование юзера (чтобы не было дублей одног и того же юзера)
+                let check_div_user = document.getElementById(user);
+                if(check_div_user === null) {
+
+                    new_user.textContent = user;
+                    new_user.onclick = function () {
+                        //get settings of game
+                        let data_form_settings = $("#settings").serializeArray();
+
+                        socket.emit('invite', {
+                            user: user,
+                            settings_game: choosen_type_game_by_another_player // передать настройки на сервер
+                        });
+
+                        console.log(choosen_type_game_by_another_player)
+                    };
+
+                    new_div.append(new_user);
+
+
+                    //блок инфо об игре
+                    // тип игры
+                    let info_type_game = document.createElement("div");
+                    info_type_game.setAttribute("id", user + "_type_game");
+                    info_type_game.textContent = choosen_type_game_by_another_player.choose;
+                    new_div.append(info_type_game);
+
+                    //Подсвечивать возможные ходы
+                    let info_color_potencial_step = document.createElement('div');
+                    info_color_potencial_step.setAttribute("id", user + "_color_potencial_step");
+                    info_color_potencial_step.textContent = choosen_type_game_by_another_player.color_potencial_step;
+                    new_div.append(info_color_potencial_step);
+
+                    //Учитывать время
+                    let info_time_check = document.createElement('div');
+                    info_time_check.setAttribute("id", user + "_time_check");
+                    info_time_check.textContent = choosen_type_game_by_another_player.time_check;
+                    new_div.append(info_time_check);
+
+                    //Возможность "рубить" несколько шашек за один ход
+                    let info_multiattack = document.createElement('div');
+                    info_multiattack.setAttribute("id", user + "_multiattack");
+                    info_multiattack.textContent = choosen_type_game_by_another_player.multiattack;
+                    new_div.append(info_multiattack);
+
+                    //Играть с фуками
+                    let info_fuchs = document.createElement('div');
+                    info_fuchs.setAttribute("id", user + "_fuchs");
+                    info_fuchs.textContent = choosen_type_game_by_another_player.fuchs;
+                    new_div.append(info_fuchs);
+
+                    //Подсвечивать потенциальные фуки
+                    let info_color_potencial_fuchs = document.createElement('div');
+                    info_color_potencial_fuchs.setAttribute("id", user + "_color_potencial_fuchs");
+                    info_color_potencial_fuchs.textContent = choosen_type_game_by_another_player.color_potencial_fuchs;
+                    new_div.append(info_color_potencial_fuchs);
+
+                    //Рубить назад (обычные шашки)
+                    let info_simple_back_attack = document.createElement('div');
+                    info_simple_back_attack.setAttribute("id", user + "_simple_back_attack");
+                    info_simple_back_attack.textContent = choosen_type_game_by_another_player.simple_back_attack;
+                    new_div.append(info_simple_back_attack);
+
+                    //Возможность хода по всей диагонали (дамки)
+                    let info_queen_awesome_step = document.createElement('div');
+                    info_queen_awesome_step.setAttribute("id", user + "_queen_awesome_step");
+                    info_queen_awesome_step.textContent = choosen_type_game_by_another_player.queen_awesome_step;
+                    new_div.append(info_queen_awesome_step);
+                }
+            });
+        }
+        catch (e) {
+
+        }
+    };
+
+    //////////////////////////////
+    // Checkers Game
+    //////////////////////////////
+
+    let initGame = function (serverGameState) {
+        serverGame = serverGameState;
+
+        let checkers_board = $("#game-board");
+        let content = document.createElement("div");
+        content.className = "content";
+        checkers_board.append(content);
+
+        initNotation(content);
+
+        let board = document.createElement("div");
+        board.className = "board";
+        content.append(board);
+
+        let rank = null;
+        let rank__check = null;
+
+        let piece = null;
+
+        for(let i = 0; i < 8; i++) {
+            rank = document.createElement("div");
+            rank.className = "rank";
+            board.append(rank);
+
+            for(let t = 0; t < 8; t++){
+                rank__check = document.createElement("div");
+                rank__check.className = "rank__check";
+
+                // расставляем координаты
+                if(i % 2 === 0) {
+                    if (t % 2 !== 0) {
+
+                        if(i === 0) {
+                            rank__check.setAttribute("queen", "white");
+                        }
+                        else if(i === 7) {
+                            rank__check.setAttribute("queen", "black");
+                        }
+
+                        rank__check.setAttribute("x", t);
+                        rank__check.setAttribute("y", i);
+                        rank__check.setAttribute("not", words_need[t] + "" + digits_need[i]);
+                    }
+                }
+
+                if(i % 2 !== 0) {
+                    if (t % 2 === 0) {
+
+                        if(i === 0) {
+                            rank__check.setAttribute("queen", "white");
+                        }
+                        else if(i === 7) {
+                            rank__check.setAttribute("queen", "black");
+                        }
+
+                        rank__check.setAttribute("x", t);
+                        rank__check.setAttribute("y", i);
+                        rank__check.setAttribute("not", words_need[t] + "" + digits_need[i]);
+                    }
+                }
+
+                rank.append(rank__check);
+
+                // формируем черных
+                if(i <= 2) { // первые три поля
+                    if (i % 2 === 0) {
+                        if ((t % 2 !== 0)) {
+                            // piece = document.createElement("div");
+                            // piece.className = "piece black";
+                            // piece.innerHTML = "&#9820;";
+                            // rank__check.append(piece);
+                        }
+                    }
+                    else {
+                        if ((t % 2 === 0)) {
+                            piece = document.createElement("div");
+                            piece.className = "piece black";
+                            piece.innerHTML = "&#9820;";
+                            rank__check.append(piece);
+
+                            // piece = document.createElement("div");
+                            // piece.className = "piece black queen";
+                            // piece.innerHTML = "&#9819;";
+                            // rank__check.append(piece);
+                        }
+                    }
+                }
+
+                // формируем белых
+                if((i + 3) >= 8) // последние три поля
+                {
+                    if (i % 2 === 0) {
+                        if ((t % 2 !== 0)) {
+                            piece = document.createElement("div");
+                            piece.className = "piece white";
+                            piece.innerHTML = "&#9814;";
+                            rank__check.append(piece);
+
+                            // ttt++;
+                            // if(ttt < 4) {
+                            //     piece = document.createElement("div");
+                            //     piece.className = "piece white queen";
+                            //     piece.innerHTML = "&#9819;";
+                            //     rank__check.append(piece);
+                            // }
+                        }
+                    }
+                    else {
+                        if ((t % 2 === 0)) {
+                            // piece = document.createElement("div");
+                            // piece.className = "piece white";
+                            // piece.innerHTML = "&#9814;";
+                            // rank__check.append(piece);
+                        }
+
+                    }
+                }
+            }
+
+        }
+
+        // разворачиваем доску
+        if(playerColor === "black") {
+            $('.board').addClass("rotate_board");
+            $('.rank__check').addClass("rotate_board");
+        }
+
+        $( "#page-setting" ).hide();
+    };
 
     // ход назад
     function back_history(current, enemy = null, next = null, color, isqueen = false, wasMultiAttack = true) {
@@ -171,131 +818,6 @@ $(document).ready(function(){
         }
     }
 
-    let ttt = 0;
-    // формируем доску
-    function initBoard() {
-        let checkers_board = $("#game-board");
-        let content = document.createElement("div");
-        content.className = "content";
-        checkers_board.append(content);
-
-        initNotation(content);
-
-        let board = document.createElement("div");
-        board.className = "board";
-        content.append(board);
-
-        let rank = null;
-        let rank__check = null;
-
-        let piece = null;
-
-        for(let i = 0; i < 8; i++) {
-            rank = document.createElement("div");
-            rank.className = "rank";
-            board.append(rank);
-
-            for(let t = 0; t < 8; t++){
-                rank__check = document.createElement("div");
-                rank__check.className = "rank__check";
-
-                // расставляем координаты
-                if(i % 2 === 0) {
-                    if (t % 2 !== 0) {
-
-                        if(i === 0) {
-                            rank__check.setAttribute("queen", "white");
-                        }
-                        else if(i === 7) {
-                            rank__check.setAttribute("queen", "black");
-                        }
-
-                        rank__check.setAttribute("x", t);
-                        rank__check.setAttribute("y", i);
-                        rank__check.setAttribute("not", words_need[t] + "" + digits_need[i]);
-                    }
-                }
-
-                if(i % 2 !== 0) {
-                    if (t % 2 === 0) {
-
-                        if(i === 0) {
-                            rank__check.setAttribute("queen", "white");
-                        }
-                        else if(i === 7) {
-                            rank__check.setAttribute("queen", "black");
-                        }
-
-                        rank__check.setAttribute("x", t);
-                        rank__check.setAttribute("y", i);
-                        rank__check.setAttribute("not", words_need[t] + "" + digits_need[i]);
-                    }
-                }
-
-                rank.append(rank__check);
-
-                // формируем черных
-                if(i <= 2) { // первые три поля
-                    if (i % 2 === 0) {
-                        if ((t % 2 !== 0)) {
-                            piece = document.createElement("div");
-                            piece.className = "piece black";
-                            piece.innerHTML = "&#9820;";
-                            rank__check.append(piece);
-                        }
-                    }
-                    else {
-                        if ((t % 2 === 0)) {
-                            piece = document.createElement("div");
-                            piece.className = "piece black";
-                            piece.innerHTML = "&#9820;";
-                            rank__check.append(piece);
-
-                            // piece = document.createElement("div");
-                            // piece.className = "piece black queen";
-                            // piece.innerHTML = "&#9819;";
-                            // rank__check.append(piece);
-                        }
-                    }
-                }
-
-                // формируем белых
-                if((i + 3) >= 8) // последние три поля
-                {
-                    if (i % 2 === 0) {
-                        if ((t % 2 !== 0)) {
-                            piece = document.createElement("div");
-                            piece.className = "piece white";
-                            piece.innerHTML = "&#9814;";
-                            rank__check.append(piece);
-
-                            // ttt++;
-                            // if(ttt < 4) {
-                            //     piece = document.createElement("div");
-                            //     piece.className = "piece white queen";
-                            //     piece.innerHTML = "&#9819;";
-                            //     rank__check.append(piece);
-                            // }
-                        }
-                    }
-                    else {
-                        if ((t % 2 === 0)) {
-                            piece = document.createElement("div");
-                            piece.className = "piece white";
-                            piece.innerHTML = "&#9814;";
-                            rank__check.append(piece);
-                        }
-
-                    }
-                }
-            }
-
-        }
-
-        $('.board').toggleClass("rotate_board");
-        $('.rank__check').toggleClass("rotate_board");
-    }
-
     // лог на клиенте (нотация)
     function add_history(prev, next, isAttack = null, isEnemy = null, enemyMultiAttack = false, friendMultiAttack = false) {
 
@@ -335,11 +857,10 @@ $(document).ready(function(){
     }
     // лог на сервер
     function writeLog(text) {
-        socket.emit('log', {
-            id_game: id_game,
-            text: text,
-            level_game: COMPUTER_LEVEL
-        });
+        // socket.emit('log', {
+        //     id_game: id_game,
+        //     text: text,
+        // });
     }
     // убрать все подсвеченные возможные фуки
     function clear_color_fuchs(potencialSteps) {
@@ -422,11 +943,17 @@ $(document).ready(function(){
             if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
 
                 $(potencialSteps[0][0].needeat[indexNeadEat].firstElementChild).remove();
+                alert("Фук");
+                isFuch = true;
 
                 colorSteps(potencialSteps[0][0].needeat[indexNeadEat].getAttribute("x"), potencialSteps[0][0].needeat[indexNeadEat].getAttribute("y"));
 
-                alert("Фук");
-                isFuch = true;
+                socket.emit('fuch', {
+                    gameId: serverGame.id,
+                    currentPlayer: player_play,
+                    target_x: potencialSteps[0][0].needeat[indexNeadEat].getAttribute("x"),
+                    target_y: potencialSteps[0][0].needeat[indexNeadEat].getAttribute("y"),
+                });
 
             }
         });
@@ -492,11 +1019,11 @@ $(document).ready(function(){
                         if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
                             back_history(current_piece.parentElement, null, target, currentColor, isQueen);
 
-                            next_x = val_up[0].getAttribute("x");
-                            next_y = val_up[0].getAttribute("y");
-
                             appendPiece(target, currentColor, null, isQueen);
                             wasStep = true;
+
+                            next_x = val_up[0].getAttribute("x");
+                            next_y = val_up[0].getAttribute("y");
                         }
                     });
 
@@ -504,11 +1031,11 @@ $(document).ready(function(){
                         if (current_x === val_up[0].getAttribute("x") && current_y === val_up[0].getAttribute("y")) {
                             back_history(current_piece.parentElement, null, target, currentColor, isQueen);
 
-                            next_x = val_up[0].getAttribute("x");
-                            next_y = val_up[0].getAttribute("y");
-
                             appendPiece(target, currentColor, null, isQueen);
                             wasStep = true;
+
+                            next_x = val_up[0].getAttribute("x");
+                            next_y = val_up[0].getAttribute("y");
                         }
                     });
 
@@ -516,11 +1043,11 @@ $(document).ready(function(){
                         if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
                             back_history(current_piece.parentElement, null, target, currentColor, isQueen);
 
-                            next_x = val_bot[0].getAttribute("x");
-                            next_y = val_bot[0].getAttribute("y");
-
                             appendPiece(target, currentColor, null, isQueen);
                             wasStep = true;
+
+                            next_x = val_bot[0].getAttribute("x");
+                            next_y = val_bot[0].getAttribute("y");
                         }
                     });
 
@@ -528,11 +1055,11 @@ $(document).ready(function(){
                         if (current_x === val_bot[0].getAttribute("x") && current_y === val_bot[0].getAttribute("y")) {
                             back_history(current_piece.parentElement, null, target, currentColor, isQueen);
 
-                            next_x = val_bot[0].getAttribute("x");
-                            next_y = val_bot[0].getAttribute("y");
-
                             appendPiece(target, currentColor, null, isQueen);
                             wasStep = true;
+
+                            next_x = val_bot[0].getAttribute("x");
+                            next_y = val_bot[0].getAttribute("y");
                         }
                     });
                 }
@@ -540,12 +1067,43 @@ $(document).ready(function(){
         });
 
         if(wasStep) {
+
             colorSteps(current_piece.parentElement.getAttribute("x"),current_piece.parentElement.getAttribute("y"), next_x, next_y);
+
+            socket.emit('step', {
+                gameId: serverGame.id,
+                prev: {
+                    x: current_piece.parentElement.getAttribute("x"),
+                    y: current_piece.parentElement.getAttribute("y"),
+                },
+                next: {
+                    x: next_x,
+                    y: next_y,
+                },
+                currentPlayer: player_play,
+                isQueen: isQueen
+            });
+
             removeCurrentPiece();
         }
 
         return wasStep;
     }
+
+    function colorLastStep(prev, next = null, enemy = null) {
+        $(prev).css({"background-color" : "rgba(0,104,52,0.6)"});
+        if(next !== null) {
+            $(next).css({"background-color": "rgba(0,104,52,0.6)"});
+        }
+        if(enemy !== null) {
+            $(enemy).css({"background-color" : "rgba(207, 56, 24, 0.6)"});
+        }
+    }
+
+    function resetColorLastStep() {
+        $(".rank__check").attr("style","");
+    }
+
     // атака игрока
     function attackplayer_play(potencialSteps, target, current_x, current_y, currentColor, but_x, but_y, isQueen) {
 
@@ -567,6 +1125,7 @@ $(document).ready(function(){
                             if (currentColor === "white") {
                                 if(isQueen) {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -588,6 +1147,7 @@ $(document).ready(function(){
                                 }
                                 else {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -603,6 +1163,7 @@ $(document).ready(function(){
                                             y: value[0].upright.enemy[0][0].getAttribute("y"),
                                         },
                                         currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -611,6 +1172,7 @@ $(document).ready(function(){
                             else if (currentColor === "black") {
                                 if (isQueen) {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "black",
                                         prev: {
@@ -632,6 +1194,7 @@ $(document).ready(function(){
                                 }
                                 else {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "black",
                                         prev: {
@@ -647,6 +1210,7 @@ $(document).ready(function(){
                                             y: value[0].upright.enemy[0][0].getAttribute("y"),
                                         },
                                         currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -667,6 +1231,7 @@ $(document).ready(function(){
                             if (currentColor === "white") {
                                 if (isQueen) {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -688,6 +1253,7 @@ $(document).ready(function(){
                                 }
                                 else {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -703,6 +1269,7 @@ $(document).ready(function(){
                                             y: value[0].upleft.enemy[0][0].getAttribute("y"),
                                         },
                                         currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -711,6 +1278,7 @@ $(document).ready(function(){
                             else if (currentColor === "black") {
                                 if(isQueen) {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "black",
                                         prev: {
@@ -732,6 +1300,7 @@ $(document).ready(function(){
                                 }
                                 else {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "black",
                                         prev: {
@@ -747,6 +1316,7 @@ $(document).ready(function(){
                                             y: value[0].upleft.enemy[0][0].getAttribute("y"),
                                         },
                                         currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -768,6 +1338,7 @@ $(document).ready(function(){
                             if (currentColor === "white") {
                                 if(isQueen) {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -789,6 +1360,7 @@ $(document).ready(function(){
                                 }
                                 else {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -804,6 +1376,7 @@ $(document).ready(function(){
                                             y: value[0].bottomright.enemy[0][0].getAttribute("y"),
                                         },
                                         currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -812,26 +1385,7 @@ $(document).ready(function(){
                             else if (currentColor === "black") {
                                 if(isQueen) {
                                     resultAttack = {
-                                        target_place: target,
-                                        local_color: "black",
-                                        prev: {
-                                            x: but_x,
-                                            y: but_y,
-                                        },
-                                        next: {
-                                            x: current_x,
-                                            y: current_y,
-                                        },
-                                        target: {
-                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
-                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
-                                        },
-                                        currentplayer_play: player_play,
-                                        kill_target: kill_target
-                                    };
-                                }
-                                else {
-                                    resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "black",
                                         prev: {
@@ -848,6 +1402,28 @@ $(document).ready(function(){
                                         },
                                         currentplayer_play: player_play,
                                         isQueen: true,
+                                        kill_target: kill_target
+                                    };
+                                }
+                                else {
+                                    resultAttack = {
+                                        gameId: serverGame.id,
+                                        target_place: target,
+                                        local_color: "black",
+                                        prev: {
+                                            x: but_x,
+                                            y: but_y,
+                                        },
+                                        next: {
+                                            x: current_x,
+                                            y: current_y,
+                                        },
+                                        target: {
+                                            x: value[0].bottomright.enemy[0][0].getAttribute("x"),
+                                            y: value[0].bottomright.enemy[0][0].getAttribute("y"),
+                                        },
+                                        currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -868,6 +1444,7 @@ $(document).ready(function(){
                             if (currentColor === "white") {
                                 if(isQueen) {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -889,6 +1466,7 @@ $(document).ready(function(){
                                 }
                                 else {
                                     resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "white",
                                         prev: {
@@ -904,6 +1482,7 @@ $(document).ready(function(){
                                             y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
                                         },
                                         currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -912,26 +1491,7 @@ $(document).ready(function(){
                             else if (currentColor === "black") {
                                 if(isQueen) {
                                     resultAttack = {
-                                        target_place: target,
-                                        local_color: "black",
-                                        prev: {
-                                            x: but_x,
-                                            y: but_y,
-                                        },
-                                        next: {
-                                            x: current_x,
-                                            y: current_y,
-                                        },
-                                        target: {
-                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
-                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
-                                        },
-                                        currentplayer_play: player_play,
-                                        kill_target: kill_target
-                                    };
-                                }
-                                else {
-                                    resultAttack = {
+                                        gameId: serverGame.id,
                                         target_place: target,
                                         local_color: "black",
                                         prev: {
@@ -948,6 +1508,28 @@ $(document).ready(function(){
                                         },
                                         currentplayer_play: player_play,
                                         isQueen: true,
+                                        kill_target: kill_target
+                                    };
+                                }
+                                else {
+                                    resultAttack = {
+                                        gameId: serverGame.id,
+                                        target_place: target,
+                                        local_color: "black",
+                                        prev: {
+                                            x: but_x,
+                                            y: but_y,
+                                        },
+                                        next: {
+                                            x: current_x,
+                                            y: current_y,
+                                        },
+                                        target: {
+                                            x: value[0].bottomleft.enemy[0][0].getAttribute("x"),
+                                            y: value[0].bottomleft.enemy[0][0].getAttribute("y"),
+                                        },
+                                        currentplayer_play: player_play,
+                                        isQueen: false,
                                         kill_target: kill_target
                                     };
                                 }
@@ -968,6 +1550,24 @@ $(document).ready(function(){
             catch (e) {}
 
             back_history(current_piece.parentElement, enemy_for_history, target, currentColor, isQueen);
+
+            socket.emit('attack', {
+                gameId: resultAttack.gameId,
+                prev: {
+                    x: resultAttack.prev.x,
+                    y: resultAttack.prev.y,
+                },
+                next: {
+                    x: resultAttack.next.x,
+                    y: resultAttack.next.y,
+                },
+                target: {
+                    x: resultAttack.target.x,
+                    y: resultAttack.target.y,
+                },
+                currentPlayer: resultAttack.currentplayer_play,
+                isQueen: resultAttack.isQueen,
+            });
         }
 
         return resultAttack;
@@ -1916,464 +2516,6 @@ $(document).ready(function(){
         return result;
     }
 
-    function getOneSimpleCells(color, currentPiece, prev) {
-        //let currentPiece = $('.rank__check[x=' + piece_x + '][y=' + piece_y + ']')[0];
-        let result = [];
-
-        let needEat = [];
-
-        let danger_up_right = [];
-        let danger_up_left = [];
-        let danger_bottom_right = [];
-        let danger_bottom_left = [];
-
-        let piece_x = currentPiece.getAttribute("x");
-        let piece_y = currentPiece.getAttribute("y");
-
-        let potencialStepsWhiteQueenUpRigth = [];
-        let potencialStepsWhiteQueenUpLeft = [];
-        let potencialStepsWhiteQueenBottomRigth = [];
-        let potencialStepsWhiteQueenBottomLeft = [];
-
-
-        let potencialAttackWhiteQueenUpRigth = [];
-        let potencialAttackWhiteQueenUpLeft = [];
-        let potencialAttackWhiteQueenBottomRigth = [];
-        let potencialAttackWhiteQueenBottomLeft = [];
-
-        let potencial_up_right_x = null;
-        let potencial_up_right_y = null;
-        let potencial_up_left_x = null;
-        let potencial_up_left_y = null;
-
-        let potencial_bottom_right_x = null;
-        let potencial_bottom_right_y = null;
-        let potencial_bottom_left_x = null;
-        let potencial_bottom_left_y = null;
-
-        let nextPotencial_up_right_x = null;
-        let nextPotencial_up_right_y = null;
-        let nextPotencial_up_left_x = null;
-        let nextPotencial_up_left_y = null;
-
-        let nextPotencial_bottom_right_x = null;
-        let nextPotencial_bottom_right_y = null;
-        let nextPotencial_bottom_left_x = null;
-        let nextPotencial_bottom_left_y = null;
-
-        let potencialWhiteQueenCell = null;
-        let nextPotencialWhiteQueenCell = null;
-
-        let needStepUpRight = [];
-        let needStepUpLeft = [];
-        let needStepBottomRight = [];
-        let needStepBottomLeft = [];
-
-        let hasQueenEnemy = false;
-        let needStep = [];
-
-        /**
-         *
-         * up_right
-         */
-
-
-
-        potencial_up_right_x = parseInt(piece_x) + 1;
-        potencial_up_right_y = parseInt(piece_y) - 1;
-
-        nextPotencial_up_right_x = (parseInt(piece_x) + 1) + 1;
-        nextPotencial_up_right_y = (parseInt(piece_y) - 1) - 1;
-
-        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_right_x + '][y=' + potencial_up_right_y + ']');
-        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_right_x + '][y=' + nextPotencial_up_right_y + ']');
-
-        if(potencialWhiteQueenCell.length !== 0) {
-            if (potencialWhiteQueenCell[0].firstElementChild) {
-
-                if (color === "white") {
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-
-                        danger_up_right.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-
-                    }
-                }
-                else if (color === "black") {
-
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-
-                        danger_up_right.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenUpRigth.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-
-                    }
-                }
-
-                if(nextPotencialWhiteQueenCell.length !== 0) {
-                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                        if (hasQueenEnemy) {
-                            needStep.push(nextPotencialWhiteQueenCell);
-                            needStepUpRight.push(nextPotencialWhiteQueenCell);
-
-                            pieceForFuch.push(current_piece);
-                        }
-                    }
-                }
-
-
-            }
-            else {
-                if (hasQueenEnemy) {
-                    needStep.push(potencialWhiteQueenCell);
-                    needStepUpRight.push(potencialWhiteQueenCell);
-
-                    pieceForFuch.push(current_piece);
-                }
-                else {
-                    if(color === "white") {
-                        potencialStepsWhiteQueenUpRigth.push(potencialWhiteQueenCell);
-                    }
-                }
-            }
-        }
-
-        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
-        if(nextPotencialWhiteQueenCell[0] ===  prev[0]) {
-            danger_up_right = [];
-        }
-
-        /**
-         *
-         * up_left
-         */
-
-
-        hasQueenEnemy = false;
-
-        potencial_up_left_x = parseInt(piece_x) - 1;
-        potencial_up_left_y = parseInt(piece_y) - 1;
-
-        nextPotencial_up_left_x = (parseInt(piece_x) - 1) - 1;
-        nextPotencial_up_left_y = (parseInt(piece_y) - 1) - 1;
-
-
-        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_up_left_x + '][y=' + potencial_up_left_y + ']');
-        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_up_left_x + '][y=' + nextPotencial_up_left_y + ']');
-
-        if(potencialWhiteQueenCell.length !== 0) {
-
-            if (potencialWhiteQueenCell[0].firstElementChild) {
-
-                if (color === "white") {
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-
-                        danger_up_left.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-
-                    }
-                }
-                else if (color === "black") {
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-
-                        danger_up_left.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenUpLeft.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-
-                    }
-                }
-
-                if(nextPotencialWhiteQueenCell.length !== 0) {
-                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                        if (hasQueenEnemy) {
-                            needStep.push(nextPotencialWhiteQueenCell);
-                            needStepUpLeft.push(nextPotencialWhiteQueenCell);
-
-                            pieceForFuch.push(current_piece);
-                        }
-                    }
-                }
-
-            }
-            else {
-                if (hasQueenEnemy) {
-                    needStep.push(potencialWhiteQueenCell);
-                    needStepUpLeft.push(potencialWhiteQueenCell);
-
-                    pieceForFuch.push(current_piece);
-                }
-                else {
-                    if(color === "white") {
-                        potencialStepsWhiteQueenUpLeft.push(potencialWhiteQueenCell);
-                    }
-                }
-            }
-        }
-
-        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
-        if(nextPotencialWhiteQueenCell[0] === prev[0]) {
-            danger_up_left = [];
-        }
-        /**
-         *
-         * bottom_right
-         */
-
-
-        hasQueenEnemy = false;
-
-        potencial_bottom_right_x = parseInt(piece_x) + 1;
-        potencial_bottom_right_y = parseInt(piece_y) + 1;
-
-        nextPotencial_bottom_right_x = (parseInt(piece_x) + 1) + 1;
-        nextPotencial_bottom_right_y = (parseInt(piece_y) + 1) + 1;
-
-
-        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_right_x + '][y=' + potencial_bottom_right_y + ']');
-        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_right_x + '][y=' + nextPotencial_bottom_right_y + ']');
-
-        if(potencialWhiteQueenCell.length !== 0) {
-
-            if (potencialWhiteQueenCell[0].firstElementChild) {
-
-                if (color === "white") {
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-
-                        danger_bottom_right.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-                    }
-                }
-                else if (color === "black") {
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-
-                        danger_bottom_right.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-
-                    }
-                }
-
-                if(nextPotencialWhiteQueenCell.length !== 0) {
-                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                        if (hasQueenEnemy) {
-                            needStep.push(nextPotencialWhiteQueenCell);
-                            needStepBottomRight.push(nextPotencialWhiteQueenCell);
-
-                            pieceForFuch.push(current_piece);
-                        }
-                    }
-                }
-
-            }
-            else {
-                if (hasQueenEnemy) {
-                    needStep.push(potencialWhiteQueenCell);
-                    needStepBottomRight.push(potencialWhiteQueenCell);
-
-                    pieceForFuch.push(current_piece);
-                }
-                else {
-                    if(color === "black") {
-                        potencialStepsWhiteQueenBottomRigth.push(potencialWhiteQueenCell);
-                    }
-                }
-            }
-        }
-
-        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
-        if(nextPotencialWhiteQueenCell[0] ===  prev[0]) {
-            danger_bottom_right = [];
-        }
-        /**
-         *
-         * bottom_left
-         */
-
-        hasQueenEnemy = false;
-
-        potencial_bottom_left_x = parseInt(piece_x) - 1;
-        potencial_bottom_left_y = parseInt(piece_y) + 1;
-
-        nextPotencial_bottom_left_x = (parseInt(piece_x) - 1) - 1;
-        nextPotencial_bottom_left_y = (parseInt(piece_y) + 1) + 1;
-
-
-        potencialWhiteQueenCell = $('.rank__check[x=' + potencial_bottom_left_x + '][y=' + potencial_bottom_left_y + ']');
-        nextPotencialWhiteQueenCell = $('.rank__check[x=' + nextPotencial_bottom_left_x + '][y=' + nextPotencial_bottom_left_y + ']');
-
-        if(potencialWhiteQueenCell.length !== 0) {
-
-            if (potencialWhiteQueenCell[0].firstElementChild) {
-
-                if (color === "white") {
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("black")) {
-
-                        danger_bottom_left.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-                    }
-                }
-                else if (color === "black") {
-                    // if this is enemy
-                    if (potencialWhiteQueenCell[0].firstElementChild.classList.contains("white")) {
-
-                        danger_bottom_left.push(potencialWhiteQueenCell[0]);
-
-                        if(typeof nextPotencialWhiteQueenCell[0] !== 'undefined') {
-
-                            if (!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                                //get next target fot attack
-                                potencialAttackWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
-                                hasQueenEnemy = true;
-                                needEat.push(currentPiece);
-                            }
-                        }
-                    }
-                }
-
-                if(nextPotencialWhiteQueenCell.length !== 0) {
-                    if(!nextPotencialWhiteQueenCell[0].firstElementChild) {
-                        if (hasQueenEnemy) {
-                            needStep.push(nextPotencialWhiteQueenCell);
-                            needStepBottomLeft.push(nextPotencialWhiteQueenCell);
-
-                            pieceForFuch.push(current_piece);
-                        }
-                    }
-                }
-
-            }
-            else {
-                if (hasQueenEnemy) {
-                    needStep.push(potencialWhiteQueenCell);
-                    needStepBottomLeft.push(potencialWhiteQueenCell);
-
-                    pieceForFuch.push(current_piece);
-                }
-                else {
-                    if(color === "black") {
-                        potencialStepsWhiteQueenBottomLeft.push(potencialWhiteQueenCell);
-                    }
-                }
-            }
-        }
-
-        // чтобы исключить "срубленные" шашки (те, которыя якобы срублены, но на доске они остались)
-        if(nextPotencialWhiteQueenCell[0] ===  prev[0]) {
-            danger_bottom_left = [];
-        }
-
-        if (color === "black") {
-            if(SIMPLE_BACK_ATTACK !== "on") {
-                needStepUpRight = [];
-                needStepUpLeft = [];
-                potencialAttackWhiteQueenUpRigth = [];
-                potencialAttackWhiteQueenUpLeft = [];
-            }
-
-        }
-        if (color === "white") {
-            if(SIMPLE_BACK_ATTACK !== "on") {
-                needStepBottomRight = [];
-                needStepBottomLeft = [];
-                potencialAttackWhiteQueenBottomRigth = [];
-                potencialAttackWhiteQueenBottomLeft = [];
-            }
-        }
-
-        let queen = [{
-            currentpiece: currentPiece,
-            needeat: needEat,
-            upright: {
-                needStep: needStepUpRight,
-                empty: potencialStepsWhiteQueenUpRigth,
-                enemy: potencialAttackWhiteQueenUpRigth,
-                danger: danger_up_right
-            },
-            upleft: {
-                needStep: needStepUpLeft,
-                empty: potencialStepsWhiteQueenUpLeft,
-                enemy: potencialAttackWhiteQueenUpLeft,
-                danger: danger_up_left
-            },
-            bottomright: {
-                needStep: needStepBottomRight,
-                empty: potencialStepsWhiteQueenBottomRigth,
-                enemy: potencialAttackWhiteQueenBottomRigth,
-                danger: danger_bottom_right
-            },
-            bottomleft: {
-                needStep: needStepBottomLeft,
-                empty: potencialStepsWhiteQueenBottomLeft,
-                enemy: potencialAttackWhiteQueenBottomLeft,
-                danger: danger_bottom_left
-            }
-        }];
-
-        result.push(queen);
-
-        return result;
-    }
-
     function nextQueenAttack(new_piece) {
         let queens = [];
 
@@ -2501,8 +2643,6 @@ $(document).ready(function(){
 
     // проверка на конец игры
     function gameOver() {
-        let who_is_win = null;
-
         let queens_white = getAllQueenCells("white");
         let queens_black = getAllQueenCells("black");
 
@@ -2572,18 +2712,23 @@ $(document).ready(function(){
         });
 
         if((isSimples_white || isQueens_white) && (!isSimples_black && !isQueens_black)) {
-            who_is_win = "white";
-            alert("ИИ выиграл");
+            return {
+                isGameOver: true,
+                winner: "white"
+            };
         }
         if((isSimples_black || isQueens_black) && (!isSimples_white && !isQueens_white)) {
-            who_is_win = "black";
-            alert("Игрок выиграл");
+            return {
+                isGameOver: true,
+                winner: "black"
+            };
         }
 
-        return who_is_win;
-    }
 
-    initBoard();
+        return {
+            isGameOver: false
+        };
+    }
 
     // повернуть доску
     addDynamicEventListener(document.body, 'click', '#rotate-board', function (e) {
@@ -2598,6 +2743,11 @@ $(document).ready(function(){
             if (current_piece.classList.contains("next")) {
                 return false;
             }
+        }
+
+        if(player_play !== playerColor) {
+            alert("Подождите, соперник еще не сделал ход");
+            return false;
         }
 
         let currentplayer_play = checkplayer_play(e.target);
@@ -2960,8 +3110,16 @@ $(document).ready(function(){
 
                             wasStep = stepplayer_play(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor, true);
 
-                            if(wasStep) {
-                                stepComputer();
+                            if(wasStep || isFuch) {
+                                // stepComputer();
+                                // change player
+                                if (currentColor === "white") {
+                                    player_play = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player_play = "white";
+                                }
+                                gameOver();
                             }
 
                         }
@@ -2970,7 +3128,15 @@ $(document).ready(function(){
                             wasStep = stepplayer_play(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor, true);
 
                             if(wasStep) {
-                                stepComputer();
+                                // stepComputer();
+                                // change player
+                                if (currentColor === "white") {
+                                    player_play = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player_play = "white";
+                                }
+                                gameOver();
                             }
                         }
                         //не надо съесть. Обычная аттака
@@ -3001,7 +3167,16 @@ $(document).ready(function(){
                                     return false;
                                 }
                                 else {
-                                    stepComputer();
+                                    // stepComputer();
+                                    // change player
+                                    if (currentColor === "white") {
+                                        player_play = "black";
+                                    }
+                                    else if (currentColor === "black") {
+                                        player_play = "white";
+                                    }
+
+                                    gameOver();
 
                                     clear_color();
                                 }
@@ -3022,7 +3197,15 @@ $(document).ready(function(){
                         wasStep = stepplayer_play(potencialStepsQueenGlobal, event.target, current_x, current_y, currentColor, true);
 
                         if(wasStep) {
-                            stepComputer();
+                            // stepComputer();
+                            // change player
+                            if (currentColor === "white") {
+                                player_play = "black";
+                            }
+                            else if (currentColor === "black") {
+                                player_play = "white";
+                            }
+                            gameOver();
                         }
 
                     }
@@ -3075,8 +3258,16 @@ $(document).ready(function(){
 
                             wasStep = stepplayer_play(potencialStepsSimpleGlobal, event.target, current_x, current_y, currentColor);
 
-                            if(wasStep) {
-                                stepComputer();
+                            if(wasStep || isFuch) {
+                                // stepComputer();
+                                // change player
+                                if (currentColor === "white") {
+                                    player_play = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player_play = "white";
+                                }
+                                gameOver();
                             }
 
                         }
@@ -3084,7 +3275,15 @@ $(document).ready(function(){
                             wasStep = stepplayer_play(potencialStepsSimpleGlobal, event.target, current_x, current_y, currentColor);
 
                             if(wasStep) {
-                                stepComputer();
+                                // stepComputer();
+                                // change player
+                                if (currentColor === "white") {
+                                    player_play = "black";
+                                }
+                                else if (currentColor === "black") {
+                                    player_play = "white";
+                                }
+                                gameOver();
                             }
                         }
                         //не надо съесть. Обычная аттака
@@ -3113,7 +3312,15 @@ $(document).ready(function(){
                                     $(current_piece).addClass("next");
                                 }
                                 else {
-                                    stepComputer();
+                                    // stepComputer();
+                                    // change player
+                                    if (currentColor === "white") {
+                                        player_play = "black";
+                                    }
+                                    else if (currentColor === "black") {
+                                        player_play = "white";
+                                    }
+                                    gameOver();
 
                                     clear_color();
                                 }
@@ -3147,8 +3354,16 @@ $(document).ready(function(){
 
                                 wasStep = stepplayer_play(potencialStepsSimpleGlobal, event.target, current_x, current_y, currentColor);
 
-                                if(wasStep) {
-                                    stepComputer();
+                                if(wasStep || isFuch) {
+                                    // stepComputer();
+                                    // change player
+                                    if (currentColor === "white") {
+                                        player_play = "black";
+                                    }
+                                    else if (currentColor === "black") {
+                                        player_play = "white";
+                                    }
+                                    gameOver();
                                 }
                             }
                         }
@@ -3159,7 +3374,15 @@ $(document).ready(function(){
                         wasStep = stepplayer_play(potencialStepsSimpleGlobal, event.target, current_x, current_y, currentColor);
 
                         if(wasStep) {
-                            stepComputer();
+                            // stepComputer();
+                            // change player
+                            if (currentColor === "white") {
+                                player_play = "black";
+                            }
+                            else if (currentColor === "black") {
+                                player_play = "white";
+                            }
+                            gameOver();
                         }
                     }
 
@@ -3175,451 +3398,29 @@ $(document).ready(function(){
         });
 
         slow_count = 0;
+        let isGameOver = gameOver();
+        if(isGameOver.isGameOver) {
+
+            console.log(serverGame.id);
+            console.log("Победил: "+ isGameOver.winner);
+
+            socket.emit('gameover', {
+                gameId: serverGame.id,
+                winner: isGameOver.winner
+            });
+        }
     });
-
-    /**ПОДСВЕЧИВАНИЕ ПОСЛЕДНЕГО ХОДА
-     *
-     */
-    function colorLastStep(prev, next = null, enemy = null) {
-        $(prev).css({"background-color" : "rgba(0,104,52,0.6)"});
-        if(next !== null) {
-            $(next).css({"background-color": "rgba(0,104,52,0.6)"});
-        }
-        if(enemy !== null) {
-            $(enemy).css({"background-color" : "rgba(207, 56, 24, 0.6)"});
-        }
-    }
-
-    function resetColorLastStep() {
-        $(".rank__check").attr("style","");
-    }
-
-    function colorSteps(prev_x, prev_y, next_x = null, next_y = null, enemy_x = null, enemy_y = null){
-        resetColorLastStep();
-
-        let prev = getRankCheck(prev_x, prev_y);
-        let next = null;
-        if(next_x !== null && next_y !== null) {
-            next = getRankCheck(next_x, next_y);
-        }
-        let enemy = null;
-        if(enemy_x !== null && enemy_y != null) {
-            enemy = getRankCheck(enemy_x, enemy_y);
-        }
-
-        colorLastStep(prev, next, enemy);
-    }
-
-    /**
-     * COMPUTER LOGIC
-     */
-
-    function stepComputer(prev_move_to = null) {
-        appendAttack = 0;
-        sleep(1000).then(() => {
-            let wasAttack = false;
-
-            // симуляция текущего состояния доски
-            let simulated_board = simulate_board();
-
-            // запуск алгоритма для вычисления следующего хода
-            let selected_move = null;
-            if (prev_move_to !== null) { // for multiattacks
-                selected_move = alpha_beta_search(simulated_board, DEPTH, false);
-            }
-            else {
-                selected_move = alpha_beta_search(simulated_board, DEPTH);
-            }
-
-            console.log("best move: " + selected_move.from.col + ":" + selected_move.from.row + " to " + selected_move.to.col + ":" + selected_move.to.row);
-
-            let canStep = false;
-
-            if (prev_move_to !== null) {
-                if (selected_move.enemy && ((prev_move_to.col === selected_move.from.col) && (prev_move_to.row === selected_move.from.row))) {
-                    canStep = true;
-                }
-            }
-            else {
-                canStep = true;
-            }
-
-            if (canStep) {
-                let from_cell = getRankCheck(selected_move.from.col, selected_move.from.row);
-                let to = getRankCheck(selected_move.to.col, selected_move.to.row);
-
-                let current_player_isQueen = false;
-                if (to.getAttribute("queen") === "white") {
-                    $(to).append('<div class="piece white queen">&#9813;</div>');
-                    current_player_isQueen = true;
-                }
-                else {
-                    if (from_cell.firstElementChild.classList.contains("queen")) {
-                        $(to).append('<div class="piece white queen">&#9813;</div>');
-                        current_player_isQueen = true;
-                    }
-                    else {
-                        $(to).append('<div class="piece white">&#9814;</div>');
-                    }
-                }
-
-                $(from_cell.firstElementChild).remove();
-
-                if (selected_move.enemy) {
-                    colorSteps(selected_move.from.col, selected_move.from.row, selected_move.to.col, selected_move.to.row, selected_move.enemy.col, selected_move.enemy.row);
-                    let enemy = getRankCheck(selected_move.enemy.col, selected_move.enemy.row);
-
-                    if(prev_move_to) { // записать в нотацию, как многоходовочку
-                        add_history(from_cell, to, true, true, true);
-                        back_history(from_cell, enemy, to, "white", current_player_isQueen);
-                    }
-                    else {
-                        add_history(from_cell, to, true, true);
-                        back_history(from_cell, enemy, to, "white", current_player_isQueen);
-                    }
-
-
-
-                    $(enemy.firstElementChild).remove();
-
-                    wasAttack = true;
-                }
-                else {
-                    colorSteps(selected_move.from.col, selected_move.from.row, selected_move.to.col, selected_move.to.row);
-                    back_history(from_cell, null, to, "white", current_player_isQueen);
-
-                    add_history(from_cell, to, false, true);
-                }
-
-                if (wasAttack) {
-                    stepComputer(selected_move.to);
-                }
-
-                gameOver();
-            }
-
-        });
-    }
 
     function getRankCheck(x, y) {
         return $(".rank__check[x=" + x + "][y=" + y + "]")[0];
     }
 
-    // получить ходы, которые могут привести к потере шашки
-    function getDangerPieces(array) {
-        let arResult = [];
-        let isDanger = false;
-
-        array.forEach(function (value, index, array) {
-
-            if(value.upright.empty.length > 0) {
-                value.upright.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "upright");
-                    if(isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "upright",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-            if(value.upleft.empty.length > 0) {
-                value.upleft.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "upleft");
-                    if(isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "upleft",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-            if(value.bottomright.empty.length > 0) {
-                value.bottomright.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "bottomright");
-                    if(isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "bottomright",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-            if(value.bottomleft.empty.length > 0) {
-                value.bottomleft.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "bottomleft");
-                    if(isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "bottomleft",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-        });
-
-        return arResult;
-    }
-
-    // получить безопасные ходы
-    function getNotDangerPieces(array) {
-        let arResult = [];
-        let isDanger = false;
-
-        array.forEach(function (value, index, array) {
-
-            if(value.upright.empty.length > 0) {
-                value.upright.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "upright");
-                    if(!isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "upright",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-            if(value.upleft.empty.length > 0) {
-                value.upleft.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "upleft");
-                    if(!isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "upleft",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-            if(value.bottomright.empty.length > 0) {
-                value.bottomright.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "bottomright");
-                    if(!isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "bottomright",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-            if(value.bottomleft.empty.length > 0) {
-                value.bottomleft.empty.forEach(function (val) {
-                    isDanger = getSituationNext(val[0], "bottomleft");
-                    if(!isDanger) {
-                        arResult.push({
-                            prev: value.currentpiece,
-                            side: "bottomleft",
-                            target: val[0]
-                        });
-                    }
-                });
-            }
-        });
-
-        return arResult;
-    }
-
-    function isDangerForCell(array, side = null) {
-        let isDanger = false;
-
-        if(side === "bottomright") {
-            if(typeof(array.bottomright) !== "undefined") {
-                if (array.bottomright.hasChildNodes()) {
-                    if (array.bottomright.firstElementChild.classList.contains("white")) {
-                        if (((typeof array.upleft === "undefined") || (array.upleft === null)) || (array.upleft.firstElementChild.classList.contains("black"))) {
-                            isDanger = true;
-                        }
-                    }
-                }
-            }
-        }
-        if(side === "bottomleft") {
-            if(typeof(array.bottomleft) !== "undefined") {
-                if (array.bottomleft.hasChildNodes()) {
-                    if (array.bottomleft.firstElementChild.classList.contains("white")) {
-                        if (((typeof array.upright === "undefined") || (array.upright === null)) || (array.upright.firstElementChild.classList.contains("black"))) {
-                            isDanger = true;
-                        }
-                    }
-                }
-            }
-        }
-        if(side === "upright") {
-            if(typeof(array.upright) !== "undefined") {
-                if (array.upright.hasChildNodes()) {
-                    if (array.upright.firstElementChild.classList.contains("white")) {
-                        if (((typeof array.bottomleft === "undefined") || (array.bottomleft === null)) || (array.bottomleft.firstElementChild.classList.contains("black"))) {
-                            isDanger = true;
-                        }
-                    }
-                }
-            }
-        }
-        if(side === "upleft") {
-            if(typeof(array.upleft) !== "undefined") {
-                if (array.upleft.hasChildNodes()) {
-                    if (array.upleft.firstElementChild.classList.contains("white")) {
-                        if (((typeof array.bottomright === "undefined") || (array.bottomright === null)) || (array.bottomright.firstElementChild.classList.contains("black"))) {
-                            isDanger = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        return isDanger;
-    }
-
-    // получить соседние (четыре) клетки
-    function getAround(piece) {
-        let x = parseInt(piece.getAttribute("x"));
-        let y = parseInt(piece.getAttribute("y"));
-
-        let arResult = [{
-            current: piece,
-            upright:  getRankCheck(x + 1, y - 1),
-            upleft: getRankCheck(x - 1, y - 1),
-            bottomright: getRankCheck(x + 1, y + 1),
-            bottomleft: getRankCheck(x - 1, y + 1)
-        }];
-
-        return arResult;
-    }
-
-    function getSituationNext(piece, side) {
-        let ghost_pieces = getAround(piece);
-
-        return isDangerForCell(ghost_pieces[0], side);
-    }
-
     let slow_count = 0;
-    // атака ИИ
-    function simple_slow_attack(prev, enemy = null, next, type = null, isAttack = null) {
-        player_play = null;
-
-        sleep(1000).then(() => {
-            let color = prev.firstElementChild.classList.contains("black");
-
-            $(prev.firstElementChild).remove();
-
-            if (enemy !== null) {
-                $(enemy.firstElementChild).remove();
-            }
-
-            if (color) {
-                if (type !== null) {
-                    $(next).append('<div class="piece black queen">&#9819;</div>');
-                }
-                else {
-                    $(next).append('<div class="piece black">&#9820;</div>');
-                }
-            }
-            else {
-                if (type !== null) {
-                    $(next).append('<div class="piece white queen">&#9813;</div>');
-                }
-                else {
-                    $(next).append('<div class="piece white">&#9814;</div>');
-                }
-            }
-            player_play = "white";
-
-            if(isAttack === true) {
-                add_history(prev, next, true, true);
-            }
-            else {
-                add_history(prev, next, null, true);
-            }
-        });
-    }
-
-    // многоходовочка для ИИ (сырая версия функции)
-    function isNeedAttackCP2(current_situation, enemy = null, prev_target = null, next_target = null) {
-        let needNextAttack = false;
-
-        current_situation.forEach(function (value) {
-            if (value[0].upright.enemy.length > 0) {
-                needNextAttack = true;
-            }
-            if (value[0].upleft.enemy.length > 0) {
-                needNextAttack = true;
-            }
-            if (value[0].bottomright.enemy.length > 0) {
-                needNextAttack = true;
-            }
-            if (value[0].bottomleft.enemy.length > 0) {
-                needNextAttack = true;
-            }
-
-        });
-
-        let prev = getPrev(current_situation[0][0]);
-        let new_enemy = getEnemy(current_situation[0][0]);
-        let next = getNext(current_situation[0][0]);
-
-        if (needNextAttack) {
-
-            sleep(1000).then(() => {
-                simple_slow_attack(prev[0], new_enemy[0][0][0], next[0][0][0], null, true);
-                current_situation = getOneSimpleCells("black", $(next)[0][0][0], prev);
-                isNeedAttackCP2(current_situation, new_enemy[0][0][0], prev[0], next[0][0][0]);
-            });
-        }
-        else {
-
-            return false;
-        }
-    }
-
-    function getNext(array) {
-        let next = [];
-
-        for (let prop in array) {
-            if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
-
-                if (array[prop].needStep.length > 0) {
-                    next.push(array[prop].needStep);
-                }
-            }
-        }
-
-        return next;
-    }
-    function getEnemy(array) {
-        let enemy = [];
-
-        for (let prop in array) {
-            if (prop === "upright" || prop === "upleft" || prop === "bottomright" || prop === "bottomleft") {
-
-                if (array[prop].enemy.length > 0) {
-                    enemy.push(array[prop].enemy);
-                }
-            }
-        }
-
-        return enemy;
-    }
-    function getPrev(array) {
-        let prev = [];
-
-        for (let prop in array) {
-            if (prop === "currentpiece") {
-                prev.push(array[prop]);
-            }
-        }
-
-        return prev;
-    }
 
     function sleep (time) {
         return new Promise((resolve) => setTimeout(resolve, time));
     }
+
     function md5 ( str ) {	// Calculate the md5 hash of a string
         let RotateLeft = function(lValue, iShiftBits) {
             return (lValue<<iShiftBits) | (lValue>>>(32-iShiftBits));
@@ -3790,1336 +3591,6 @@ $(document).ready(function(){
         let temp = WordToHex(a)+WordToHex(b)+WordToHex(c)+WordToHex(d);
 
         return temp.toLowerCase();
-    }
-
-    function simulate_board() {
-
-        let cells = [];
-        let pieces = [];
-
-        let cell = null;
-
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                cell = $(".rank__check[x=" + j + "][y=" + i + "]")[0];
-                if(typeof cell !== "undefined"){
-                    if(cell.hasChildNodes()){
-                        if(cell.firstElementChild.classList.contains("white")) {
-                            if(cell.firstElementChild.classList.contains("queen")) {
-                                cells.push({
-                                    col: j,
-                                    row: i,
-                                    state: -1.1
-                                });
-
-                                pieces.push({
-                                    col: j,
-                                    row: i,
-                                    state: -1.1
-                                });
-                            }
-                            else {
-                                cells.push({
-                                    col: j,
-                                    row: i,
-                                    state: -1
-                                });
-
-                                pieces.push({
-                                    col: j,
-                                    row: i,
-                                    state: -1
-                                });
-                            }
-
-                        }
-                        else if(cell.firstElementChild.classList.contains("black")) {
-                            if(cell.firstElementChild.classList.contains("queen")) {
-                                cells.push({
-                                    col: j,
-                                    row: i,
-                                    state: 1.1
-                                });
-
-                                pieces.push({
-                                    col: j,
-                                    row: i,
-                                    state: 1.1
-                                });
-                            }
-                            else {
-                                cells.push({
-                                    col: j,
-                                    row: i,
-                                    state: 1
-                                });
-
-                                pieces.push({
-                                    col: j,
-                                    row: i,
-                                    state: 1
-                                });
-                            }
-                        }
-                    }
-                    else {
-                        cells.push({
-                            col: j,
-                            row: i,
-                            state: 0
-                        });
-                    }
-                }
-                else {
-                    cells.push({
-                        col: j,
-                        row: i,
-                        state: 0
-                    });
-                }
-            }
-        }
-
-        return {cells: cells, pieces: pieces};
-    }
-
-    let red = 1;
-    let redKing = 1.1;
-    let black = -1;
-    let blackKing = -1.1;
-    let empty = 0;
-    let player = red;
-    let computer = black;
-    let currentBoard = {};
-    let INFINITY = 10000;
-    let NEG_INFINITY = -10000;
-    let cell_width = 0;
-    let board_origin = 0;
-
-    function initializeBoard() {
-        let initialBoard = [[red, empty, red, empty, red, empty, red, empty],
-            [empty, red, empty, red, empty, red, empty, red],
-            [red, empty, red, empty, red, empty, red, empty],
-            [empty, empty, empty, empty, empty, empty, empty, empty],
-            [empty, empty, empty, empty, empty, empty, empty, empty],
-            [empty, black, empty, black, empty, black, empty, black],
-            [black, empty, black, empty, black, empty, black, empty],
-            [empty, black, empty, black, empty, black, empty, black]
-        ];
-
-        let cells = new Array();
-        let pieces = new Array();
-        for (let i=0;i<initialBoard.length;i++){
-            let row = initialBoard[i];
-            for (let j=0;j<row.length;j++) {
-                let colValue=row[j];
-                if (colValue != empty) {
-                    let piece = {row: i, col: j, state: colValue};
-                    pieces.push(piece);
-                }
-                let cell = {row: i, col: j, state: colValue};
-                cells.push(cell);
-            }
-        }
-
-        return {cells: cells, pieces: pieces, turn: red};
-    }
-
-    function mapCellToCoordinates(origin, width, cell) {
-        let key = "" + cell.row + ":" + cell.col;
-        if (!mapCellToCoordinates.answers) mapCellToCoordinates.answers = {};
-        if (mapCellToCoordinates.answers[key] != null){
-            return mapCellToCoordinates.answers[key];
-        }
-        let x = origin.x + (cell.col * width);
-        let y = origin.y + (cell.row * width);
-        return mapCellToCoordinates.answers[key] = {x: x , y: y};
-    }
-
-    function mapCoordinatesToCell(origin, width, cells, x, y){
-        let numSquares = 8;
-        let boardLength = numSquares * width;
-        if (x > (origin.x + boardLength)) return null;
-        if (y > (origin.y + boardLength)) return null;
-        let col = Math.ceil((x - origin.x) / width) - 1;
-        let row = Math.ceil((y - origin.y) / width) - 1;
-        let index = ((row * numSquares) + col);
-        let cell = cells[index];
-
-        return cell;
-    }
-
-    function startGame(origin, cellWidth, boardCanvas) {
-        movePiece.moves = [];
-        d3.select("#btnReplay").style("display", "none");
-        cell_width = cellWidth;
-        board_origin = origin;
-        currentBoard = drawBoard(origin, cellWidth, boardCanvas);
-        currentBoard.ui = true;
-        showBoardState();
-    }
-
-    function replayAll(origin, cellWidth, boardCanvas) {
-        let allMoves = movePiece.moves;
-        startGame(origin, cellWidth, boardCanvas);
-        currentBoard.turn = 0; // can't really play
-        for (let i=0; i<allMoves.length; i++) {
-            let moveNum = i+1;
-            let nextMove = allMoves[i];
-            if (nextMove.to.row > -1){
-                let cellCoordinates = mapCellToCoordinates(board_origin, cell_width, nextMove.to);
-                d3.selectAll("circle").each(function(d,i) {
-                    if (d.col === nextMove.from.col && d.row === nextMove.from.row){
-                        d3.select(this)
-                            .transition()
-                            .delay(500 * moveNum)
-                            .attr("cx", d.x = cellCoordinates.x + cell_width/2)
-                            .attr("cy", d.y = cellCoordinates.y + cell_width/2);
-
-                        d.col = nextMove.to.col;
-                        d.row = nextMove.to.row;
-                    }
-                });
-            }
-            else {
-                d3.selectAll("circle").each(function(d,i) {
-                    if (d.row === nextMove.from.row && d.col === nextMove.from.col){
-                        d3.select(this).transition().delay(500 * moveNum)
-                            .style("display", "none");
-                        d.col = -1;
-                        d.row = -1;
-                    }
-                });
-            }
-        }
-    }
-
-    function undoMove(move, moveNum) {
-        if (move.to.row > -1){
-            let cellCoordinates = mapCellToCoordinates(board_origin, cell_width, move.from);
-            d3.selectAll("circle").each(function(d,i) {
-                if (d.col === move.to.col && d.row === move.to.row){
-                    d3.select(this)
-                        .transition()
-                        .delay(500 * moveNum)
-                        .attr("cx", d.x = cellCoordinates.x + cell_width/2)
-                        .attr("cy", d.y = cellCoordinates.y + cell_width/2);
-
-                    d.col = move.from.col;
-                    d.row = move.from.row;
-                }
-            });
-            let toIndex = getCellIndex(move.to.row, move.to.col);
-            let cell = currentBoard.cells[toIndex];
-            cell.state = 0;
-            let fromIndex = getCellIndex(move.from.row, move.from.col);
-            cell = currentBoard.cells[fromIndex];
-            cell.state = move.piece.state;
-            //let pieceIndex = getPieceIndex(currentBoard.pieces, move.to.row, move.to.col);
-            //let piece = currentBoard.pieces[pieceIndex];
-            //piece.col = move.from.col;
-            //piece.row = move.from.row;
-
-        }
-        else {
-            d3.selectAll("circle").each(function(d,i) {
-                if (d.lastRow === move.from.row && d.lastCol === move.from.col){
-                    d3.select(this).transition().delay(500 * moveNum)
-                        .style("display", "block");
-                    d.col = move.from.col;
-                    d.row = move.from.row;
-
-                    let fromIndex = getCellIndex(move.from.row, move.from.col);
-                    let cell = currentBoard.cells[fromIndex];
-                    cell.state = move.piece.state;
-                    let pieceIndex = getPieceIndex(currentBoard.pieces, move.from.row, move.from.col);
-                    let piece = currentBoard.pieces[pieceIndex];
-                    piece.col = move.from.col;
-                    piece.row = move.from.row;
-                    piece.state = move.piece.state;
-                }
-            });
-        }
-
-    }
-
-    function undo(numBack) {
-        let computerUndo = 0;
-        let lastTurn = player;
-        let moveNum = 0;
-        while (true) {
-            moveNum += 1;
-            let lastMove = movePiece.moves.pop();
-            if (lastMove == null) {
-                break;
-            }
-            if (lastTurn === player && lastMove.piece.state === computer) {
-                computerUndo += 1
-                if (computerUndo > numBack) {
-                    break;
-                }
-            }
-            if (lastMove.to.col > -1) {
-                lastTurn = lastMove.piece.state;
-            }
-            undoMove(lastMove, moveNum);
-            showBoardState();
-        }
-    }
-
-    function movePiece(boardState, piece, fromCell, toCell, moveNum) {
-        if (boardState.ui) {
-            if (movePiece.moves == null) {
-                movePiece.moves = [];
-            }
-            movePiece.moves.push({piece: { col: piece.col, row: piece.row, state: piece.state},
-                from: {col: fromCell.col, row: fromCell.row},
-                to: {col: toCell.col, row: toCell.row}});
-        }
-
-        // Get jumped piece
-        let jumpedPiece = getJumpedPiece(boardState.cells, boardState.pieces, fromCell, toCell);
-
-        // Update states
-        let fromIndex = getCellIndex(fromCell.row, fromCell.col);
-        let toIndex = getCellIndex(toCell.row, toCell.col);
-        if ((toCell.row === 0 || toCell.row === 8) && Math.abs(piece.state) === 1) {
-            boardState.cells[toIndex].state = piece.state * 1.1;
-        }
-        else {
-            boardState.cells[toIndex].state = piece.state;
-        }
-        boardState.cells[fromIndex].state = empty;
-        if ((toCell.row === 0 || toCell.row === 7) && Math.abs(piece.state) === 1) {
-            piece.state = piece.state * 1.1
-        }
-        piece.col = toCell.col;
-        piece.row = toCell.row;
-
-        if (boardState.ui && (boardState.turn === computer || moveNum > 1)) {
-            moveCircle(toCell, moveNum);
-        }
-
-        if (jumpedPiece != null) {
-            let jumpedIndex = getPieceIndex(boardState.pieces, jumpedPiece.row, jumpedPiece.col);
-            let originialJumpPieceState = jumpedPiece.state;
-            jumpedPiece.state = 0;
-
-            let cellIndex = getCellIndex(jumpedPiece.row, jumpedPiece.col);
-            let jumpedCell = boardState.cells[cellIndex];
-            jumpedCell.state = empty;
-            boardState.pieces[jumpedIndex].lastCol = boardState.pieces[jumpedIndex].col;
-            boardState.pieces[jumpedIndex].lastRow = boardState.pieces[jumpedIndex].row;
-            boardState.pieces[jumpedIndex].col = -1;
-            boardState.pieces[jumpedIndex].row = -1;
-            if (boardState.ui) {
-                hideCircle(jumpedCell, moveNum);
-            }
-
-            if (boardState.ui) {
-                movePiece.moves.push({piece: { col: jumpedPiece.col, row: jumpedPiece.row, state: originialJumpPieceState},
-                    from: {col: jumpedCell.col, row: jumpedCell.row},
-                    to: {col: -1, row: -1}});
-            }
-
-            // Another jump?
-            let more_moves = get_available_piece_moves(boardState, piece, boardState.turn);
-            let another_move = null;
-            for (let i=0; i<more_moves.length; i++) {
-                more_move = more_moves[i];
-                if (more_move.move_type === "jump") {
-                    another_move = more_move;
-                    break;
-                }
-            }
-            if (another_move != null) {
-                moveNum += 1;
-                boardState = movePiece(boardState, piece, another_move.from, another_move.to, moveNum);
-                if (boardState.ui && boardState.turn === player) {
-                    boardState.numPlayerMoves += moveNum;
-                }
-            }
-        }
-
-
-        return boardState;
-    }
-
-    function getCellIndex(row, col) {
-        let numSquares = 8;
-        let index = ((row * numSquares) + col);
-        return index;
-    }
-
-    function getPieceIndex(pieces, row, col) {
-        let index = -1;
-        for (let i=0; i<pieces.length;i++){
-            let piece = pieces[i];
-            if (piece.row===row && piece.col===col){
-                index = i;
-                break;
-            }
-        }
-        return index;
-    }
-
-    function getPieceCount(boardState) {
-        let numRed = 0;
-        let numBlack = 0;
-        let pieces = boardState.pieces;
-        for (let i=0;i<pieces.length;i++) {
-            let piece = pieces[i];
-            if (piece.col >=0 && piece.row >=0){
-                if (piece.state === red || piece.state === redKing) {
-                    numRed += 1;
-                }
-                else if (piece.state === black || piece.state === blackKing) {
-                    numBlack += 1;
-                }
-            }
-        }
-
-        return {red: numRed, black: numBlack};
-    }
-
-    function getScore(boardState) {
-        let pieceCount = getPieceCount(boardState);
-        let score = pieceCount.red - pieceCount.black;
-        return score;
-    }
-
-    function getWinner(boardState) {
-        let pieceCount = getPieceCount(boardState);
-        if (pieceCount.red > 0  && pieceCount.black === 0) {
-            return red;
-        }
-        else if (pieceCount.black > 0 && pieceCount.red === 0) {
-            return black;
-        }
-        else return 0;
-    }
-
-    function getJumpedPiece(cells, pieces, from, to) {
-        let distance = {x: to.col-from.col,y: to.row-from.row};
-        if (abs(distance.x) == 2) {
-            let jumpRow = from.row+sign(distance.y);
-            let jumpCol = from.col+sign(distance.x);
-            let index = getPieceIndex(pieces, jumpRow, jumpCol);
-            let jumpedPiece = pieces[index];
-            return jumpedPiece;
-        }
-        else return null;
-
-    }
-
-    let tt = 0;
-
-    function isMoveLegalRussianQueen(cells, pieces, piece, from, to) {
-
-
-        if ((to.col < 0) || (to.row < 0) || (to.col > 7) || (to.row > 7)) {
-            //console.log("ILLEGAL MOVE: piece going off board");
-            return {
-                isMoveLegal: false
-            };
-        }
-        let distance = {x: to.col - from.col, y: to.row - from.row};
-        if ((distance.x == 0) || (distance.y == 0)) {
-            //console.log("ILLEGAL MOVE: horizontal or vertical move");
-            return {
-                isMoveLegal: false
-            };
-        }
-        if (abs(distance.x) != abs(distance.y)) {
-            //console.log("ILLEGAL MOVE: non-diagonal move");
-            return {
-                isMoveLegal: false
-            };
-        }
-
-        if (to.state != empty) {
-            //console.log("ILLEGAL MOVE: cell is not empty");
-            if (to.state == 1 || to.state == 1.1) {
-                return {
-                    to_piece: 1,
-                    to: to,
-                    from: from,
-                    isMoveLegal: false
-                };
-            }
-            else if (to.state == -1 || to.state == -1.1) {
-                return {
-                    to_piece: -1,
-                    to: to,
-                    from: from,
-                    isMoveLegal: false
-                };
-            }
-        }
-
-        return {
-            isMoveLegal: true
-        };
-
-    }
-
-    function isMoveLegal(cells, pieces, piece, from, to) {
-        if ((to.col < 0) || (to.row < 0) || (to.col > 7) || (to.row > 7)) {
-            //console.log("ILLEGAL MOVE: piece going off board");
-            return false;
-        }
-        let distance = {x: to.col-from.col,y: to.row-from.row};
-        if ((distance.x == 0) || (distance.y == 0)) {
-            //console.log("ILLEGAL MOVE: horizontal or vertical move");
-            return false;
-        }
-        if (abs(distance.x) != abs(distance.y)) {
-            //console.log("ILLEGAL MOVE: non-diagonal move");
-            return false;
-        }
-
-        /* TODO: handle double jump
-        if ((abs(distance.x) == 1) && double_jump) {
-            return false;
-        }
-        */
-        if (to.state != empty) {
-            //console.log("ILLEGAL MOVE: cell is not empty");
-            return false;
-        }
-
-        if ((integ(piece.state) === piece.state) && (sign(piece.state) != sign(distance.y))) {
-            //console.log("ILLEGAL MOVE: wrong direction");
-            if(SIMPLE_BACK_ATTACK !== "on") {
-                return false;
-            }
-        }
-
-        if (abs(distance.x) > 2) {
-            //console.log("ILLEGAL MOVE: more than two diagonals");
-            if(TYPE_GAME !== "Русские") {
-                return false;
-            }
-            //return false;
-        }
-
-        if (abs(distance.x) == 2) {
-            let jumpedPiece = getJumpedPiece(cells, pieces, from, to);
-            if (jumpedPiece == null) {
-                //console.log("ILLEGAL MOVE: no piece to jump");
-                return false;
-            }
-
-            let pieceState = integ(piece.state);
-            let jumpedState = integ(jumpedPiece.state);
-            if (pieceState != -jumpedState) {
-                //console.log("ILLEGAL MOVE: can't jump own piece");
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    function drawBoard(origin, cellWidth, boardCanvas) {
-        let boardState = initializeBoard();
-        let cells = boardState.cells;
-        let pieces = boardState.pieces;
-
-        //Draw cell rects
-        boardCanvas.append("g")
-            .selectAll("rect")
-            .data(cells)
-            .enter().append("rect")
-            .attr("x", function(d) { return mapCellToCoordinates(origin, cellWidth, d).x})
-            .attr("y", function(d) { return mapCellToCoordinates(origin, cellWidth, d).y})
-            .attr("height", cellWidth)
-            .attr("width", cellWidth)
-            .style("fill", "white")
-            .style("stroke", "black")
-            .style("stroke-width", "1px");
-
-        //Draw pieces
-        let dragEndedDimensions = function(d) {
-            node = d3.select(this);
-            dragEnded(origin, cellWidth, node, d);
-        }
-
-        let drag = d3.drag()
-            .on("start", dragStarted)
-            .on("drag", dragged)
-            .on("end", dragEndedDimensions);
-
-        boardCanvas.append("g")
-            .selectAll("circle")
-            .data(pieces)
-            .enter().append("circle")
-            .attr("r", cellWidth/2)
-            .attr("cx", function(d) { let x = mapCellToCoordinates(origin, cellWidth, d).x; return x+cellWidth/2;})
-            .attr("cy", function(d) { let y = mapCellToCoordinates(origin, cellWidth, d).y; return y+cellWidth/2;})
-            .style("fill", function(d) { if (d.state == red) return "red"; else return "black";})
-            .call(drag)
-        ;
-
-        //Draw scoreboard
-        d3.select("#divScoreboard").remove();
-        d3.select("body").append("div")
-            .attr("id", "divScoreboard")
-            .style("font-size", "36")
-            .html("SCOREBOARD")
-
-        d3.select("#divScoreboard")
-            .append("div")
-            .style("font-size", "24")
-            .attr("id", "winner");
-
-        d3.select("#divScoreboard")
-            .append("div")
-            .attr("id", "redScore")
-            .style("font-size", "18")
-            .html("Red: 12")
-
-        d3.select("#divScoreboard")
-            .append("div")
-            .attr("id", "blackScore")
-            .style("font-size", "18")
-            .html("Black: 12")
-        ;
-
-        return boardState;
-    }
-
-    function updateScoreboard() {
-        let pieceCount = getPieceCount(currentBoard);
-        let redLabel = "Red: " + pieceCount.red;
-        let blackLabel = "Black: " + pieceCount.black;
-
-        d3.select("#redScore")
-            .html(redLabel);
-        d3.select("#blackScore")
-            .html(blackLabel);
-
-        let winner = getWinner(currentBoard);
-        let winnerLabel = "";
-        if (winner === player) {
-            winnerLabel = "Red Wins!!";
-        }
-        else if (winner === computer) {
-            winnerLabel = "Black Wins!!";
-        }
-
-        if (winner != 0) {
-            d3.select("#btnReplay")
-                .style("display", "inline");
-        }
-
-        d3.select("#winner")
-            .html(winnerLabel);
-    }
-
-    function integ(num) {
-        if (num != null)
-            return Math.round(num);
-        else
-            return null;
-    }
-
-    function abs(num) {
-        return Math.abs(num);
-    }
-
-    function sign(num) {
-        if (num < 0) return -1;
-        else return 1;
-    }
-
-    function drawText(data) {
-        boardCanvas.append("g")
-            .selectAll("text")
-            .data(data)
-            .enter().append("text")
-            .attr("x", function(d) { let x = mapCellToCoordinates(board_origin, cell_width, d).x; return x+cell_width/2;})
-            .attr("y", function(d) { let y = mapCellToCoordinates(board_origin, cell_width, d).y; return y+cell_width/2;})
-            .style("fill", function(d) { if (d.state === red) return "black"; else return "white";})
-            .text(function(d) { /*if (d.state === red) return "R";
-									else if (d.state === black) return "B";
-									else*/ if (d.state === redKing || d.state === blackKing) return "K";
-            else return "";})
-        ;
-    }
-
-    function showBoardState() {
-        d3.selectAll("text").each(function(d,i) {
-            d3.select(this)
-                .style("display", "none");
-        });
-
-        let cells = currentBoard.cells;
-        let pieces = currentBoard.pieces;
-        //drawText(cells);
-        drawText(pieces);
-    }
-
-    /* COMPUTER AI FUNCTIONS */
-    function copy_board(board) {
-        let newBoard = {};
-        newBoard.ui = false;
-        let cells = new Array();
-        let pieces = new Array();
-
-        for (let i=0;i<board.cells.length;i++) {
-            let cell = board.cells[i];
-            let newCell = {row: cell.row, col: cell.col, state: cell.state};
-            cells.push(newCell);
-        }
-        for (let i=0;i<board.pieces.length;i++){
-            let piece = board.pieces[i];
-            let newPiece = {row: piece.row, col: piece.col, state: piece.state};
-            pieces.push(newPiece);
-        }
-
-        return {cells: cells, pieces: pieces, turn: board.turn};
-    }
-
-    function get_player_pieces(player, target_board) {
-        player_pieces = new Array();
-        for (let i=0;i<target_board.pieces.length;i++){
-            let piece = target_board.pieces[i];
-            if (piece.state === player || piece.state === (player+.1) || piece.state === (player-.1) ) {
-                player_pieces.push(piece);
-            }
-        }
-        return player_pieces;
-    }
-
-    function get_cell_index(target_board, col, row) {
-        let index = -1;
-        for (let i=0;i<target_board.cells.length;i++) {
-            let cell = target_board.cells[i];
-            if (cell.col === col && cell.row ===row) {
-                index = i;
-                break;
-            }
-        }
-        return index;
-    }
-
-    function get_available_piece_moves(target_board, target_piece, player) {
-
-        let potencial = []; //for russian queens
-
-        let moves = [];
-        let from = target_piece;
-
-        if(Math.abs(from.state) === 1) {
-            // check for slides
-            let x = [-1, 1];
-            x.forEach(function (entry) {
-                let cell_index = get_cell_index(target_board, from.col + entry, from.row + (player * 1));
-                if (cell_index >= 0) {
-                    let to = target_board.cells[cell_index];
-                    if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                        move = {
-                            move_type: 'slide',
-                            piece: player,
-                            from: {col: from.col, row: from.row},
-                            to: {col: to.col, row: to.row}
-                        };
-                        moves[moves.length] = move;
-                    }
-                }
-            });
-
-            // check for jumps
-            x = [-2, 2];
-            let y = [-2, 2];
-            x.forEach(function (xmove) {
-                y.forEach(function (ymove) {
-                    let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                    if (cell_index >= 0) {
-                        let to = target_board.cells[cell_index];
-
-                        let col_enemy = 0;
-                        let row_enemy = 0;
-                        if (xmove === -2) {
-                            col_enemy = from.col + (xmove + 1);
-                        }
-                        else {
-                            col_enemy = from.col + (xmove - 1);
-                        }
-
-                        if (ymove === -2) {
-                            row_enemy = from.row + (ymove + 1);
-                        }
-                        else {
-                            row_enemy = from.row + (ymove - 1);
-                        }
-
-                        if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                            move = {
-                                enemy: {col: col_enemy, row: row_enemy},
-                                move_type: 'jump',
-                                piece: player,
-                                from: {col: from.col, row: from.row},
-                                to: {col: to.col, row: to.row}
-                            };
-                            moves[moves.length] = move;
-                        }
-                    }
-                });
-            });
-        }
-
-
-        // kings
-        if (Math.abs(from.state) === 1.1) {
-            if (TYPE_GAME === "Английские") {
-                // check for slides
-                let x = [-1, 1];
-                let y = [-1, 1];
-                x.forEach(function (xmove) {
-                    y.forEach(function (ymove) {
-                        let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                        if (cell_index >= 0) {
-                            let to = target_board.cells[cell_index];
-                            if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                                move = {
-                                    move_type: 'slide',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                };
-                                moves[moves.length] = move;
-                            }
-                        }
-                    });
-                });
-
-                // check for jumps
-                x = [-2, 2];
-                y = [-2, 2];
-                x.forEach(function (xmove) {
-                    y.forEach(function (ymove) {
-                        let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                        if (cell_index >= 0) {
-                            let to = target_board.cells[cell_index];
-
-                            let col_enemy = 0;
-                            let row_enemy = 0;
-                            if (xmove === -2) {
-                                col_enemy = from.col + (xmove + 1);
-                            }
-                            else {
-                                col_enemy = from.col + (xmove - 1);
-                            }
-
-                            if (ymove === -2) {
-                                row_enemy = from.row + (ymove + 1);
-                            }
-                            else {
-                                row_enemy = from.row + (ymove - 1);
-                            }
-
-                            if (isMoveLegal(target_board.cells, target_board.pieces, from, from, to)) {
-                                move = {
-                                    enemy: {col: col_enemy, row: row_enemy},
-                                    move_type: 'jump',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                };
-                                moves[moves.length] = move;
-                            }
-                        }
-                    });
-                });
-            }
-            else if(TYPE_GAME === "Русские") {
-
-                potencial = [];
-
-                // check for slides
-                let x = [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7];
-                let y = [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6, -7, 7];
-                x.forEach(function (xmove) {
-                    y.forEach(function (ymove) {
-                        let cell_index = get_cell_index(target_board, from.col + xmove, from.row + ymove);
-                        if (cell_index >= 0) {
-                            let to = target_board.cells[cell_index];
-
-                            let check_side = "";
-
-
-                            let result = isMoveLegalRussianQueen(target_board.cells, target_board.pieces, from, from, to);
-                            if(result.to) {
-                                //upright
-                                if(((result.from.col - result.to.col) <= -1) && ((result.from.row - result.to.row) >= 1)) {
-                                    check_side = "upright";
-                                }
-                                //upleft
-                                if(((result.from.col - result.to.col) >= 1) && ((result.from.row - result.to.row) >= 1)) {
-                                    check_side = "upleft";
-                                }
-                                //bottomright
-                                if(((result.from.col - result.to.col) <= -1) && ((result.from.row - result.to.row) <= -1)) {
-                                    check_side = "bottomright";
-                                }
-                                //bottomleft
-                                if(((result.from.col - result.to.col) >= 1) && ((result.from.row - result.to.row) <= -1)) {
-                                    check_side = "bottomleft";
-                                }
-
-                                potencial.push({
-                                    check_side: check_side,
-                                    from: result.from,
-                                    to: result.to,
-                                    isMoveLegal: result.isMoveLegal,
-                                    to_piece: result.to_piece
-                                });
-                            }
-
-                            if (result.isMoveLegal) {
-                                check_side = "";
-                                //upright
-                                if(((from.col - to.col) <= -1) && ((from.row - to.row) >= 1)) {
-                                    check_side = "upright";
-                                }
-                                //upleft
-                                if(((from.col - to.col) >= 1) && ((from.row - to.row) >= 1)) {
-                                    check_side = "upleft";
-                                }
-                                //bottomright
-                                if(((from.col - to.col) <= -1) && ((from.row - to.row) <= -1)) {
-                                    check_side = "bottomright";
-                                }
-                                //bottomleft
-                                if(((from.col - to.col) >= 1) && ((from.row - to.row) <= -1)) {
-                                    check_side = "bottomleft";
-                                }
-
-                                let move = {
-                                    move_type: 'slide',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                };
-
-                                potencial.push({
-                                    check_side: check_side,
-                                    move_type: 'slide',
-                                    piece: player,
-                                    from: {col: from.col, row: from.row},
-                                    to: {col: to.col, row: to.row}
-                                });
-                                moves[moves.length] = move;
-                            }
-                        }
-                    });
-                });
-
-                let arUpRight = [];
-                let arUpLeft = [];
-                let arBottomRight = [];
-                let arBottomLeft = [];
-
-                //разделяем по сторонам
-                potencial.forEach(function (value, index) {
-
-                    if(value.check_side === "upright") {
-                        arUpRight.push(value);
-                    }
-                    if(value.check_side === "upleft") {
-                        arUpLeft.push(value);
-                    }
-                    if(value.check_side === "bottomright") {
-                        arBottomRight.push(value);
-                    }
-                    if(value.check_side === "bottomleft") {
-                        arBottomLeft.push(value);
-                    }
-                });
-
-                arUpRight = getMovesForRussianQueen(arUpRight);
-                arUpLeft = getMovesForRussianQueen(arUpLeft);
-                arBottomRight = getMovesForRussianQueen(arBottomRight);
-                arBottomLeft = getMovesForRussianQueen(arBottomLeft);
-
-                let arMoves = [];
-                arMoves = arMoves.concat(arUpRight, arUpLeft, arBottomRight, arBottomLeft);
-
-                arMoves.forEach(function (value, index) {
-                    try {
-                        arMoves[index].score = moves[index].score;
-                    }
-                    catch (e) {
-                        console.log(e.message);
-                    }
-                });
-
-                return arMoves;
-            }
-        }
-
-        return moves;
-    }
-
-    function getMovesForRussianQueen(array){
-        let arMoves = [];
-
-        let isEnemy = false;
-        let isNotNextMove = false;
-        let countisMoveLegal = 0;
-        let arEnemy = [];
-
-        array.forEach(function (value, index) {
-            if(value.isMoveLegal === false) { //препятствие
-                countisMoveLegal++;
-                if(typeof array[index + 1] !== "undefined"){
-                    if(typeof array[index + 1].isMoveLegal !== "undefined"){
-                        if(array[index + 1].isMoveLegal === false){
-                            isNotNextMove = true;
-                        }
-                    }
-                }
-
-                //определяем враг это или друг
-                if((value.to_piece == 1) || (value.to_piece == 1.1)) { //враг
-                    isEnemy = true;
-                    arEnemy = {
-                        col: value.to.col,
-                        row: value.to.row
-                    }
-                }
-                else if((value.to_piece == -1) || (value.to_piece == -1.1)) { //друг
-                    isNotNextMove = true;
-                }
-            }
-            else {
-                //чтобы ИИ не мог перепрыгнуть через две шашки. (Ибо он подумает, что это один ход, а на самом деле было две атаки за раз)
-                if(countisMoveLegal > 1) {
-                    return false;
-                }
-                if (isNotNextMove) { //если стоит свой, то через него перешагивать нельзя
-                    return false;
-                }
-                else {
-                    if(isEnemy) {
-                        arMoves.push({
-                            check_side: value.check_side,
-                            enemy: {
-                                col: arEnemy.col,
-                                row: arEnemy.row
-                            },
-                            from: value.from,
-                            move_type: "jump",
-                            piece: value.piece,
-                            to: value.to,
-                        });
-                    }
-                    else {
-                        arMoves.push(value);
-                    }
-                }
-            }
-        });
-
-        return arMoves;
-    }
-
-    function get_available_moves(player, target_board) {
-        let moves = [];
-        let move = null;
-        let player_pieces = get_player_pieces(player, target_board);
-
-        for (let i=0;i<player_pieces.length;i++) {
-            let from = player_pieces[i];
-            let piece_moves = get_available_piece_moves(target_board, from, player);
-            try {
-                moves.push.apply(moves, piece_moves);
-            }
-            catch (e) {
-                console.log(e.message);
-            }
-        }
-
-        //prune non-jumps, if applicable
-        let jump_moves = [];
-        for (let i=0; i<moves.length;i++) {
-            let move = moves[i];
-            if (move.move_type == "jump") {
-                jump_moves.push(move);
-            }
-        }
-        if (jump_moves.length > 0){
-            moves = jump_moves;
-        }
-
-        return moves;
-    }
-
-    function select_random_move(moves){
-        // Randomly select move
-        let index = Math.floor(Math.random() * (moves.length - 1));
-        let selected_move = moves[index];
-
-        return selected_move;
-    }
-
-    // isNeedMarkAlphaBeta -- for multiattacks
-    function alpha_beta_search(calc_board, limit, isNeedMarkAlphaBeta = true) {
-        let alpha = NEG_INFINITY;
-        let beta = INFINITY;
-
-        //get available moves for computer
-        let available_moves = get_available_moves(computer, calc_board);
-
-        let max = 0;
-        if(isNeedMarkAlphaBeta) {
-            //get max value for each available move
-            max = max_value(calc_board, available_moves, limit, alpha, beta);
-        }
-
-        console.log(available_moves);
-
-        /**
-         * ПОДДАВКИ
-         */
-        let min = available_moves[0].score;
-        for (let i = 1; i < available_moves.length; ++i) {
-            if (available_moves[i].score < min)
-                min = available_moves[i].score;
-        }
-        /**
-         * ПОДДАВКИ
-         */
-
-        //find all moves that have max-value
-        let best_moves = [];
-        let max_move = null;
-        for(let i=0;i<available_moves.length;i++){
-            let next_move = available_moves[i];
-            if(isNeedMarkAlphaBeta) {
-                if(TYPE_GAME === "Поддавки") {
-                    if (next_move.score == min) {
-                        max_move = next_move;
-                        best_moves.push(next_move);
-                    }
-                }
-                else {
-                    if (next_move.score == max) {
-                        max_move = next_move;
-                        best_moves.push(next_move);
-                    }
-                }
-            }
-            else {
-                max_move = next_move;
-                best_moves.push(next_move);
-            }
-        }
-
-        //randomize selection, if multiple moves have same max-value
-        if (best_moves.length > 1){
-            max_move = select_random_move(best_moves);
-        }
-
-        return max_move;
-    }
-
-    function computerMove() {
-        // Copy board into simulated board
-        let simulated_board = copy_board(currentBoard);
-        console.log(simulated_board)
-
-        // Run algorithm to select next move
-        let selected_move = alpha_beta_search(simulated_board, 8);
-        console.log("best move: " + selected_move.from.col + ":" + selected_move.from.row + " to " + selected_move.to.col + ":" + selected_move.to.row);
-
-        // Make computer's move
-        let pieceIndex = getPieceIndex(currentBoard.pieces, selected_move.from.row, selected_move.from.col);
-        let piece = currentBoard.pieces[pieceIndex];
-        currentBoard = movePiece(currentBoard, piece, selected_move.from, selected_move.to, 1);
-        moveCircle(selected_move.to, 1);
-        showBoardState();
-
-        let winner = getWinner(currentBoard);
-        if (winner != 0) {
-            currentBoard.gameOver = true;
-        }
-        else {
-            // Set turn back to human
-            currentBoard.turn = player;
-            currentBoard.delay = 0;
-        }
-    }
-
-    function jump_available(available_moves) {
-        let jump = false;
-        for (let i=0;i<available_moves.length;i++){
-            let move = available_moves[i];
-            if (move.move_type == "jump") {
-                jump = true;
-                break;
-            }
-        }
-
-        return jump;
-    }
-
-    function min_value(calc_board, human_moves, limit, alpha, beta) {
-        if (limit <=0 && !jump_available(human_moves)) {
-            return utility(calc_board);
-        }
-        let min = INFINITY;
-
-        //for each move, get min
-        if (human_moves.length > 0){
-            for (let i=0;i<human_moves.length;i++){
-                simulated_board = copy_board(calc_board);
-
-                //move human piece
-                let human_move = human_moves[i];
-                let pieceIndex = getPieceIndex(simulated_board.pieces, human_move.from.row, human_move.from.col);
-                let piece = simulated_board.pieces[pieceIndex];
-                simulated_board = movePiece(simulated_board, piece, human_move.from, human_move.to);
-
-                //get available moves for computer
-                let computer_moves = get_available_moves(computer, simulated_board);
-
-                //get max value for this move
-                let max_score = max_value(simulated_board, computer_moves, limit-1, alpha, beta);
-
-                //compare to min and update, if necessary
-                if (max_score < min) {
-                    min = max_score;
-                }
-                human_moves[i].score = min;
-                if (min <= alpha) {
-                    break;
-                }
-                if (min < beta) {
-                    beta = min;
-                }
-            }
-        }
-        else {
-            //log("NO MORE MOVES FOR MIN: l=" + limit);
-        }
-
-        return min;
-    }
-
-    function max_value(calc_board, computer_moves, limit, alpha, beta) {
-        if (limit <= 0 && !jump_available(computer_moves)) {
-            return utility(calc_board);
-        }
-        let max = NEG_INFINITY;
-
-        //for each move, get max
-        if (computer_moves.length > 0){
-            for (let i=0;i<computer_moves.length;i++){
-                let simulated_board = copy_board(calc_board);
-
-                //move computer piece
-                let computer_move = computer_moves[i];
-                let pieceIndex = getPieceIndex(simulated_board.pieces, computer_move.from.row, computer_move.from.col);
-                let piece = simulated_board.pieces[pieceIndex];
-                simulated_board = movePiece(simulated_board, piece, computer_move.from, computer_move.to);
-
-                //get available moves for human
-                let human_moves = get_available_moves(player, simulated_board);
-
-                //get min value for this move
-                let min_score = min_value(simulated_board, human_moves, limit-1, alpha, beta);
-                computer_moves[i].score = min_score;
-
-                //compare to min and update, if necessary
-                if (min_score > max) {
-                    max = min_score;
-                }
-                if (max >= beta) {
-                    break;
-                }
-                if (max > alpha) {
-                    alpha = max;
-                }
-            }
-        }
-        else {
-            //log("NO MORE MOVES FOR MAX: l=" + limit);
-        }
-
-        return max;
-
-    }
-
-    function evaluate_position(x , y) {
-        if (x == 0 || x == 7 || y == 0 || y == 7){
-            return 5;
-        }
-        else {
-            return 3;
-        }
-    }
-
-    function utility(target_board) {
-        let sum = 0;
-        let computer_pieces = 0;
-        let computer_kings = 0;
-        let human_pieces = 0;
-        let human_kings = 0;
-        let computer_pos_sum = 0;
-        let human_pos_sum = 0;
-
-        //log("************* UTILITY *****************")
-        for (let i=0; i<target_board.pieces.length; i++) {
-            let piece = target_board.pieces[i];
-            if (piece.row > -1) { // only count pieces still on the board
-                if (piece.state > 0) { // human
-                    human_pieces += 1;
-                    if (piece.state === 1.1){
-                        human_kings += 1;
-                    }
-                    let human_pos = evaluate_position(piece.col, piece.row);
-                    human_pos_sum += human_pos;
-                }
-                else { // computer
-                    computer_pieces += 1;
-                    if (piece.state === -1.1){
-                        computer_kings += 1;
-                    }
-                    let computer_pos = evaluate_position(piece.col, piece.row);
-                    computer_pos_sum += computer_pos;
-                }
-            }
-        }
-
-        let piece_difference = computer_pieces - human_pieces;
-        let king_difference = computer_kings - human_kings;
-        if (human_pieces === 0){
-            human_pieces = 0.00001;
-        }
-        let avg_human_pos = human_pos_sum / human_pieces;
-        if (computer_pieces === 0) {
-            computer_pieces = 0.00001;
-        }
-        let avg_computer_pos = computer_pos_sum / computer_pieces;
-        let avg_pos_diff = avg_computer_pos - avg_human_pos;
-
-        let features = [piece_difference, king_difference, avg_pos_diff];
-        let weights = [100, 10, 1];
-
-        let board_utility = 0;
-
-        for (let f=0; f<features.length; f++){
-            let fw = features[f] * weights[f];
-            board_utility += fw;
-        }
-
-        //log("utility=" + board_utility);
-        //log("************* END  UTILITY ************")
-
-        return board_utility;
     }
 
 });

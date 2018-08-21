@@ -33,6 +33,11 @@ router.get('/', function(req, res, next) {
 
 /* GET start main page. */
 router.get('/game', isLoggedIn, function(req, res, next) {
+    // res.render('pages/game/index', {
+    //     title: 'Шашки',
+    //     current_date: date,
+    // });
+
     let isAuth = res.req.session.passport.user; //session user id
     let nickname = res.req.user.nickname;
 
@@ -49,7 +54,7 @@ router.get('/game', isLoggedIn, function(req, res, next) {
                 title: 'Шашки',
                 current_date: date,
                 isAuth: isAuth,
-                nickname: nickname
+                nickname: nickname,
             });
         }
         else {
@@ -91,27 +96,6 @@ function isLoggedIn(req, res, next) {
         return next();
 
     res.redirect('/signin');
-}
-
-function isActiveUser(req, res, next) {
-    let user_id = res.req.session.passport.user; //session user id
-
-    sequelize.query("SELECT * FROM users WHERE id = " + user_id).spread((results, metadata) => {
-        let isActive = false;
-        results.forEach(function (value) {
-            if(value.active === 1) {
-                isActive = true;
-            }
-        });
-
-        if(isActive) {
-            return next;
-        }
-        else {
-            return next;
-        }
-    })
-
 }
 
 module.exports = router;
