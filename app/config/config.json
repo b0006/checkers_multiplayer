@@ -3,7 +3,7 @@
     "username": "pma",
     "password": "13820003",
     "database": "checkers",
-    "host": "195.2.77.70",
+    "host": "localhost",
     "dialect": "mysql"
   },
   "test": {
