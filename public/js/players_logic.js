@@ -127,6 +127,7 @@ $(document).ready(function(){
     });
 
     socket.on('joingame', function(msg) {
+        console.log(msg);
         //get setting games
         try {
             // msg.settings.forEach(function (value) {
@@ -563,6 +564,18 @@ $(document).ready(function(){
     };
 
     //////////////////////////////
+    // DataBase
+    //////////////////////////////
+
+    function createGameDB(nickname_white, nickname_black, settings){
+        socket.emit('create_game_db', {
+            nickname_white: nickname_white,
+            nickname_black: nickname_black,
+            settings: settings
+        });
+    }
+
+    //////////////////////////////
     // Checkers Game
     //////////////////////////////
 
@@ -633,10 +646,10 @@ $(document).ready(function(){
                 if(i <= 2) { // первые три поля
                     if (i % 2 === 0) {
                         if ((t % 2 !== 0)) {
-                            // piece = document.createElement("div");
-                            // piece.className = "piece black";
-                            // piece.innerHTML = "&#9820;";
-                            // rank__check.append(piece);
+                            piece = document.createElement("div");
+                            piece.className = "piece black";
+                            piece.innerHTML = "&#9820;";
+                            rank__check.append(piece);
                         }
                     }
                     else {
@@ -675,10 +688,10 @@ $(document).ready(function(){
                     }
                     else {
                         if ((t % 2 === 0)) {
-                            // piece = document.createElement("div");
-                            // piece.className = "piece white";
-                            // piece.innerHTML = "&#9814;";
-                            // rank__check.append(piece);
+                            piece = document.createElement("div");
+                            piece.className = "piece white";
+                            piece.innerHTML = "&#9814;";
+                            rank__check.append(piece);
                         }
 
                     }
@@ -1070,6 +1083,10 @@ $(document).ready(function(){
 
             colorSteps(current_piece.parentElement.getAttribute("x"),current_piece.parentElement.getAttribute("y"), next_x, next_y);
 
+            let for_next_notation = getRankCheck(next_x, next_y);
+
+            let stateBoard = simulate_board();
+
             socket.emit('step', {
                 gameId: serverGame.id,
                 prev: {
@@ -1081,13 +1098,107 @@ $(document).ready(function(){
                     y: next_y,
                 },
                 currentPlayer: player_play,
-                isQueen: isQueen
+                isQueen: isQueen,
+                prev_notation: current_piece.parentElement.getAttribute("not"),
+                next_notation: for_next_notation.getAttribute("not"),
+                stateBoard: JSON.stringify(stateBoard)
             });
 
             removeCurrentPiece();
         }
 
         return wasStep;
+    }
+
+    function simulate_board() {
+
+        let cells = [];
+        let pieces = [];
+
+        let cell = null;
+
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                cell = $(".rank__check[x=" + j + "][y=" + i + "]")[0];
+                if(typeof cell !== "undefined"){
+                    if(cell.hasChildNodes()){
+                        if(cell.firstElementChild.classList.contains("white")) {
+                            if(cell.firstElementChild.classList.contains("queen")) {
+                                cells.push({
+                                    col: j,
+                                    row: i,
+                                    state: -1.1
+                                });
+
+                                pieces.push({
+                                    col: j,
+                                    row: i,
+                                    state: -1.1
+                                });
+                            }
+                            else {
+                                cells.push({
+                                    col: j,
+                                    row: i,
+                                    state: -1
+                                });
+
+                                pieces.push({
+                                    col: j,
+                                    row: i,
+                                    state: -1
+                                });
+                            }
+
+                        }
+                        else if(cell.firstElementChild.classList.contains("black")) {
+                            if(cell.firstElementChild.classList.contains("queen")) {
+                                cells.push({
+                                    col: j,
+                                    row: i,
+                                    state: 1.1
+                                });
+
+                                pieces.push({
+                                    col: j,
+                                    row: i,
+                                    state: 1.1
+                                });
+                            }
+                            else {
+                                cells.push({
+                                    col: j,
+                                    row: i,
+                                    state: 1
+                                });
+
+                                pieces.push({
+                                    col: j,
+                                    row: i,
+                                    state: 1
+                                });
+                            }
+                        }
+                    }
+                    else {
+                        cells.push({
+                            col: j,
+                            row: i,
+                            state: 0
+                        });
+                    }
+                }
+                else {
+                    cells.push({
+                        col: j,
+                        row: i,
+                        state: 0
+                    });
+                }
+            }
+        }
+
+        return {cells: cells};
     }
 
     function colorLastStep(prev, next = null, enemy = null) {
@@ -1544,12 +1655,24 @@ $(document).ready(function(){
 
         if(resultAttack){
 
+            let for_next_notation = null;
+
             try{
+                for_next_notation = getRankCheck(resultAttack.next.x, resultAttack.next.y);
                 colorSteps(resultAttack.prev.x, resultAttack.prev.y, resultAttack.next.x, resultAttack.next.y, resultAttack.target.x, resultAttack.target.y);
             }
             catch (e) {}
 
             back_history(current_piece.parentElement, enemy_for_history, target, currentColor, isQueen);
+
+            appendPiece(resultAttack.target_place, resultAttack.local_color, true, resultAttack.isQueen)
+
+            let prev_notation = current_piece.parentElement.getAttribute("not");
+
+            removeCurrentPiece();
+            $(resultAttack.kill_target)[0].firstElementChild.remove();
+
+            let stateBoard = simulate_board();
 
             socket.emit('attack', {
                 gameId: resultAttack.gameId,
@@ -1567,6 +1690,9 @@ $(document).ready(function(){
                 },
                 currentPlayer: resultAttack.currentplayer_play,
                 isQueen: resultAttack.isQueen,
+                prev_notation: prev_notation,
+                next_notation: for_next_notation.getAttribute("not"),
+                stateBoard: JSON.stringify(stateBoard)
             });
         }
 
@@ -2864,6 +2990,7 @@ $(document).ready(function(){
                 }
 
                 if(OVER_STEPS === "on") {
+
                     if (current_piece.parentElement === value[0].currentpiece) {
                         value[0].upright.empty.forEach(function (val_up) {
                             val_up.toggleClass("over", true);
@@ -3146,10 +3273,10 @@ $(document).ready(function(){
                             // если атака прошла успешно
                             if(!$.isEmptyObject(resultAttack)) {
 
-                                appendPiece(resultAttack.target_place, resultAttack.local_color, true, true);
-                                removeCurrentPiece();
-
-                                $(resultAttack.kill_target)[0].firstElementChild.remove();
+                                // appendPiece(resultAttack.target_place, resultAttack.local_color, true, true);
+                                // removeCurrentPiece();
+                                //
+                                // $(resultAttack.kill_target)[0].firstElementChild.remove();
 
                                 /**
                                  * NEXT ATTACK
@@ -3293,10 +3420,10 @@ $(document).ready(function(){
                             // если атака прошла успешно
                             if (!$.isEmptyObject(resultAttack)) {
 
-                                appendPiece(resultAttack.target_place, resultAttack.local_color, true);
-                                removeCurrentPiece();
-
-                                $(resultAttack.kill_target)[0].firstElementChild.remove();
+                                // appendPiece(resultAttack.target_place, resultAttack.local_color, true);
+                                // removeCurrentPiece();
+                                //
+                                // $(resultAttack.kill_target)[0].firstElementChild.remove();
 
                                 /**
                                  * NEXT ATTACK
@@ -3401,8 +3528,7 @@ $(document).ready(function(){
         let isGameOver = gameOver();
         if(isGameOver.isGameOver) {
 
-            console.log(serverGame.id);
-            console.log("Победил: "+ isGameOver.winner);
+            alert("Победил: "+ isGameOver.winner)
 
             socket.emit('gameover', {
                 gameId: serverGame.id,
@@ -3592,5 +3718,265 @@ $(document).ready(function(){
 
         return temp.toLowerCase();
     }
+
+    //////////////////////////
+    // НЕОКОНЧЕННЫЕ ПАРТИИ
+    //////////////////////////
+
+    function removeBoard() {
+        try {
+            let checkers_board = document.getElementById("game-board");
+            while (checkers_board.firstChild) {
+                checkers_board.removeChild(checkers_board.firstChild);
+            }
+        }
+        catch (e) {}
+    }
+
+    let resume_game_notation = [
+        'a8','b8','c8','d8','e8','f8','g8','h8',
+        'a7','b7','c7','d7','e7','f7','g7','h7',
+        'a6','b6','c6','d6','e6','f6','g6','h6',
+        'a5','b5','c5','d5','e5','f5','g5','h5',
+        'a4','b4','c4','d4','e4','f4','g4','h4',
+        'a3','b3','c3','d3','e3','f3','g3','h3',
+        'a2','b2','c2','d2','e2','f2','g2','h2',
+        'a1','b1','c1','d1','e1','f1','g1','h1'
+    ];
+
+    function resumeInitGame(msg){
+        let black_player = null;
+        let white_player = null;
+
+        msg.settings.game_setting.forEach(function (value) {
+            if(value.id === msg.settings.resume_id_game) {
+                if(value.first_move === msg.settings.who_invite){
+                    white_player = msg.settings.who_invite;
+                    black_player = msg.settings.who_invited;
+                }
+                else {
+                    white_player = msg.settings.who_invited;
+                    black_player = msg.settings.who_invite;
+                }
+
+                if(value.color_potencial_step)
+                    OVER_STEPS = "on";
+                if(value.time_check)
+                    TIME_CHECK = "on";
+                if(value.time_value)
+                    TIME_VALUE = "on";
+                if(value.fuchs)
+                    FUCHS = "on";
+                if(value.color_potencial_fuchs)
+                    COLOR_FUCHS = "on";
+                if(value.simple_back_attack)
+                    SIMPLE_BACK_ATTACK = "on";
+
+                TYPE_GAME = value.type_game;
+
+            }
+        });
+
+        serverGame = {
+            id: msg.settings.resume_id_game,
+            black:  black_player,
+            white:  white_player
+        };
+
+        if(msg.who_next_step === "black") {
+            if(NICKNAME === serverGame.black){
+                player_play = "black";
+                playerColor = "black";
+            }
+            else {
+                player_play = "black";
+                playerColor = "white";
+            }
+        }
+        else {
+            if(NICKNAME === serverGame.white){
+                player_play = "white";
+                playerColor = "white";
+            }
+            else {
+                player_play = "white";
+                playerColor = "black";
+            }
+        }
+
+        removeBoard();
+
+        $('#page-setting').hide();
+        $('#button_setting').hide();
+        $('#page-start').hide();
+        $('#page-lobby').hide();
+        $('#page-game').show();
+        $('#chat').show();
+
+        let checkers_board = document.getElementById("game-board");
+        let content = document.createElement("div");
+        content.className = "content";
+        checkers_board.append(content);
+
+        let board = document.createElement("div");
+        board.className = "board";
+        content.append(board);
+
+        let rank = null;
+        let rank__check = null;
+
+        let piece = null;
+
+        let tmp_count = 0;
+        let state_board = JSON.parse(msg.ar_moves);
+        state_board.cells.forEach(function (value, index) {
+            if((index === 0) || (index % 8 == 0)){
+                rank = document.createElement("div");
+                rank.className = "rank";
+                board.append(rank);
+            }
+
+            //расставляем координаты
+            rank__check = document.createElement("div");
+            rank__check.className = "rank__check";
+            //и нотация
+            if(player_play === "white") {
+                rank__check.setAttribute('not', resume_game_notation[index]);
+            }
+            else {
+                rank__check.setAttribute('not', resume_game_notation[(resume_game_notation.length - 1) - index]);
+            }
+
+            if((index % 2 !== 0) && (tmp_count <= 8)) {
+                rank__check.setAttribute("x", value.col);
+                rank__check.setAttribute("y", value.row);
+                if(index <= 8){
+                    rank__check.setAttribute("queen", "white");
+                }
+            }
+            if((index % 2 === 0) && ((tmp_count >= 8) && (tmp_count <= 16))) {
+                rank__check.setAttribute("x", value.col);
+                rank__check.setAttribute("y", value.row);
+                if((state_board.cells.length - 1) - index <= 8){
+                    rank__check.setAttribute("queen", "black");
+                }
+            }
+            rank.append(rank__check);
+            tmp_count++;
+            if(tmp_count === 16){
+                tmp_count = 0;
+            }
+
+            if(value.state === -1) {
+                piece = document.createElement("div");
+                piece.className = "piece white";
+                piece.innerHTML = "&#9814;";
+                rank__check.append(piece);
+            }
+            if(value.state === -1.1) {
+                piece = document.createElement("div");
+                piece.className = "piece white queen";
+                piece.innerHTML = "&#9813;";
+                rank__check.append(piece);
+            }
+            if(value.state === 1) {
+                piece = document.createElement("div");
+                piece.className = "piece black";
+                piece.innerHTML = "&#9820;";
+                rank__check.append(piece);
+            }
+            if(value.state === 1.1) {
+                piece = document.createElement("div");
+                piece.className = "piece black queen";
+                piece.innerHTML = "&#9819;";
+                rank__check.append(piece);
+            }
+        });
+
+        if(playerColor === "black") {
+            $('.board').addClass("rotate_board");
+            $('.rank__check').addClass("rotate_board");
+        }
+    }
+
+    socket.on('get_array_my_games', function (msg) {
+        let arGames = msg.games;
+
+        let divMyGames = document.getElementById("listMyGames");
+        while (divMyGames.firstChild) {
+            divMyGames.removeChild(divMyGames.firstChild);
+        }
+
+        let game_setting = [];
+        arGames.forEach(function (value) {
+            game_setting.push(value);
+
+            let who_invited = null;
+            let white_player = value.nickname_player_1;
+            let black_player = value.nickname_player_2;
+
+            if(NICKNAME === white_player) {
+                who_invited = black_player;
+            }
+            else {
+                who_invited = white_player;
+            }
+
+            let new_div = document.createElement("div");
+            new_div.className = "row";
+            divMyGames.append(new_div);
+
+            let new_game = document.createElement("button");
+            new_game.textContent = white_player + " vs " + black_player + " ("+ value.type_game +")";
+            new_game.setAttribute("id", "game_" + value.id);
+
+            new_game.onclick = function () {
+                socket.emit('invite_to_resume_game', {
+                    who_invite: NICKNAME,
+                    who_invited: who_invited,
+                    game_setting: game_setting,
+                    resume_id_game: value.id
+                })
+            };
+
+            new_div.append(new_game);
+        })
+    });
+
+    socket.on('invite_to_resume_game_confirm', function (msg) {
+        resumeInitGame(msg);
+    });
+
+    socket.on('invite_to_resume_game', function (msg) {
+        if(typeof msg.error !== "undefined"){
+            alert(msg.message);
+        }
+        else {
+            let settings = null;
+            msg.game_setting.forEach(function (value) {
+                if(value.id === msg.resume_id_game) {
+                    settings = value;
+                }
+            });
+
+            let is_resume_game = confirm("Игрок '" + msg.who_invite + "' приглашает Вас продолжить партию (" + settings.type_game + ")");
+            if (is_resume_game) {
+                socket.emit('invite_to_resume_game_confirm', msg);
+            }
+            else {
+                socket.emit('invite_to_resume_game_unconfirmed', msg);
+            }
+        }
+    });
+
+    socket.on('invite_to_resume_game_unconfirmed', function (msg) {
+        alert("Игрок '" + msg.who_invited + "' отказался");
+    });
+
+    $("#getMyGames").on('click', function (e) {
+        socket.emit('get_my_games', {
+            nickname: NICKNAME
+        });
+    });
 
 });

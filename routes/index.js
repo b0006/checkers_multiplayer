@@ -41,6 +41,7 @@ router.get('/game', isLoggedIn, function(req, res, next) {
     let isAuth = res.req.session.passport.user; //session user id
     let nickname = res.req.user.nickname;
 
+
     sequelize.query("SELECT * FROM users WHERE id = " + isAuth).spread((results, metadata) => {
         let isActive = false;
         results.forEach(function (value) {

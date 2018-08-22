@@ -4297,10 +4297,10 @@ $(document).ready(function(){
 
         if (abs(distance.x) > 2) {
             //console.log("ILLEGAL MOVE: more than two diagonals");
-            if(TYPE_GAME !== "Русские") {
-                return false;
-            }
-            //return false;
+            // if(TYPE_GAME !== "Русские") {
+            //     return false;
+            // }
+            return false;
         }
 
         if (abs(distance.x) == 2) {

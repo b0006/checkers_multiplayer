@@ -7,6 +7,7 @@ let session = require('express-session');
 let http = require('http').Server(app);
 let io = require('socket.io')(http);
 let port = process.env.PORT || 3015;
+let logic_db = require('./logic_database');
 
 let env = require('dotenv').load();
 
@@ -104,30 +105,34 @@ io.on('connection', function(socket) {
         socket.broadcast.emit('leavelobby', socket.userId);
         socket.broadcast.emit('leavelobby', msg.user);
 
+        //return id_game
+        let msg_db = Object.assign(msg, {white: socket.userId, black: msg.user});
+        let id_game = logic_db.create_game_db(msg_db);
 
-        console.log(msg.settings_game);
+        id_game.then(result => {
+            let game = {
+                id: result,
+                users: {white: socket.userId, black: msg.user}
+            };
 
-        let game = {
-            id: Math.floor((Math.random() * 100) + 1),
-            board: null,
-            users: {white: socket.userId, black: msg.user}
-        };
+            socket.gameId = game.id;
+            activeGames[game.id] = game;
 
-        socket.gameId = game.id;
-        activeGames[game.id] = game;
+            users[game.users.white].games[game.id] = game.id;
+            users[game.users.black].games[game.id] = game.id;
 
-        users[game.users.white].games[game.id] = game.id;
-        users[game.users.black].games[game.id] = game.id;
+            console.log('starting game: ' + game.id);
 
-        console.log('starting game: ' + game.id);
+            lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white', settings: msg.settings_game});
+            lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black', settings: msg.settings_game});
 
-        lobbyUsers[game.users.white].emit('joingame', {game: game, color: 'white', settings: msg.settings_game});
-        lobbyUsers[game.users.black].emit('joingame', {game: game, color: 'black', settings: msg.settings_game});
+            delete lobbyUsers[game.users.white];
+            delete lobbyUsers[game.users.black];
 
-        delete lobbyUsers[game.users.white];
-        delete lobbyUsers[game.users.black];
+            socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game, settings: msg.settings_game});
+        });
 
-        socket.broadcast.emit('gameadd', {gameId: game.id, gameState:game, settings: msg.settings_game});
+
     });
 
     socket.on('resumegame', function(msg) {
@@ -163,14 +168,17 @@ io.on('connection', function(socket) {
     });
 
     socket.on('step', function (msg) {
+        logic_db.add_move_db(msg, false);
         socket.broadcast.emit('step', msg);
     });
 
     socket.on('attack', function (msg) {
+        logic_db.add_move_db(msg, true);
         socket.broadcast.emit('attack', msg);
     });
 
     socket.on('gameover', function (msg) {
+        logic_db.set_end_game(msg);
         socket.broadcast.emit('gameover', msg);
     });
 
@@ -179,7 +187,71 @@ io.on('connection', function(socket) {
     });
 
     socket.on('chat', function (msg) {
+        logic_db.add_chat_db(msg);
         socket.broadcast.emit('chat', msg);
+    });
+
+    socket.on('get_my_games', function (msg) {
+        let games = logic_db.get_my_games(msg);
+        games.then(result => {
+            let arTypes = result[1];
+            let arGames = result[0];
+
+            arGames.forEach(function (value_game, index_game) {
+                arTypes.forEach(function (value_type) {
+                    if(arGames[index_game].type_game === value_type.id) {
+                        arGames[index_game].type_game = value_type.type_game;
+                    }
+                });
+            });
+
+            lobbyUsers[msg.nickname].emit('get_array_my_games', {
+                games: arGames
+            });
+
+        });
+    });
+
+    socket.on('invite_to_resume_game', function (msg) {
+        try {
+            lobbyUsers[msg.who_invited].emit('invite_to_resume_game', msg)
+        }
+        catch (e) {
+            lobbyUsers[msg.who_invite].emit('invite_to_resume_game', {
+                error: true,
+                message: "Игрок '" + msg.who_invited + "' не онлайн"
+            })
+        }
+    });
+
+    socket.on('invite_to_resume_game_confirm', function (msg) {
+        let moves = logic_db.get_moves_game(msg);
+        moves.then(result => {
+            let who_next_step = null;
+            if(result[0][0].white_step === null) {
+                who_next_step = "white";
+            }
+            else {
+                who_next_step = "black";
+            }
+            let arMoves = result[0][0].state_board;
+
+            lobbyUsers[msg.who_invite].emit('invite_to_resume_game_confirm', {
+                who_next_step: who_next_step,
+                ar_moves: arMoves,
+                settings: msg
+            })
+            lobbyUsers[msg.who_invited].emit('invite_to_resume_game_confirm', {
+                who_next_step: who_next_step,
+                ar_moves: arMoves,
+                settings: msg
+            })
+        });
+
+    });
+
+    socket.on('invite_to_resume_game_unconfirmed', function (msg) {
+        lobbyUsers[msg.who_invite].emit('invite_to_resume_game_unconfirmed', msg)
     });
 
     socket.on('resign', function(msg) {
@@ -210,6 +282,15 @@ io.on('connection', function(socket) {
             gameId: socket.gameId
         });
     });
+
+    //////////////////////////////
+    // DataBase
+    //////////////////////////////
+
+    socket.on('create_game_db', function (msg) {
+       logic_db.create_game_db(msg);
+    });
+
 
 });
 

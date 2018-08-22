@@ -41,6 +41,7 @@ router.get('/logout', authController.logout);
 // );
 
 router.post('/signin', function(req, res, next) {
+
     passport.authenticate('local-signin', function(err, user, info) {
         if (err) { return next(err) }
         if (!user) {
